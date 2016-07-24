@@ -57,6 +57,8 @@ prepare() {
 
   patch -i ../../qt_m4.patch -p2
   patch -i ../../raux_win.patch -p0
+  patch -i ../../better-image-i-o.patch -p1
+  patch -i ../../enable-using-hunspell.patch -p1
   autoreconf
   
   patch -i ../../configure.patch -p2
@@ -89,34 +91,53 @@ export BUNDLE_DIR="${srcdir}/TeXmacs-Windows"
 # here we mimick what would do "make WINDOWS_BUNDLE", plus our own extras
 ###############################################################################
 
+dlls_for_exes () {
+	# Add DLLs' transitive dependencies (taken from git for windows)
+	dlls=
+	todo="$* "
+	while test -n "$todo"
+	do
+		path=${todo%% *}
+		todo=${todo#* }
+		case "$path" in ''|' ') continue;; esac
+		for dll in $(objdump -p "$path" |
+			sed -n 's/^\tDLL Name: /mingw32\/bin\//p')
+		do
+           if test -f "/"$dll ; then 
+		   # since all the dependencies have been resolved for
+		   # building, if we do not find a dll in /mingw32/bin/
+		   # it must be a Windows-provided dll and then we ignore it
+		   # otherwise we add it to the dlls to scan
+			case "$dlls" in
+			*"$dll"*) ;; # already found
+			*) dlls="$dlls $dll"; todo="$todo /$dll ";;
+			esac
+		   fi
+		done
+	done
+	echo "$dlls"
+}
 
-GS_DLL=( gswin32c.exe libiconv-2.dll  zlib1.dll  libtiff-5.dll  libpng16-16.dll \
-  liblcms2-2.dll  libbz2-1.dll  libopenjp2-7.dll  libintl-8.dll  libidn-11.dll \
- liblzma-5.dll  libpcre-1.dll  libjpeg-8.dll  libgs-9.dll  libglib-2.0-0.dll \
- libwinpthread-1.dll  libharfbuzz-0.dll  libgraphite2.dll  libfreetype-6.dll \
- libgcc_s_dw2-1.dll  libstdc++-6.dll )
 
-HUNSPELL_DLL=( hunspell.exe libiconv-2.dll libintl-8.dll libwinpthread-1.dll \
-  libhunspell-1.4-0.dll libgcc_s_dw2-1.dll libstdc++-6.dll )
+# the additional programs we bundle with TeXmacs
 
-PDFTOCAIRO_DLL=( pdftocairo.exe libiconv-2.dll zlib1.dll libtiff-5.dll \
- libpng16-16.dll liblcms2-2.dll libbz2-1.dll libexpat-1.dll libpixman-1-0.dll \
- libopenjpeg-5.dll libintl-8.dll liblzma-5.dll libpcre-1.dll libjpeg-8.dll \
- libcairo-2.dll libglib-2.0-0.dll libwinpthread-1.dll libharfbuzz-0.dll \
- libgraphite2.dll libfreetype-6.dll libfontconfig-1.dll libgcc_s_dw2-1.dll \
- libstdc++-6.dll libpoppler-62.dll )
+DEPS="/mingw32/bin/pdftocairo.exe \
+ /mingw32/bin/hunspell.exe \
+ /mingw32/bin/gswin32c.exe \
+ /mingw32/bin/wget.exe"
 
-TEXMACS_DLL=( libbz2-1.dll libharfbuzz-0.dll libjpeg-8.dll liblcms2-2.dll \
-  libopenjpeg-5.dll libsystre-0.dll libtiff-5.dll libwinpthread-1.dll \
-  libgcc_s_dw2-1.dll QtCore4.dll QtGui4.dll QtXml4.dll libgmp-10.dll \
-  libguile-17.dll libfreetype-6.dll libltdl-7.dll libiconv-2.dll libintl-8.dll \
-  libstdc++-6.dll libpoppler-62.dll libpoppler-qt4-4.dll libpng16-16.dll zlib1.dll \
-  libglib-2.0-0.dll libgraphite2.dll liblzma-5.dll libtre-5.dll libpcre-1.dll )
-  
+PROGS="$DEPS  $TM_BUILD_DIR/TeXmacs/bin/texmacs.bin"
+
+# lookup all the Mingw32 ddls needed by Texmacs + additional programs
+MINGW_DLLs_NEEDED=$(dlls_for_exes $PROGS)
+
+echo $MINGW_DLLs_NEEDED
+
 #WINSPARKLE_DLL = 
 #WINSPARKLE_PATH = 
 
-QT_NEEDED_PLUGINS_LIST=( accessible imageformats )
+# Qt plugins TeXmacs presently uses
+QT_NEEDED_PLUGINS_LIST="accessible imageformats"
 
 GS_UTILS_PATH=/mingw32/share/ghostscript/9.19/lib/
 GS_UTILS=( ps2epsi.ps ps2epsi.bat cat.ps gssetgs.bat )
@@ -139,26 +160,21 @@ rm -f -r $BUNDLE_DIR/bin/texmacs
 cp -r -f misc/admin/texmacs_updates_dsa_pub.pem $BUNDLE_DIR/bin
 cp -r -f packages/windows/*.exe $BUNDLE_DIR/bin
 
-cd /mingw32/bin
+cd /
 
-for DLL in "${TEXMACS_DLL[@]}" ; do
+for DLL in $MINGW_DLLs_NEEDED ; do
 cp -u $DLL $BUNDLE_DIR/bin
 done
-for DLL in "${PDFTOCAIRO_DLL[@]}" ; do
-cp -u $DLL $BUNDLE_DIR/bin
-done
-for DLL in "${GS_DLL[@]}" ; do
-cp -u $DLL $BUNDLE_DIR/bin
-done
-for DLL in "${HUNSPELL_DLL[@]}" ; do
-cp -u $DLL $BUNDLE_DIR/bin
-done
-cp -u wget.exe $BUNDLE_DIR/bin
 
-for PLUGIN in "${QT_NEEDED_PLUGINS_LIST[@]}"; do
+for prog in "$DEPS" ; do
+cp -u $prog $BUNDLE_DIR/bin
+done
+
+for PLUGIN in $QT_NEEDED_PLUGINS_LIST ; do
             cp -r -f -u /mingw32/share/qt4/plugins/$PLUGIN $BUNDLE_DIR/bin
         done
 
+# pick up ice-9 for guile
 export GUILE_LOAD_PATH="${MINGW_PREFIX}/share/guile/1.8"
 find `guile-config info pkgdatadir` -type d -name ice-9 -exec cp -r -f {} $BUNDLE_DIR/progs/ \;
 
@@ -166,44 +182,38 @@ find `guile-config info pkgdatadir` -type d -name ice-9 -exec cp -r -f {} $BUNDL
 mkdir $BUNDLE_DIR/share
 mkdir $BUNDLE_DIR/share/hunspell
 
-echo "Downloading spell checker dictionaries"
-# get english dic
+# list of dictionaries languages that will be packaged 
+# (the last one is that of the language of the current session)
+# Add as many as you want
+
+local_lang=$(echo $LANG | cut -d'.' -f1)
+
+dicts="en_US $local_lang"
+ 
+echo $dicts
+
+# now fetch dictionaries.
+# We use Lyx Repo's because they are all nicely and systematically organized in a single location
+# (unlike LibreOffice dictionaries)
+
 cd $BUNDLE_DIR/share/hunspell
-wget http://www.lyx.org/trac/browser/lyxsvn/dictionaries/trunk/dicts/en_US.dic
-wget http://www.lyx.org/trac/browser/lyxsvn/dictionaries/trunk/dicts/en_US.aff
 
-# get dic corresponding to locale
-locale=$(echo $LANG | cut -d'.' -f1)
-wget http://www.lyx.org/trac/browser/lyxsvn/dictionaries/trunk/dicts/${locale}.dic
-wget http://www.lyx.org/trac/browser/lyxsvn/dictionaries/trunk/dicts/${locale}.aff
+lang_list=
+for dic in $dicts ; do
+lang_list="$lang_list $(locale -av | grep -A2 -m1 $dic | sed -n -e 's/^ language | //p' | tr '[A-Z]' '[a-z]')"
+ svn export svn://svn.lyx.org/lyx/dictionaries/trunk/dicts/${dic}.dic ./
+ svn export svn://svn.lyx.org/lyx/dictionaries/trunk/dicts/${dic}.aff ./
+done
 
-## this (taken from git for windows sdk) works great!
-## it could automates the inclusion of required dlls 
-## (for now it's a tedious process, using "dependency walker")
-## just need to filter out Windows dlls (when objdump doesn't find the dll?)
-#dlls_for_exes () {
-#	# Add DLLs' transitive dependencies
-#	dlls=
-#	todo="$* "
-#	while test -n "$todo"
-#	do
-#		path=${todo%% *}
-#		todo=${todo#* }
-#		case "$path" in ''|' ') continue;; esac
-#		for dll in $(objdump -p "$path" |
-#			sed -n 's/^\tDLL Name: /mingw32\/bin\//p')
-#		do
-#			case "$dlls" in
-#			*"$dll"*) ;; # already found
-#			*) dlls="$dlls $dll"; todo="$todo /$dll ";;
-#			esac
-#		done
-#	done
-#	echo "$dlls"
-#}
+lang_list=$(echo $lang_list | sed -n -e 's/english/american/p')
 
-#echo $(dlls_for_exes $(ls "$BUNDLE_DIR/bin/texmacs.exe"))
+# now fetch dictionaries' licences and doc.
+# if the dictionary documentation & licence is not included properly
+# then define the language list ($lang_list) manually (not much work anyway)
 
+for language in $lang_list ; do
+svn export "svn://svn.lyx.org/lyx/dictionaries/trunk/dicts/info/${language}" ./$language
+done
 
 #TARGET="$HOME"/texmacs-installer.7z.exe
 OPTS7="-m0=lzma -mx=9 -md=64M"
@@ -225,7 +235,7 @@ echo "Creating archive" &&
  echo 'GUIFlags="8+32+64+256+4096"' &&
  echo 'GUIMode="1"' &&
  #echo 'InstallPath="C:\\git-sdk-'$BITNESS'"' &&
- echo 'InstallPath="C:\\Program Files (x86)\\TeXmacs"' &&
+ echo 'InstallPath="%PROGRAMFILES%\\TeXmacs"' &&
  echo 'OverwriteMode="2"' &&
  #echo 'ExecuteFile="%%T\setup-git-sdk.bat"' &&
  #echo 'Delete="%%T\setup-git-sdk.bat"' &&
