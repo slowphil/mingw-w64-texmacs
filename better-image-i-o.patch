@@ -1,0 +1,522 @@
+Date: Wed, 27 Apr 2016 00:17:37 +0200
+Subject: [PATCH] more scm converters better export image bundle utilities for windows build
+
+diff --git a/TeXmacs/progs/convert/images/init-images.scm b/TeXmacs/progs/convert/images/init-images.scm
+index 87320bb..32e9123 100644
+--- a/TeXmacs/progs/convert/images/init-images.scm
++++ b/TeXmacs/progs/convert/images/init-images.scm
+@@ -86,7 +86,70 @@
+ (converter geogebra-file svg-file
+   (:require (url-exists-in-path? "geogebra"))
+   (:shell "geogebra" "--export=" to "--dpi=600" from))
++  
++(cond ((url-exists-in-path? "pdftocairo")
++  (tm-define (pdf-file->pdftocairo-raster x opts)
++  (let* ((dest (assoc-ref opts 'dest))
++         (fullname (url-concretize dest))
++         (fm (url-format fullname))
++         (suffix (url-suffix fullname))
++         (name (string-drop-right fullname (+ 1 (string-length suffix))))
++         (res (assoc-ref opts "texmacs->image:raster-resolution") )
++		 (cmd (if (or (os-win32?) (os-mingw?)) 
++                     (escape-shell (url-concretize (url-resolve-in-path "pdftocairo"))) "pdftocairo"))
++         )
++;;    (display (string-append cmd " -singlefile -" fm " -r " res " " x " "  name))
++    (system-2 (string-append cmd " -singlefile -" fm " -r " res) x name)
++	(if (url-exists? dest) dest #f)))
++
++  (converter pdf-file png-file
++    ;;(:require (url-exists-in-path? "pdftocairo"))
++    (:function-with-options pdf-file->pdftocairo-raster)
++    (:option "texmacs->image:raster-resolution" "300"))
++
++  (converter pdf-file jpeg-file
++    ;;(:require (url-exists-in-path? "pdftocairo"))
++    (:function-with-options pdf-file->pdftocairo-raster)
++    (:option "texmacs->image:raster-resolution" "300"))
++
++  (converter pdf-file postscript-document
++    ;;(:require (url-exists-in-path? "pdftocairo"))
++    (:shell "pdftocairo" "-eps" from to))
++
++  (converter pdf-file postscript-file
++    ;;(:require (url-exists-in-path? "pdftocairo"))
++    (:shell "pdftocairo" "-eps" from to))
+ 
++  (converter pdf-file svg-file
++    ;;(:require (url-exists-in-path? "pdftocairo"))
++    (:shell "pdftocairo" "-origpagesizes -nocrop -nocenter -svg" from to)))
++  
++ ((and (url-exists-in-path? "convert") (url-exists-in-path? "conjure"))
++  (tm-define (pdf-file->imagemagick-raster x opts)
++	  (let* ((dest (assoc-ref opts 'dest))
++			  (res (assoc-ref opts "texmacs->image:raster-resolution") ))
++		(system-2 (string-append "convert -density " res) x dest)
++		(if (url-exists? dest) dest #f)))
++
++  (converter pdf-file png-file
++    ;;(:require (and (url-exists-in-path? "convert") (url-exists-in-path? "conjure")))
++    (:function-with-options pdf-file->imagemagick-raster)
++    (:option "texmacs->image:raster-resolution" "300"))
++  
++  (converter pdf-file jpeg-file
++    ;;(:require (and (url-exists-in-path? "convert") (url-exists-in-path? "conjure")))
++    (:function-with-options pdf-file->imagemagick-raster)
++    (:option "texmacs->image:raster-resolution" "300"))
++ 
++  (converter pdf-file tif-file
++    ;;(:require (and (url-exists-in-path? "convert") (url-exists-in-path? "conjure")))
++    (:function-with-options pdf-file->imagemagick-raster)
++    (:option "texmacs->image:raster-resolution" "300"))))
++  
++(converter pdf-file svg-file
++  (:require (url-exists-in-path? "pdf2svg"))
++  (:shell "pdf2svg" from to))
++ 
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;; Bitmap image formats
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+diff --git a/TeXmacs/progs/convert/images/tmimage.scm b/TeXmacs/progs/convert/images/tmimage.scm
+index edb68df..fc056cd 100644
+--- a/TeXmacs/progs/convert/images/tmimage.scm
++++ b/TeXmacs/progs/convert/images/tmimage.scm
+@@ -4,7 +4,7 @@
+ ;; MODULE      : tmimage.scm
+ ;; DESCRIPTION : convert texmacs fragment (selection) to image formats.
+ ;;               Try embedding source code in image
+-;; COPYRIGHT   : (C) 2012  Philippe Joyez
++;; COPYRIGHT   : (C) 2012-2015  Philippe Joyez
+ ;;
+ ;; This software falls under the GNU general public license version 3 or later.
+ ;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+@@ -20,8 +20,8 @@
+ 
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;; convert active selection to various graphics format
+-;; try embedding texmacs code of the selection in metadata of the image for
+-;; re-edition.
++;; If target is svg embed texmacs code of the selection in the image for
++;; re-edition (Could be done for other formats too).
+ ;; the svg produced by this method can be pasted in inkscape via the clipboard
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
+@@ -37,97 +37,6 @@
+ (define (url-temp-ext ext)
+   (url-glue (url-temp) (string-append "." ext)))
+ 
+-;; new system function call that check that output is produced
+-;; and give minimum information if not
+-
+-(define no-error-yet #t)
+-
+-(define (system-2-check cmd urlin urlout)
+-;; this fails for convert on windows XP, but why??  (system-2 cmd urlin urlout)
+-;; very uggly workaround:
+-(if (and (or (os-win32?) (os-mingw?)) (string=? (string-take cmd 7) "convert"))
+-    (system (string-append cmd " \""(url-concretize urlin)"\" \""
+-			   (url-concretize urlout) "\"" ))
+-    (system-2 cmd urlin urlout))
+-(if (and (not (url-exists? urlout)) no-error-yet)
+-    (begin
+-      (set-message (string-append cmd " failed") "Check converters")
+-      (display (string-append "image conversion problem: " cmd " failed\n" ))
+-      (display "check converter setup, existence in path...\n" )
+-      (set! no-error-yet #f))
+-))
+-;; since we chain converters
+-;; the first error will trigger a cascade of failures
+-;; so we only report the first error in export-selection-as-graphics.
+-;; We display error both in console and in status bar for console-less
+-
+-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+-;; external converters
+-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+-
+-;; In windows, passing correctly arguments to
+-;; the gs tools and pdf2svg is a serious issue in some cases.
+-;; In particular, in XP filenames may have spaces and/or accents
+-;; (eg in french localized TEXMACS_HOME_PATH : "Données d'applications")
+-;; that cause them to fail. I deliver the only workaround I could find:
+-;; We provide customized versions of gs tools which
+-;; work by converting pathes to old MSDOS-style ascii-only shortened version.
+-;; Note that these short names may be deactived in some NT-based systems,
+-;; which would break our workaround.
+-;; The custom .bat gs tools go in /bin with texmacs.exe and gsw32c.exe
+-;; We also need to provide pdf2svg.exe and the needed dlls.
+-;; The standard install of imagemagick on windows puts it in the path
+-;; so not much to do
+-
+-(cond ((or (os-win32?) (os-mingw?))
+-       (define win-tm-path (system->url "$TEXMACS_PATH"))
+-       (define ps2eps
+-	 (string-append
+-	  "\""
+-	  (url-concretize
+-	   (url-append win-tm-path
+-		       (string->url "bin/tm-ps2epsi.bat"))) "\""))
+-       (define ps2pdf
+-	 (string-append
+-	  "\""
+-	  (url-concretize
+-	   (url-append win-tm-path
+-		       (string->url "bin/tm-ps2pdf.bat")))"\""))
+-       (define pdf2svg
+-	 (string-append
+-	  "\""
+-	  (url-concretize
+-	   (url-append win-tm-path
+-		       (string->url "bin/tm-pdf2svg.bat")))"\""))
+-       )
+-
+-      (else ;; MacOS and Linux
+-	(define ps2eps "ps2epsi")
+-	(define ps2pdf "ps2pdf -dEPSCrop")
+-	(define pdf2svg "pdf2svg")
+-
+-	(if (not (url-exists-in-path? "pdf2svg"))
+-	    (begin
+-	      (set-message "warning: pdf2svg not in path"
+-			   "svg export not available")
+-	      (display
+-	       "Texmacs] Warning: pdf2svg not in path; svg export not available\n" )
+-	      )))
+-
+-;;we just assume gs (including ps2epsi, ps2pdf) is available in *nix ans MacOS
+-      )
+-
+-;; on all OSes check for "convert"
+-;; also check for "conjure" because windows systems may have an homonym
+-(if (not (and (url-exists-in-path? "convert") (url-exists-in-path? "conjure")))
+-    (begin
+-      (set-message "warning: ImageMagick not in path"
+-		   "bitmap export not available")
+-      (display
+-       "Texmacs] Warning: ImageMagick not in path; bitmap export not available\n" )
+-      ))
+-
+-
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;; commodity functions for tree manipulations
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+@@ -190,7 +99,7 @@
+     newalist))
+ 
+ (define (replace-hlinks! hreflist alist)
+-  ;; use the above association list to actualy replace
++  ;; use the above association list to actually replace
+   ;; the xlink:href items with updated targets
+   (map (lambda (leaf)
+          (let ((newtarget (assoc-ref alist (tree->string leaf))))
+@@ -237,7 +146,6 @@
+   ;; for improvements (we could pass the style that was used when
+   ;; the equation was created, the fonts,...)
+ 
+-
+   (let*
+       (;; first: load svg and transform to an active tree in
+        ;; temporary buffer so that we can manipulate it
+@@ -278,7 +186,7 @@
+        (extra-tm-attrib `((xmlns:ns1 "http://www.texmacs.org/")
+                           (ns1:texmacscode ,tm-code) (ns1:texmacstyle ,tm-style)))
+        ;; OK, the texmacs namespace maybe not correctly described at that url
+-       (old->new-labels (newids! idlist tm-code))
++       (old->new-labels (newids! idlist (string-append tm-code tm-style)))
+        ;; rename all ids, create an association list of old to new ids
+        )
+ 
+@@ -338,83 +246,61 @@
+   (:synopsis "Generates graphics format of the current selection")
+   (:argument myurl "A full file url with extension")
+   (:returns "nothing")
+-  ;; global document parameters such as style, fonts, etc. are respected
+-  ;; in the typesetting. However they are presently not passed to
+-  ;; the svg and therefore lost when re-editing the svg
+-
++  ;; for svg export, the texmacs code of the selection as well as 
++  ;; global document parameters such as style, fonts, etc. are
++  ;; embedded in the drawing to enable re-editing from inkscape
++ 
+   (if (not (selection-active-any?))
+-      (set-message "no selection!" "")
+-      (let* (;; step 1 prepare and typeset selection
+-	     ;;if selection is part of math need to re-encapsulate
+-	     ;; it with math to obtain proper typesetting :
+-	     (tm-fragment
+-	      (if (tree-multi-paragraph? (selection-tree))
+-	          (selection-tree)
+-	          (if (in-math?)
++    (set-message "no selection!" "")
++    (let* (;; step 1 prepare and typeset selection
++	  ;;if selection is part of math need to re-encapsulate
++	  ;; it with math to obtain proper typesetting :
++	  (tm-fragment
++	    (if (tree-multi-paragraph? (selection-tree))
++	        (selection-tree)
++	        (if (in-math?)
+ 		      (stree->tree `(equation* (document ,(selection-tree))))
+ 		      (selection-tree))))
+ 	     ;; also if selection spans several lines of text,
+ 	     ;; need to encapsulate it in a fixed-width table
+ 	     ;;to enforce pagewidth :
+-	     (tm-fragment-enforce-pagewidth
+-	      (stree->tree
+-	       `(tabular
+-		 (tformat (twith "table-width" "1par")
+-			  (twith "table-hmode" "exact")
++	  (tm-fragment-enforce-pagewidth
++	    (stree->tree
++	     `(tabular
++		   (tformat (twith "table-width" "1par")
++			  (twith "table-hmode" "min")
+ 			  (cwith "1" "1" "1" "1" "cell-hyphen" "t")
+ 			  (table (row (cell (document ,tm-fragment))))))))
+-	     (temp0 (url-temp-ext "ps"))
+-	     (temp1 (url-temp-ext "eps"))
+-	     (dpi-pref (get-preference "printer dpi"))
+-	     (suffix (url-suffix myurl)))
++	  (temp1 (url-temp-ext "pdf"))
++	  (dpi-pref (get-preference "printer dpi"))
++	  (suffix (url-suffix myurl)))
+ 
+-	(set! no-error-yet #t)
+-        (set-printer-dpi "236") ; 472 is ~ exact size
++;;	(set! no-error-yet #t)
++      (set-printer-dpi "236") ; 472 is ~ exact size
+ 	;;set to a fixed value so our graphics does
+ 	;;not depend on the printer dpi
+ 	;;We need to set this weird dpi value so that the size of the svg
+ 	;;produced is about twice that of direct pdf or ps output. Why??
+-	(print-snippet temp0 tm-fragment-enforce-pagewidth)
+-	;;typeset fragment to ps as starting point
+-	(set-printer-dpi dpi-pref)
++	  (print-snippet temp1 tm-fragment-enforce-pagewidth)
++	  (set-printer-dpi dpi-pref)
+ 	;; revert to preference dpi
+-	(system-2-check ps2eps temp0 temp1)
+-	;;make eps to get optimized bounding box. We could generate
+-	;; directly the eps, but then the bounding box width
+-	;; is a full pagewidth
+-	(system-remove temp0)
+ 	;; step 2 generate output according to desired output format
+ 
+-	(cond ((== suffix "eps")
+-	       (system-copy temp1 myurl))
+-	      ((== suffix "pdf")
+-	       (system-2-check ps2pdf temp1 myurl))
+-	      ((== suffix "svg")
+-	       ;; assume target is inkscape with texmacs.ink plugin
+-	       ;; allowing to re-edit the original tm selection
+-	       ;; (presumably an equation)
+-	       (let* ((temp2 (url-temp-ext "pdf")))
+-		 ;; still need pdf as intermediate format
+-		 (system-2-check ps2pdf temp1 temp2)
+-		 (system-2-check pdf2svg temp2 myurl)
+-		 ;; chaining these 2 specific converters is crucial
++	  (cond 
++	    ((== suffix "pdf") (system-copy temp1 myurl))
++	    ((== suffix "svg")
++	       ;; assume target is inkscape
++		   (file-convert temp1 myurl)
++		 ;; using either pdf2svg or pdf2cairo converters is crucial
+ 		 ;; for svg inport in inkscape:
+ 		 ;; fonts are properly passed as vector outlines
+-		 (refactor-svg myurl tm-fragment)
++		 ;; file converters are defined in init-images.scm
++		   (refactor-svg myurl tm-fragment))
+ 		 ;; modify svg, embedding texmacs code
+-		 (system-remove temp2)
+-		 ))
+-	      (else
+-		;; other formats : use imagemagick generic converter
+-		;; this is where png, jpg, etc is generated
+-		;; we ask imagemagick to insert texmacs source
+-		;; in image metadata (comment)
+-		(system-2-check
+-		 (string-append "convert -density 300 -comment \""
+-				(tm-encode tm-fragment) "\"")
+-		 temp1 myurl)))
+-
+-	(system-remove temp1) ;; temp eps file not needed anymore
++	    (else
++            (file-convert temp1 myurl)))
++
++	  (system-remove temp1) ;; temp pdf file not needed anymore
+ 	)))
+ 
+ (tm-define (export-selection-as-pdf myurl)
+diff --git a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
+index 18eac52..5f8923d 100644
+--- a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
++++ b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
+@@ -473,21 +473,97 @@
+ 
+ ;; Images ----------
+ 
+-(define-preference-names "texmacs->graphics:format"
+-  ("svg" "Svg")
+-  ("eps" "Eps")
+-  ("png" "Png"))
++(define (pretty-format-list)
++  (let* ((desired-image-format-list '(("svg" "Svg")  ("eps" "Eps")
++           ("png" "Png")("tif" "Tiff") ("jpg" "Jpeg")))
++         (valid-image-format-list 
++           (filter (lambda (x) (file-converter-exists? "x.pdf" (string-append "y." (car x)) ))
++             desired-image-format-list)))
++   (eval `(define-preference-names "texmacs->graphics:format" ,@ valid-image-format-list))
++   (cadr (apply map list valid-image-format-list))))
++
++(define (svg-converter-available)
++  (not (not (converter-search "pdf-file" "svg-file"))))
++
++(define (inkscape-detected)
++  (if (or (os-mingw?) (os-win32?)) #t (url-exists-in-path? "inkscape"))) ;;no reliable way on windows
++
++(define (inkscape-prefs-dir)
++  (url-concretize (url-append (if (or (os-win32?) (os-mingw?))
++  (system->url "$APPDATA") (system->url
++  "~/.config"))(string->url "inkscape"))))
++  
++(define (inkscape-extension)
++  (url-append (inkscape-prefs-dir) (string->url "extensions/texmacs.inx")))
++
++(define (inkscape-prefs-found)
++  (url-exists? (inkscape-prefs-dir)))
++
++(define (inkscape-extension-installed)
++  (url-exists? (inkscape-extension)))
++  
++(define (get-svg-converter)
++  (if (or (os-win32?) (os-mingw?)) (show-message "'pdftocairo.exe' is normally distributed with TeXmacs. Please file a bug report." "missing svg converter")
++      (if (os-macos?) (show-message "Please install either 'pdf2svg' or 'pdftocairo' (included in poppler) from MacPorts, Fink or Homebrew" "missing svg converter")
++           (show-message "Please install either 'pdf2svg' or 'pdftocairo' (included in poppler-utils) using your distribution package management system" "missing svg converter"))))
++(define (start-inkscape)
++  (if (or (os-win32?) (os-mingw?))
++   (show-message "Make sure Inkscape is installed on your system, and then start it once." "missing Inkscape preferences")
++   (shell "inkscape")))
++
++(define (install-inkscape-extension)
++  (let ((dest-dir (escape-shell (url-concretize 
++          (url-append 
++            (if (or (os-win32?) (os-mingw?)) (system->url "$APPDATA")  (system->url "~/.config"))
++            (string->url "inkscape/extensions")))))
++         (source-dir (escape-shell (url-concretize (url-unix "$TEXMACS_PATH" "misc/inkscape_extension/*")))))
++         (if (or (os-win32?) (os-mingw?)) 
++           (system (string-append "copy " source-dir " " dest-dir))
++           (system (string-append "cp " source-dir " " dest-dir)))
++       (refresh-now "svg-configutation")))
+ 
+ (tm-widget (image-preferences-widget)
+   ===
+   (bold (text "TeXmacs -> Image"))
+   ===
+-  (aligned
+-    (item (text "Format:")
+-      (enum (set-pretty-preference "texmacs->graphics:format" answer)
+-            '("Svg" "Eps" "Png")
++  (refreshable "svg-configutation"
++    (aligned
++      (item (text "Bitmap resolution (dpi):")
++        (enum (set-pretty-preference "texmacs->graphics:raster-resolution" answer)
++            '("600" "300" "150" "")
++            (get-pretty-preference "texmacs->graphics:raster-resolution")
++            "5em")) 
++      (item (text "Clipboard image format:")
++        (enum (set-pretty-preference "texmacs->graphics:format" answer)
++            (pretty-format-list)
+             (get-pretty-preference "texmacs->graphics:format")
+-            "5em"))))
++            "5em")))
++    ======
++    (aligned (meti (hlist  // (text "Svg converter available") >>> 
++                (if (not (svg-converter-available)) 
++				  (explicit-buttons ("get converter" (get-svg-converter)))))
++          (inert (toggle (noop) (svg-converter-available)))))
++	;; tests in "assuming" not refreshed, using clumsy "if" construct instead	  
++    (if (not (or (os-win32?) (os-mingw?))) 
++	  (aligned (meti (hlist  // (text "Inkscape installed"))
++          (inert (toggle (noop) (inkscape-detected))))))
++    (if (and (inkscape-detected) (not (inkscape-prefs-found)))
++      (aligned (meti (hlist  // (text "Inkscape user prefs found") >>> 
++          (if (not (inkscape-prefs-found))
++            (explicit-buttons (
++			  (eval (if (or (os-win32?) (os-mingw?)) "help" "create (start Inkscape)"))
++                (start-inkscape))) ))
++          (inert (toggle (noop) (inkscape-prefs-found))))))
++    (if (and (inkscape-detected) (inkscape-prefs-found) (svg-converter-available))
++      (aligned (meti (hlist  // (text "Inkscape extension installed") >>> 
++		    (explicit-buttons ("install/update extension" (install-inkscape-extension))))              
++            (inert (toggle (noop) (inkscape-extension-installed)))))))
++    ======
++      (centered
++       (hlist  /// (explicit-buttons ("Refresh" (refresh-now "svg-configutation")))
++           /// (explicit-buttons ("Help" (load-help-buffer (url-resolve (url-glue (string->url "$TEXMACS_DOC_PATH") "/main/convert/man-graphics-export.en.tm") "r"))))))
++
++)
+ 
+ ;; All converters ----------
+ 
+@@ -495,15 +571,15 @@
+   ===
+   (padded
+     (tabs
+-      (tab (text "Html")
+-        (centered
+-          (dynamic (html-preferences-widget))))
+       (tab (text "LaTeX")
+         (centered
+           (dynamic (latex-preferences-widget))))
+       (tab (text "BibTeX")
+         (centered
+           (dynamic (bibtex-preferences-widget))))
++      (tab (text "Html")
++        (centered
++          (dynamic (html-preferences-widget))))
+       (tab (text "Verbatim")
+         (centered
+           (dynamic (verbatim-preferences-widget))))
+diff --git a/src/System/Boot/init_texmacs.cpp b/src/System/Boot/init_texmacs.cpp
+index 9693613..b2b10b6 100644
+--- a/src/System/Boot/init_texmacs.cpp
++++ b/src/System/Boot/init_texmacs.cpp
+@@ -365,30 +365,6 @@ init_misc () {
+ 
+ }
+ 
+-static void
+-setup_inkscape_extension () {
+-debug_boot << "attempt install of inkscape extension \n ";
+-#if defined(__MINGW__) || defined(__MINGW32__) || defined (OS_WIN32)
+-  url ink_ext = url ("$APPDATA/inkscape/extensions");
+-#else
+-  url ink_ext = "~/.config/inkscape/extensions/";
+-#endif 
+-  if ( exists (ink_ext)) {
+-    url f1 = url (ink_ext * "texmacs.inx");
+-    url f2 = url (ink_ext * "texmacs_reedit.py");
+-    url f3 = url (ink_ext * "texmacs_latex.sty");
+-    url plug_source = url ("$TEXMACS_PATH/misc/inkscape_extension/");
+-    debug_boot << "installing or updating inkscape extension\n";
+-    copy (url (plug_source * "texmacs.inx"), f1);
+-    copy (url (plug_source * "texmacs_reedit.py"), f2);
+-    copy (url (plug_source * "texmacs_latex.sty"), f3);
+-    if (!(exists (f1) && exists (f2))) {
+-      debug_boot << "automatic install of inkscape extension failed\n; ";
+-      debug_boot << "see documentation for manual install\n";
+-    }
+-  }
+-}
+-
+ /******************************************************************************
+ * Deprecated initializations
+ ******************************************************************************/
+@@ -444,7 +420,6 @@ setup_texmacs () {
+ 
+   set_setting ("VERSION", TEXMACS_VERSION);
+   setup_tex ();
+-  setup_inkscape_extension ();
+   
+   string s= scheme_tree_to_block (texmacs_settings);
+   //cout << "settings_t= " << texmacs_settings << "\n";
+-- 
+1.9.1
+

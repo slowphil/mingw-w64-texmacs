@@ -159,11 +159,28 @@ for PLUGIN in "${QT_NEEDED_PLUGINS_LIST[@]}"; do
             cp -r -f -u /mingw32/share/qt4/plugins/$PLUGIN $BUNDLE_DIR/bin
         done
 
-mkdir $BUNDLE_DIR/dict
 export GUILE_LOAD_PATH="${MINGW_PREFIX}/share/guile/1.8"
 find `guile-config info pkgdatadir` -type d -name ice-9 -exec cp -r -f {} $BUNDLE_DIR/progs/ \;
 
-### this (taken from git for windows sdk) works, just need to filter out Windows dlls
+# create dir where hunspell looks for dictionaries
+mkdir $BUNDLE_DIR/share
+mkdir $BUNDLE_DIR/share/hunspell
+
+echo "Downloading spell checker dictionaries"
+# get english dic
+cd $BUNDLE_DIR/share/hunspell
+wget http://www.lyx.org/trac/browser/lyxsvn/dictionaries/trunk/dicts/en_US.dic
+wget http://www.lyx.org/trac/browser/lyxsvn/dictionaries/trunk/dicts/en_US.aff
+
+# get dic corresponding to locale
+locale=$(echo $LANG | cut -d'.' -f1)
+wget http://www.lyx.org/trac/browser/lyxsvn/dictionaries/trunk/dicts/${locale}.dic
+wget http://www.lyx.org/trac/browser/lyxsvn/dictionaries/trunk/dicts/${locale}.aff
+
+## this (taken from git for windows sdk) works great!
+## it could automates the inclusion of required dlls 
+## (for now it's a tedious process, using "dependency walker")
+## just need to filter out Windows dlls (when objdump doesn't find the dll?)
 #dlls_for_exes () {
 #	# Add DLLs' transitive dependencies
 #	dlls=
