@@ -15,7 +15,8 @@ url="http://www.texmacs.org/"
 license=('GPL')
 makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
              "${MINGW_PACKAGE_PREFIX}-pkg-config"
-             )
+             p7zip
+            )
 depends=(
           #"${MINGW_PACKAGE_PREFIX}-aspell"
 		  "${MINGW_PACKAGE_PREFIX}-hunspell"
@@ -192,8 +193,7 @@ OPTS7="-m0=lzma -mx=9 -md=64M"
 TMPPACK="${srcdir}/tmp.7z"
 TARGET="/texmacs_installer.7z.exe"
 
-fileList=$BUNDLE_DIR
-
+fileList="$(ls -dp -1 $BUNDLE_DIR/*)"
 
 echo "Creating archive" &&
 (cd / && 7za a $OPTS7 "$TMPPACK" $fileList) &&
