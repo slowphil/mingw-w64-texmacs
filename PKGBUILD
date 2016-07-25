@@ -37,7 +37,7 @@ source=("${_pkgname}::svn://svn.savannah.gnu.org/texmacs/trunk/src"
         )
 sha1sums=('SKIP'
 		  )
-options=('!emptydirs' '!ccache')
+options=('!emptydirs' '!ccache' 'strip')
 provides=('texmacs')
 conflicts=('texmacs')
 
@@ -156,6 +156,7 @@ fi
 cp -r -f  -u TeXmacs/* $BUNDLE_DIR/
 
 mv -f $BUNDLE_DIR/bin/texmacs.bin $BUNDLE_DIR/bin/texmacs.exe
+strip -s $BUNDLE_DIR/bin/texmacs.exe
 rm -f -r $BUNDLE_DIR/bin/texmacs
 cp -r -f misc/admin/texmacs_updates_dsa_pub.pem $BUNDLE_DIR/bin
 cp -r -f packages/windows/*.exe $BUNDLE_DIR/bin
@@ -241,10 +242,9 @@ echo "Creating archive" &&
  #echo 'Delete="%%T\setup-git-sdk.bat"' &&
  echo ';!@InstallEnd@!' &&
  cat "$TMPPACK") > "$TARGET" &&
-echo "Success! You will find the new installer at \"$TARGET\"." &&
+echo "Success! You will find the new installer at \"$(cygpath -aw $TARGET)\"." &&
 echo "It is a self-extracting .7z archive." &&
 rm $TMPPACK
-
 
 }
 
