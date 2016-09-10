@@ -77,7 +77,7 @@ build() {
     --host=${MINGW_CHOST} \
     --with-guile="/mingw32/bin/guile-config" \
 	--with-qt="/mingw32/bin/" \
-	--enable-console #--enable-debug
+	#--enable-console --enable-debug
 
   make -j$(nproc)
 }
