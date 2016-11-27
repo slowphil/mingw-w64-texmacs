@@ -1,372 +1,729 @@
-Date: Wed, 27 Apr 2016 00:17:37 +0200
-Subject: [PATCH] more scm converters better export image bundle utilities for windows build
-
-diff --git a/TeXmacs/progs/convert/images/init-images.scm b/TeXmacs/progs/convert/images/init-images.scm
-index 87320bb..32e9123 100644
---- a/TeXmacs/progs/convert/images/init-images.scm
-+++ b/TeXmacs/progs/convert/images/init-images.scm
-@@ -86,7 +86,70 @@
- (converter geogebra-file svg-file
-   (:require (url-exists-in-path? "geogebra"))
-   (:shell "geogebra" "--export=" to "--dpi=600" from))
-+  
-+(cond ((url-exists-in-path? "pdftocairo")
-+  (tm-define (pdf-file->pdftocairo-raster x opts)
-+  (let* ((dest (assoc-ref opts 'dest))
-+         (fullname (url-concretize dest))
-+         (fm (url-format fullname))
-+         (suffix (url-suffix fullname))
-+         (name (string-drop-right fullname (+ 1 (string-length suffix))))
-+         (res (assoc-ref opts "texmacs->image:raster-resolution") )
-+		 (cmd (if (or (os-win32?) (os-mingw?)) 
-+                     (escape-shell (url-concretize (url-resolve-in-path "pdftocairo"))) "pdftocairo"))
-+         )
-+;;    (display (string-append cmd " -singlefile -" fm " -r " res " " x " "  name))
-+    (system-2 (string-append cmd " -singlefile -" fm " -r " res) x name)
-+	(if (url-exists? dest) dest #f)))
-+
-+  (converter pdf-file png-file
-+    ;;(:require (url-exists-in-path? "pdftocairo"))
-+    (:function-with-options pdf-file->pdftocairo-raster)
-+    (:option "texmacs->image:raster-resolution" "300"))
-+
-+  (converter pdf-file jpeg-file
-+    ;;(:require (url-exists-in-path? "pdftocairo"))
-+    (:function-with-options pdf-file->pdftocairo-raster)
-+    (:option "texmacs->image:raster-resolution" "300"))
-+
-+  (converter pdf-file postscript-document
-+    ;;(:require (url-exists-in-path? "pdftocairo"))
-+    (:shell "pdftocairo" "-eps" from to))
-+
-+  (converter pdf-file postscript-file
-+    ;;(:require (url-exists-in-path? "pdftocairo"))
-+    (:shell "pdftocairo" "-eps" from to))
+diff --git a/TeXmacs/doc/main/convert/man-convert.en.tm b/TeXmacs/doc/main/convert/man-convert.en.tm
+index 0669eca..d8e023d 100644
+--- a/TeXmacs/doc/main/convert/man-convert.en.tm
++++ b/TeXmacs/doc/main/convert/man-convert.en.tm
+@@ -1,4 +1,4 @@
+-<TeXmacs|1.99.2>
++<TeXmacs|1.99.5>
  
-+  (converter pdf-file svg-file
-+    ;;(:require (url-exists-in-path? "pdftocairo"))
-+    (:shell "pdftocairo" "-origpagesizes -nocrop -nocenter -svg" from to)))
-+  
-+ ((and (url-exists-in-path? "convert") (url-exists-in-path? "conjure"))
-+  (tm-define (pdf-file->imagemagick-raster x opts)
-+	  (let* ((dest (assoc-ref opts 'dest))
-+			  (res (assoc-ref opts "texmacs->image:raster-resolution") ))
-+		(system-2 (string-append "convert -density " res) x dest)
-+		(if (url-exists? dest) dest #f)))
+ <style|<tuple|tmdoc|english>>
+ 
+@@ -6,8 +6,9 @@
+   <tmdoc-title|Compatibility with other formats>
+ 
+   <TeXmacs> documents can be saved without loss of information in three
+-  formats: the native <TeXmacs> format, <name|Xml> and as a <name|Scheme>
+-  expression. <TeXmacs> documents can be converted in a <em|wysiwyg>
++  formats: the native <TeXmacs> format (file extension <verbatim|.tm>),
++  <name|Xml> (<verbatim|.tmml>) and as a <name|Scheme> expression
++  (<verbatim|.stm>). <TeXmacs> documents can be converted in a <em|wysiwyg>
+   (what-you-see-is-what-you-get) way to either <name|Postscript> or
+   <name|Pdf>, which are used as the primary formats for <hlink|printing
+   documents|../start/man-print.en.tm>. <TeXmacs> finally provides converters
+@@ -30,7 +31,13 @@
+     <branch|Adding new converters|new/man-newconv.en.tm>
+   </traverse>
+ 
+-  <tmdoc-copyright|1998--2002|Joris van der Hoeven>
++  Finally, along with the above textual formats, <TeXmacs> document fragments
++  can also be <hlink|exported to many vector or raster image
++  formats|man-graphics-export.en.tm> either as files or through copy-paste
++  (so that <hlink|<TeXmacs> can be used as a <em|wysiwyg> equation
++  editor|man-equation-editor.en.tm>).\ 
 +
-+  (converter pdf-file png-file
-+    ;;(:require (and (url-exists-in-path? "convert") (url-exists-in-path? "conjure")))
-+    (:function-with-options pdf-file->imagemagick-raster)
-+    (:option "texmacs->image:raster-resolution" "300"))
-+  
-+  (converter pdf-file jpeg-file
-+    ;;(:require (and (url-exists-in-path? "convert") (url-exists-in-path? "conjure")))
-+    (:function-with-options pdf-file->imagemagick-raster)
-+    (:option "texmacs->image:raster-resolution" "300"))
-+ 
-+  (converter pdf-file tif-file
-+    ;;(:require (and (url-exists-in-path? "convert") (url-exists-in-path? "conjure")))
-+    (:function-with-options pdf-file->imagemagick-raster)
-+    (:option "texmacs->image:raster-resolution" "300"))))
-+  
-+(converter pdf-file svg-file
-+  (:require (url-exists-in-path? "pdf2svg"))
-+  (:shell "pdf2svg" from to))
-+ 
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;; Bitmap image formats
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
++  <tmdoc-copyright|1998--2016|Joris van der Hoeven and the <TeXmacs> team>
+ 
+   <tmdoc-license|Permission is granted to copy, distribute and/or modify this
+   document under the terms of the GNU Free Documentation License, Version 1.1
+@@ -38,4 +45,4 @@
+   Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
+   Texts. A copy of the license is included in the section entitled "GNU Free
+   Documentation License".>
+-</body>
+\ No newline at end of file
++</body>
+diff --git a/TeXmacs/doc/main/convert/man-equation-editor.en.tm b/TeXmacs/doc/main/convert/man-equation-editor.en.tm
+new file mode 100644
+index 0000000..94ba463
+--- /dev/null
++++ b/TeXmacs/doc/main/convert/man-equation-editor.en.tm
+@@ -0,0 +1,118 @@
++<TeXmacs|1.99.5>
++
++<style|<tuple|tmdoc|doc|british>>
++
++<\body>
++  <tmdoc-title|Using <TeXmacs> as an equation editor>
++
++  <hlink|Provided an appropriate converter to <name|Svg> is
++  installed|man-graphics-export.en.tm#external converters>, <TeXmacs> can
++  generate an <name|Svg> image of any document fragment. These <name|Svg>
++  graphics incorporate the <TeXmacs> source code of the corresponding
++  fragment to enable later re-edition by <TeXmacs>.
++
++  In addition, a <TeXmacs> plugin allows an external application to interact
++  simply with <TeXmacs> for revising such <name|Svg> image.
++
++  Scriptable applications that handle <name|Svg> images (such as
++  <name|Inkscape>, <name|Libre Office> or <name|Scribus>) can take advantage
++  of these features to use <TeXmacs> as a convenient equation editor.
++  Presently (Sept. 2016), the client-side script providing such functionality
++  only exists for <name|Inkscape>.
++
++  <section*|Using <TeXmacs> with <name|Inkscape>>
++
++  <paragraph|Through the system clipboard>
++
++  Be sure that the <menu|Edit|Preferences|Converters|TeXmacs -\<gtr\>
++  image|Format> is set to <name|Svg>. Then inserting a <TeXmacs> equation in
++  an <name|Inkscape> drawing is straightforward: select the equation, use the
++  menu item <menu|Edit|Copy to...|Image>, and paste into <name|Inkscape>. In
++  <name|Inkscape>, a <TeXmacs> equation appears as an ordinary <name|Svg>
++  group.
++
++  <paragraph|Modifying an equation within <name|Inkscape>>
++
++  When needed, within <name|Inkscape> select the equation you want to revise
++  and activate <menu|TeXmacs equation> (see below) from the <menu|extension>
++  menu. This will open a new <TeXmacs> window with the equation you want to
++  revise (or a dummy equation if nothing was selected). Above the equation
++  (in the user toolbar) a button <key|Done><kbd|> completes the revision and
++  a button <key|Cancel> abandons it.\ 
++
++  <paragraph|Installation of the Inkscape extension>
++
++  The <menu|TeXmacs equation> extension for <name|Inkscape> can be installed
++  or updated from the preference panel <menu|Edit|Preferences|Converters|TeXmacs
++  -\<gtr\> image|Format>. The extension should then appear in
++  <name|Inkscape>'s <menu|extension> menu the next time you start
++  <name|Inkscape>.\ 
++
++  Note that this installation is offered only when <hlink|an appropriate
++  converter to <name|Svg> is installed|man-graphics-export.en.tm#external
++  converters>, and a the user's <name|Inkscape> preferences folder is found
++  in the usual location. If you are using non-standard permission settings
++  the automated install may fail; in that case you may use the following
++  instructions as a guideline.
++
++  <\folded-documentation>
++    Show personalized manual install instructions
++  <|folded-documentation>
++    Copy all files contained in <verbatim|<extern|(lambda (x) (url-concretize
++    (url-append (system-\<gtr\>url "$TEXMACS_PATH") (string-\<gtr\>url
++    "misc/inkscape_extension"))))|>> to <verbatim|<extern|(lambda (x)
++    (url-concretize (url-append (if (or (os-win32?) (os-mingw?))
++    (system-\<gtr\>url "$APPDATA") \ (system-\<gtr\>url
++    "~/.config"))(string-\<gtr\>url "inkscape/extensions"))))|>>\ 
++
++    If you see <verbatim|<error|insecure script>> instead of file paths, you
++    need to change the security preference (in
++    <menu|edit|preferences|other|security>) to <verbatim|accept all scripts>
++    (at least temporarily) and then refresh the display by closing/opening
++    this fold or through the menu <menu|Document|Update|All>.
++  </folded-documentation>
++
++  <paragraph|MacOS specifics>
++
++  In 2012 the <name|Inkscape> dmg from Inkscape.org lacked a python library
++  that the re-edition extension needs (this may have changed). We recommend
++  you get <name|Inkscape> from <name|MacPorts> instead (and get
++  <name|pdf2svg> and <name|ImageMagick> at the same time).
++
++  <paragraph|Compatibility with Textext <name|Inkscape> extension>
++
++  Equations produced with <TeXmacs> are essentially compatible with those of
++  the <name|Textext> extension (re-editable <LaTeX> equations extension
++  shipped with <name|Inkscape>): <TeXmacs> can edit <name|Textext> equations,
++  and conversely people using <name|Textext<strong|>> can edit your <TeXmacs>
++  equations provided they use the style file <verbatim|texmacs_latex.sty> (in
++  your user's <name|Iknscape> user directory) containing the texmacs macros
++  and necessary includes.
++
++  <paragraph|Present limitations and Known Issues>
++
++  <name|Inkscape> will try to connect with a running <TeXmacs> instance on
++  the local machine through socket communications; if it cannot connect, it
++  will launch a new <TeXmacs> instance and communicate via pipes. Socket
++  communication are <em|much> faster since they spare the boot-up time of
++  <TeXmacs>. Beware however that <TeXmacs> is presently somewhat more prone
++  to freeze or crash when connecting this way; Your mileage may vary. You can
++  control wether or not <TeXmacs> accepts socket communications from Inkscape
++  using the preference setting \ <menu|Edit|Preferences|Converters|TeXmacs
++  -\<gtr\> image|Enable socket communications>.
++
++  If the selection contains a macro call with the macro definition outside of
++  the selection, it won't be rendered (<verbatim|<error|compound
++  <em|macroname>>>).
++
++  <tmdoc-copyright|2016|the <TeXmacs> team>
++
++  <tmdoc-license|Permission is granted to copy, distribute and/or modify this
++  document under the terms of the GNU Free Documentation License, Version 1.1
++  or any later version published by the Free Software Foundation; with no
++  Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
++  Texts. A copy of the license is included in the section entitled "GNU Free
++  Documentation License".>
++</body>
++
++
+diff --git a/TeXmacs/doc/main/convert/man-graphics-export.en.tm b/TeXmacs/doc/main/convert/man-graphics-export.en.tm
+new file mode 100644
+index 0000000..768d4ba
+--- /dev/null
++++ b/TeXmacs/doc/main/convert/man-graphics-export.en.tm
+@@ -0,0 +1,81 @@
++<TeXmacs|1.99.5>
++
++<style|<tuple|tmdoc|doc|british>>
++
++<\body>
++  <tmdoc-title|Export or Copy selection to graphics>
++
++  <TeXmacs> can export the active selection to many graphical formats, either
++  as files (<menu|File|Export|Export selection as image>) or through the
++  system clipboard (<menu|Edit|Copy to...|Image>), for pasting into other
++  applications.
++
++  <paragraph|Specifying graphics format> \ 
++
++  In case of file export, the desired graphical format is determined by the
++  file extension which you must explicitly provide (for instance: pdf, eps,
++  jpg...).
++
++  For the clipboard mechanism, you need to set in advance the desired format
++  in <menu|Edit|Preferences|Converters|TeXmacs -\<gtr\> image|Format>. This
++  menu offers a choice between <acronym|png>, <acronym|jpeg>, <acronym|tif,>
++  <acronym|eps> and <acronym|svg> formats, provided a suitable converter is
++  available (see below).
++
++  For both the clipboard mechanism and file export, the image produced can be
++  scaled up or down compared to <TeXmacs>'s nominal printed output size. The
++  scaling factor is set by the preference
++  <menu|Edit|Preferences|Converters|TeXmacs -\<gtr\> image|Output scale
++  factor>
++
++  As well, the resolution of bitmap formats is set by the prefrence
++  <menu|Edit|Preferences|Converters|TeXmacs -\<gtr\> image|Bitmap resolution
++  (dpi)>
++
++  <paragraph|Required external converters><label|external converters>
++
++  <TeXmacs> can natively produce PostScript or PDF vector images.\ 
++
++  In order to produce the various other graphic formats <TeXmacs> relies on
++  external converters (defined in <verbatim|$TEXMACS_PATH/progs/convert/images/init-images.scm>):\ 
++
++  <\itemize-dot>
++    <item><name|Ghostscript>
++
++    <item><name|pdf2svg>, for <acronym|svg> output (<hlink|to work with
++    <name|Inkscape>|man-equation-editor.en.tm>, for instance),
++
++    <item><name|pdftocairo> (from the <name|Poppler> project) can can produce
++    both vector (<acronym|svg>) and raster formats \ (<acronym|png><name|>,
++    <acronym|jpg>).
++
++    <item><name|ImageMagick>, for raster formats
++
++    <item><hlink|Additional converters|new/man-newconv.en.tm> can be defined,
++    if needed. \ 
++  </itemize-dot>
++
++  All these converters need to be in the system PATH. If they are not found,
++  <TeXmacs> displays an error message in its status bar when attempting a
++  conversion. On <name|Linux> if these external tools are not already
++  installed, they are easy to install from your distribution's package
++  manager. On <name|MacOS>, <name|pdf2svg> and <name|ImageMagick> (as well as
++  <name|Inkscape>) are available from <name|MacPorts>. On <name|Windows>,
++  <name|pdftocairo> is bundled with <TeXmacs> at this website:
++  <code*|https://github.com/slowphil/mingw-w64-texmacs/releases>
++
++  \;
++
++  <tmdoc-copyright|2016|the <TeXmacs> team>
++
++  <tmdoc-license|Permission is granted to copy, distribute and/or modify this
++  document under the terms of the GNU Free Documentation License, Version 1.1
++  or any later version published by the Free Software Foundation; with no
++  Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
++  Texts. A copy of the license is included in the section entitled "GNU Free
++  Documentation License".>
++
++  \;
++
++  \;
++</body>
+diff --git a/TeXmacs/misc/inkscape_extension/texmacs_reedit.py b/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
+old mode 100644
+new mode 100755
+index 55cede1..bb66c99
+--- a/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
++++ b/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
+@@ -2,7 +2,7 @@
+ """
+ *******************************************************************************
+ * Texmacs extension for Inkscape
+-* COPYRIGHT  : (C) 2012 Philippe JOYEZ and the TeXmacs team
++* COPYRIGHT  : (C) 2012-2016 Philippe JOYEZ and the TeXmacs team
+ *******************************************************************************
+ * This software falls under the GNU general public license version 3 or later.
+ * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+@@ -10,23 +10,25 @@
+ *******************************************************************************
+ this files goes into ~/.config/Inkscape/extensions
+ 
+-This extension allows to (re-)edit mathematical equations in WYSIWYG 
+-way with TeXmacs. It works with equations originally produced by 
+-versions of TeXmacs <http://www.texmacs.org> dated after july 2012, 
++This extension allows to (re-)edit mathematical equations in WYSIWYG
++way with GNU-TeXmacs. It works with equations originally produced by
++versions of TeXmacs <http://www.texmacs.org> dated after july 2012,
+ but also with those made by the Textext.ink Inkscape extension
+ (http://www.iki.fi/pav/software/textext/).
+ 
+-For that, it extracts the TeXmacs (or Latex) description of the equation,
++For that, it extracts the TeXmacs (or Latex) description of the equation
++(which appears just as an ordinary group in inkscape),
+ creates on the fly a texmacs file and calls texmacs to edit the equation.
+-On return, Texmacs generates an svg file containing the upadted image
++On return, Texmacs generates an svg file containing the updated image
+ and description of the equation, which then replaces the old equation.
+ 
+ If no equation exists when the extension is invoked, then a new
+ equation is created.
+ 
+-We invoke TeXmacs with a command line argument that displays "Done"
+-(and "Cancel") button in the user toolbar that produces the new
+-version of the svg-texmacs equation and closes TeXmacs.
++We either connect to TeXmacs through a socket communication, or launch
++it with a command line argument that puts it in equation editor
++configuration. In either case TeXmacs then displays "Done" and "Cancel"
++buttons in the user toolbar.
+ 
+ This extension is meant to be as much as possible 2-ways compatible with
+ Textext.ink equations. Note however that in order to correctly edit texmacs
+@@ -34,7 +36,7 @@ equations, textext has to be invoked with a preamble file containing the
+ texmacs latex macros and appropriate includes (see texmacs_latex.sty coming
+ with this file).
+ 
+-A good deal of the inspiration, implementation and technical details of this
++For a large part, the inspiration, implementation and technical details of this
+ script directly comes from textext.py (http://www.iki.fi/pav/software/textext/)
+ , an Inkscape extension written by Pauli Virtanen  (pav@iki.fi) that does
+ the same thing with Latex equations, albeit in an essentially non-WYSIWYG way.
+@@ -43,17 +45,22 @@ Part of the code is directly copied from textext.py. Thank you Pauli!
+ """
+ #------------------------------------------------------------------------------
+ 
+-import sys, os, glob, platform
+-import inkex, tempfile, subprocess, copy
++import os, glob, platform, time
++import inkex, tempfile, subprocess
+ from lxml import etree
+ 
++import socket
++
+ IS_WINDOWS = (platform.system() == "Windows")
+ #IS_MACOS= sys.platform.startswith('darwin')
+ 
+ if IS_WINDOWS :
+     programfiles = os.environ.get('PROGRAMFILES')
+     texmacs_path = os.path.join(programfiles, 'TeXmacs','bin', 'texmacs.exe')
+-    
++    if not(os.path.isfile(texmacs_path)):
++        inkex.debug("TeXmacs not found in the usual location:\n"+texmacs_path+"\nCannot continue, sorry.")
++        raise SystemExit()
++
+ else : texmacs_path ='texmacs' #texmacs needs to be in the path!
+ 
+ TEXTEXT_NS = u"http://www.iki.fi/pav/software/textext/"
+@@ -66,13 +73,14 @@ NSS = {
+     u'svg': SVG_NS
+ }
+ 
+-tm_file="<TeXmacs|1.0.7.15>\n\n<style|generic>\n\n<\\body>\n %s \n\n</body>\n\n<\\initial>\n %s \n\n</initial>"
++tm_file="<TeXmacs|1.99.5>\n\n<style|generic>\n\n<\\body>\n %s \n\n</body>\n\n<\\initial>\n %s \n\n</initial>"
+ tm_dummy_equation="<\equation*>\n    1+1\n  </equation*>\n"
+ tm_no_equation="\\;\n"
+-tm_scheme_cmd_line_args =  "(begin (show-icon-bar 3 #t) (menu-bind texmacs-extra-icons "\
+-		"((balloon \"Done\" \"update equation in Inkscape\") (((select-all)(export-selection-as-graphics "\
+-		"(url-glue (current-buffer) \".svg\"))(quit-TeXmacs))))((balloon \"Cancel\" "\
+-		"\"abandon modifying equation\")(quit-TeXmacs)))%s) "
++#tm_scheme_cmd_line_args =  "(begin (show-icon-bar 3 #t) (menu-bind texmacs-extra-icons "\
++#        "((balloon \"Done\" \"update equation in Inkscape\") (begin (select-all)(export-selection-as-graphics"\
++#        " (url-glue (current-buffer) \".svg\"))(quit-TeXmacs)))((balloon \"Cancel\" "\
++#        "\"abandon modifying equation\")(quit-TeXmacs)))%s) "
++tm_scheme_cmd_line_args =  '(begin (lazy-plugin-force) (equ-edit-cmdline) %s) '
+ tm_extra_latex_cmd_line_args=  "(delayed (:idle 000)(insert (latex->texmacs (parse-latex \"\\\\[ %s \\\\]\"))))"
+ tm_no_style=""
+ 
+@@ -87,25 +95,28 @@ class Texmacs(inkex.Effect):
+         self.tmp_base = 'inkscape_edit_tmp.tm'
+         self.tmp_name = os.path.join(self.tmp_path,self.tmp_base)
+ 
+-     
++
+     def effect(self):
+         """Perform the effect: create/modify embedded equation"""
+         
+         # Find equation and how to modify it
+-        old_node, latex_option_cmd, tm_equation, tm_style = self.get_old()
+-        
+-        # build full scheme command line command        
+-        scheme_cmd = tm_scheme_cmd_line_args % latex_option_cmd
++        old_node, latex_code, tm_equation, tm_style = self.get_old()
++
++        # build full scheme command line command
++        if latex_code != '' :
++            scheme_cmd = tm_scheme_cmd_line_args % (tm_extra_latex_cmd_line_args % latex_code)
++        else :
++            scheme_cmd = tm_scheme_cmd_line_args % ''
+ 
+         # call texmacs for editing
+-        self.call_texmacs(scheme_cmd, tm_equation, tm_style)
++        self.call_texmacs(scheme_cmd, tm_equation, tm_style, latex_code)
+ 
+         svg_name = self.tmp_name + ".svg" #if successful texmacs creates that svg file
+         if os.path.isfile(svg_name):
+            f = open(svg_name, 'r')
+            tree = etree.parse(f)
+            f.close()
+-
++           #inkex.debug("file read  "+svg_name)
+            root = tree.getroot()
+            new_node = root.find('{%s}g' % SVG_NS)
+ 
+@@ -121,47 +132,165 @@ class Texmacs(inkex.Effect):
+         Dig out equation to be modified (texmacs or textext)
+         Returns: (old_svg_node, latex_option_command (for the textext case), tm_equation_to_be_edited)
+         """
+-        for i in self.options.ids: 
++        for i in self.options.ids:
+         # gets list of ids in the call of the extension.
+-            node = self.selected[i] 
+-            # selects each member of selection in turn ; 
++            node = self.selected[i]
++            # selects each member of selection in turn ;
+             #only the first one which can be processed will be
+             if node.tag != '{%s}g' % SVG_NS: continue
+-            
++
+             elif '{%s}texmacscode'%TEXMACS_NS in node.attrib: # that group contains texmacs data
+-            	tm_equation = node.attrib.get('{%s}texmacscode' % TEXMACS_NS, '').decode('string-escape')
+-            	if '{%s}texmacstyle'%TEXMACS_NS in node.attrib: #further contains styling info
+-            	    tm_style = node.attrib.get('{%s}texmacstyle' % TEXMACS_NS, '').decode('string-escape')
+-            	else:
++                tm_equation = node.attrib.get('{%s}texmacscode' % TEXMACS_NS, '').decode('string-escape')
++                if '{%s}texmacsstyle'%TEXMACS_NS in node.attrib: #further contains styling info
++                    tm_style = node.attrib.get('{%s}texmacsstyle' % TEXMACS_NS, '').decode('string-escape')
++                elif '{%s}texmacstyle'%TEXMACS_NS in node.attrib: #there was a typo at some point in the code; handle it gracefully
++                    tm_style = node.attrib.get('{%s}texmacstyle' % TEXMACS_NS, '').decode('string-escape')
++                else:
+                     tm_style =''
+-            	return (node, '', tm_equation, tm_style)
++                return (node, '', tm_equation, tm_style)
+ 
+             elif '{%s}text'%TEXTEXT_NS in node.attrib:  #implements Textext conversion to TeXmacs
+-            	latex_code = node.attrib.get('{%s}text' % TEXTEXT_NS, '')
+-                return (node, tm_extra_latex_cmd_line_args % latex_code, tm_no_equation, tm_no_style)
++                latex_code = node.attrib.get('{%s}text' % TEXTEXT_NS, '')
++                return (node, latex_code, tm_no_equation, tm_no_style)
+ 
+-		# if we arrive here no editable equation was in
++        # if we arrive here no editable equation was in
+         # selection (including no selection): launch TeXmacs with dummy equation.
+         return (None, '', tm_dummy_equation, tm_no_style)
+ 
+-    def call_texmacs(self, scheme_cmd, equ, styl):
+-			f_tmp = open(self.tmp_name, 'w') # create a temporaty tm file that texmacs will edit
+-			try:
+-				f_tmp.write(tm_file %( equ, styl)) #insert equation to be edited in file (blank in textext case)
+-			finally:
+-				f_tmp.close()
+-			cmd = [texmacs_path,"-x",scheme_cmd , self.tmp_name]
+-			try:
+-				p = subprocess.Popen(cmd, 
+-			                     stdout=subprocess.PIPE,
+-			                     stderr=subprocess.PIPE)
+-				out, err = p.communicate()
+-			except OSError, e:
+-			    raise RuntimeError("Command %s failed: %s" % (' '.join(cmd), e))
+-        
+-			if p.returncode != 0 :
+-			    raise RuntimeError("Command %s failed (code %d): %s"
+-                               % (' '.join(cmd), p.returncode, out + err))
++    def call_texmacs(self, scheme_cmd, equ, styl, latex):
++        f_tmp = open(self.tmp_name, 'w') # create a temporaty tm file that texmacs will edit
++        try:
++            f_tmp.write(tm_file %( equ, styl)) #insert equation to be edited in file (blank in textext case)
++        finally:
++            f_tmp.close()
++
++#try connecting already running texmacs on socket (spares boot-up time)
++        size = 1024
++        clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
++
++        try:
++            clientsocket.settimeout(0.25)
++            clientsocket.connect(('localhost', 6561))
++            time.sleep(.1)
++            msg='(0 (remote-login "inkscape" "inkscape"))\n'
++            clientsocket.sendall(str(len(msg))+ '\n'+msg)
++            clientsocket.setblocking(1)
++            time.sleep(.1)
++            msg = clientsocket.recv(size)
++        except : #any error : can't connect (texmacs not running or server not started), no answer,...
++            use_socket = False
++            #inkex.debug("use_socket = False")
++        else:
++            if msg.find("ready") : use_socket = True
++#login was accepted; continue with socket connection (assume tm-service remote-equ is properly setup)
++            else : use_socket = False #login failed. user not defined?
++        if use_socket :
++            clientsocket.settimeout(None)
++            clientsocket.setblocking(1)
++            msg = '(0 (remote-equ "%s" "%s"))\n' % (self.tmp_name , latex)
++            if IS_WINDOWS :
++                msg = msg.replace('\\','\\\\')
++            clientsocket.sendall(str(len(msg))+ '\n'+msg)
++            time.sleep(.1)
++            data = clientsocket.recv(size)
++#            inkex.debug("recvd: " + str(len(data)) + " bytes")
++#            inkex.debug("recvd:" + data)
++            clientsocket.close()
++        else :
++
++# socket connection failed : texmacs not in server mode or not started.
++#
++# Then, use old method : launch it with proper args on the command line
++# and communicate through pipes.
++#
++# In that case, if texmacs has server mode enabled we want it to
++# keep running after this script quits, for subsequent connections.
++# This is straightforward on Linux/MacOs.
++#
++# However on Windows this script would hang until texmacs quits, unless
++# Texmacs runs as a completly independent process and not a subprocess of this script.
++# The next problem is that, on Windows, launching and independent process is
++# incompatible with using stdin/stdout pipes; we thus use a named pipe to know 
++# when texmacs has finished editing our first equation (sending "done" or "cancel" on stdout)
++# Since python shipped with (windows-)inkscape does not have packages for
++# handling nicely such named pipes we need to perform low level calls.
++#  
++# http://code.activestate.com/lists/python-list/446422/
++# https://mail.python.org/pipermail/python-list/2005-March/355623.html
++
++            if IS_WINDOWS :
++                import ctypes
++                PIPE_ACCESS_DUPLEX = 0x3
++                PIPE_TYPE_MESSAGE = 0x4
++                PIPE_READMODE_MESSAGE = 0x2
++                PIPE_WAIT = 0
++                PIPE_NOWAIT = 0x1
++                PIPE_UNLIMITED_INSTANCES = 255
++                BUFSIZE = 4096
++                NMPWAIT_USE_DEFAULT_WAIT = 0
++                INVALID_HANDLE_VALUE = -1
++                ERROR_PIPE_CONNECTED = 535
++
++                tmPipename = r"\\.\pipe\namedpipe1"
++
++                hPipe = ctypes.windll.kernel32.CreateNamedPipeA(tmPipename,
++                                                 PIPE_ACCESS_DUPLEX,
++                                                 PIPE_TYPE_MESSAGE |
++                                                 PIPE_READMODE_MESSAGE |
++                                                 PIPE_WAIT, PIPE_UNLIMITED_INSTANCES,
++                                                 BUFSIZE, BUFSIZE, NMPWAIT_USE_DEFAULT_WAIT,
++                                                 None
++                                                )
++                if (hPipe == INVALID_HANDLE_VALUE):
++                    inkex.debug("Error in creating Named Pipe")
++                    return
++                cmd = '""'+texmacs_path+'" -x "'+scheme_cmd+'" "'+self.tmp_name+'"" > '+tmPipename
++
++                #print (cmd)
++                DETACHED_PROCESS = 8
++                CREATE_NEW_PROCESS_GROUP = 512 #required for win7
++                p = subprocess.Popen(cmd, shell=True, creationflags=CREATE_NEW_PROCESS_GROUP, close_fds=True)
++                time.sleep(1)
++                fConnected = ctypes.windll.kernel32.ConnectNamedPipe(hPipe, None)
++                if ((fConnected == 0) and (ctypes.windll.kernel32.GetLastError() == ERROR_PIPE_CONNECTED)):
++                    fConnected = 1
++                if (fConnected != 1) :
++                    inkex.debug("Could not connect with "+texmacs_path+"\n using named pipe")
++                    return
++                ERROR_MORE_DATA = 234
++                BUFSIZE = 512
++                chBuf = ctypes.create_string_buffer(BUFSIZE)
++                cbRead = ctypes.c_ulong(0)
++                while 1 : # repeat loop if ERROR_MORE_DATA
++                    fSuccess = ctypes.windll.kernel32.ReadFile(hPipe, chBuf, BUFSIZE, ctypes.byref(cbRead), None)
++                    if (fSuccess == 1) :
++                        #print "Number of bytes read:", cbRead.value
++                        #print chBuf.value
++                        if (("done" in chBuf.value) or ("cancel" in chBuf.value) ):
++                            break
++                    elif (ctypes.windll.kernel32.GetLastError() != ERROR_MORE_DATA):
++                        inkex.debug("error reading from named pipe")
++                        break
++                    
++                ctypes.windll.kernel32.FlushFileBuffers(hPipe)
++                ctypes.windll.kernel32.DisconnectNamedPipe(hPipe)
++                ctypes.windll.kernel32.CloseHandle(hPipe)
++
++            else : # Linux, MacOS: so much simpler!
++                cmd = [texmacs_path,"-x",scheme_cmd , self.tmp_name]
++                try:
++                    p = subprocess.Popen(cmd, 
++                                     stdout=subprocess.PIPE,
++                                     stderr=subprocess.STDOUT)
++                    while p.poll() is None:
++                        output = p.stdout.readline()
++                        if (("done" in output) or ("cancel" in output) ):
++                            break
++                except OSError as e:
++                    raise RuntimeError("Command %s failed: %s" % (' '.join(cmd), e))
++                except :
++                    inkex.debug("launching texmacs failed   ")
++                    
+ 
+     def replace_node(self, old_node, new_node):
+         """
+@@ -169,37 +298,42 @@ class Texmacs(inkex.Effect):
+         in self.document.
+         """
+         if old_node is None:
++            new_node.attrib['transform'] = "scale(0.264583333)" 
++            # 0.35277779 is 25.4/72 and this scaling is applied when inkscape *imports* an svg (or pdf) file
++            # 0.264583333 is (3/4)*25.4/72 (= 25.4/96) and this scaling is applied when inkscape *pastes* our svg from clipboard
++            # we apply it here for having consistent sizes when pasting or creating an equation using this extension
++            # if we furthermore want the font size to be "correct" we need to set the image output scale to 1.333 in texmacs
+             self.current_layer.append(new_node)
+         else:
+-		# -- Copy transform
+-        	try:
+-            	# Note: the new node does *not* have the SVG namespace prefixes!
+-            	#       This caused some problems as Inkscape couldn't properly
+-            	#       handle both svg: and prefixless entries in the same file
+-            	#       in some cases.
+-        	    new_node.attrib['transform'] = old_node.attrib['transform']
+-        	except (KeyError, IndexError, TypeError, AttributeError):
+-        	    pass
+-        	try:
+-        	    new_node.attrib['transform'] = old_node.attrib['{%s}transform'%SVG_NS]
+-        	except (KeyError, IndexError, TypeError, AttributeError):
+-        	    pass
+-
+-		# -- Copy style (remembering style is tricky...)
+-		try:
+-			new_node.attrib['style'] = old_node.attrib['style']
+-        	except (KeyError, IndexError, TypeError, AttributeError):
+-        		pass
+-		try:
+-			new_node.attrib['style'] = old_node.attrib['{%s}style'%SVG_NS]
+-        	except (KeyError, IndexError, TypeError, AttributeError):
+-        		pass
+-
+-		# replace node
+-		parent = old_node.getparent()
+-        	parent.append(new_node)
+-		parent.remove(old_node)
+-            
++        # -- Copy transform
++            try:
++                # Note: the new node does *not* have the SVG namespace prefixes!
++                #       This caused some problems as Inkscape couldn't properly
++                #       handle both svg: and prefixless entries in the same file
++                #       in some cases.
++                new_node.attrib['transform'] = old_node.attrib['transform']
++            except (KeyError, IndexError, TypeError, AttributeError):
++                pass
++            try:
++                new_node.attrib['transform'] = old_node.attrib['{%s}transform'%SVG_NS]
++            except (KeyError, IndexError, TypeError, AttributeError):
++                pass
++
++            # -- Copy style (remembering style is tricky...)
++            try:
++                new_node.attrib['style'] = old_node.attrib['style']
++            except (KeyError, IndexError, TypeError, AttributeError):
++                pass
++            try:
++                new_node.attrib['style'] = old_node.attrib['{%s}style'%SVG_NS]
++            except (KeyError, IndexError, TypeError, AttributeError):
++                pass
++
++            # replace node
++            parent = old_node.getparent()
++            parent.append(new_node)
++            parent.remove(old_node)
++
+         # -- Work around probable bugs in several viewers that don't handle
+         #    "stroke-width: 0;" style properly.
+         style = 'stroke-width: 0.0000001'
+@@ -218,7 +352,6 @@ class Texmacs(inkex.Effect):
+             style = xstyle
+         new_node.attrib['style'] = style
+ 
+-	return
+ 
+ 
+     def remove_temp_files(self):
 diff --git a/TeXmacs/progs/convert/images/tmimage.scm b/TeXmacs/progs/convert/images/tmimage.scm
-index edb68df..fc056cd 100644
+index a5dce94..66f715a 100644
 --- a/TeXmacs/progs/convert/images/tmimage.scm
 +++ b/TeXmacs/progs/convert/images/tmimage.scm
-@@ -4,7 +4,7 @@
+@@ -3,13 +3,19 @@
  ;; MODULE      : tmimage.scm
  ;; DESCRIPTION : convert texmacs fragment (selection) to image formats.
  ;;               Try embedding source code in image
 -;; COPYRIGHT   : (C) 2012  Philippe Joyez
-+;; COPYRIGHT   : (C) 2012-2015  Philippe Joyez
++;; COPYRIGHT   : (C) 2012-2016  Philippe Joyez
  ;;
  ;; This software falls under the GNU general public license version 3 or later.
  ;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
-@@ -20,8 +20,8 @@
- 
+ ;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+ ;;
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;; convert active selection to various graphics format
--;; try embedding texmacs code of the selection in metadata of the image for
--;; re-edition.
++;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
++;; convert active selection to various graphics format
 +;; If target is svg embed texmacs code of the selection in the image for
 +;; re-edition (Could be done for other formats too).
- ;; the svg produced by this method can be pasted in inkscape via the clipboard
++;; the svg produced by this method can be pasted in inkscape via the clipboard
++;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
+ (texmacs-module (convert images tmimage)
+   (:use (convert tmml tmmlout)
+@@ -18,29 +24,153 @@
+ ;; (display "Texmacs] Loading module tmimage\n")
+ 
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+-;; convert active selection to various graphics format
+-;; try embedding texmacs code of the selection in metadata of the image for
+-;; re-edition.
+-;; the svg produced by this method can be pasted in inkscape via the clipboard
++;; Handling of image convertion preferences
++;; And preference widget 
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
-@@ -37,97 +37,6 @@
- (define (url-temp-ext ext)
-   (url-glue (url-temp) (string-append "." ext)))
- 
--;; new system function call that check that output is produced
--;; and give minimum information if not
--
--(define no-error-yet #t)
--
--(define (system-2-check cmd urlin urlout)
--;; this fails for convert on windows XP, but why??  (system-2 cmd urlin urlout)
--;; very uggly workaround:
--(if (and (or (os-win32?) (os-mingw?)) (string=? (string-take cmd 7) "convert"))
--    (system (string-append cmd " \""(url-concretize urlin)"\" \""
--			   (url-concretize urlout) "\"" ))
--    (system-2 cmd urlin urlout))
--(if (and (not (url-exists? urlout)) no-error-yet)
--    (begin
--      (set-message (string-append cmd " failed") "Check converters")
--      (display (string-append "image conversion problem: " cmd " failed\n" ))
--      (display "check converter setup, existence in path...\n" )
--      (set! no-error-yet #f))
--))
--;; since we chain converters
--;; the first error will trigger a cascade of failures
--;; so we only report the first error in export-selection-as-graphics.
--;; We display error both in console and in status bar for console-less
--
--;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
--;; external converters
--;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
--
--;; In windows, passing correctly arguments to
--;; the gs tools and pdf2svg is a serious issue in some cases.
--;; In particular, in XP filenames may have spaces and/or accents
--;; (eg in french localized TEXMACS_HOME_PATH : "Données d'applications")
--;; that cause them to fail. I deliver the only workaround I could find:
--;; We provide customized versions of gs tools which
--;; work by converting pathes to old MSDOS-style ascii-only shortened version.
--;; Note that these short names may be deactived in some NT-based systems,
--;; which would break our workaround.
--;; The custom .bat gs tools go in /bin with texmacs.exe and gsw32c.exe
--;; We also need to provide pdf2svg.exe and the needed dlls.
--;; The standard install of imagemagick on windows puts it in the path
--;; so not much to do
--
--(cond ((or (os-win32?) (os-mingw?))
--       (define win-tm-path (system->url "$TEXMACS_PATH"))
--       (define ps2eps
--	 (string-append
--	  "\""
--	  (url-concretize
--	   (url-append win-tm-path
--		       (string->url "bin/tm-ps2epsi.bat"))) "\""))
--       (define ps2pdf
--	 (string-append
--	  "\""
--	  (url-concretize
--	   (url-append win-tm-path
--		       (string->url "bin/tm-ps2pdf.bat")))"\""))
--       (define pdf2svg
--	 (string-append
--	  "\""
--	  (url-concretize
--	   (url-append win-tm-path
--		       (string->url "bin/tm-pdf2svg.bat")))"\""))
--       )
--
--      (else ;; MacOS and Linux
--	(define ps2eps "ps2epsi")
--	(define ps2pdf "ps2pdf -dEPSCrop")
--	(define pdf2svg "pdf2svg")
--
--	(if (not (url-exists-in-path? "pdf2svg"))
--	    (begin
--	      (set-message "warning: pdf2svg not in path"
--			   "svg export not available")
--	      (display
--	       "Texmacs] Warning: pdf2svg not in path; svg export not available\n" )
--	      )))
--
--;;we just assume gs (including ps2epsi, ps2pdf) is available in *nix ans MacOS
--      )
--
--;; on all OSes check for "convert"
--;; also check for "conjure" because windows systems may have an homonym
--(if (not (and (url-exists-in-path? "convert") (url-exists-in-path? "conjure")))
--    (begin
--      (set-message "warning: ImageMagick not in path"
--		   "bitmap export not available")
--      (display
--       "Texmacs] Warning: ImageMagick not in path; bitmap export not available\n" )
--      ))
--
--
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- ;; commodity functions for tree manipulations
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@@ -190,7 +99,7 @@
-     newalist))
- 
- (define (replace-hlinks! hreflist alist)
--  ;; use the above association list to actualy replace
-+  ;; use the above association list to actually replace
-   ;; the xlink:href items with updated targets
-   (map (lambda (leaf)
-          (let ((newtarget (assoc-ref alist (tree->string leaf))))
-@@ -237,7 +146,6 @@
-   ;; for improvements (we could pass the style that was used when
-   ;; the equation was created, the fonts,...)
- 
--
-   (let*
-       (;; first: load svg and transform to an active tree in
-        ;; temporary buffer so that we can manipulate it
-@@ -278,7 +186,7 @@
-        (extra-tm-attrib `((xmlns:ns1 "http://www.texmacs.org/")
-                           (ns1:texmacscode ,tm-code) (ns1:texmacstyle ,tm-style)))
-        ;; OK, the texmacs namespace maybe not correctly described at that url
--       (old->new-labels (newids! idlist tm-code))
-+       (old->new-labels (newids! idlist (string-append tm-code tm-style)))
-        ;; rename all ids, create an association list of old to new ids
-        )
- 
-@@ -338,83 +246,61 @@
-   (:synopsis "Generates graphics format of the current selection")
-   (:argument myurl "A full file url with extension")
-   (:returns "nothing")
--  ;; global document parameters such as style, fonts, etc. are respected
--  ;; in the typesetting. However they are presently not passed to
--  ;; the svg and therefore lost when re-editing the svg
--
-+  ;; for svg export, the texmacs code of the selection as well as 
-+  ;; global document parameters such as style, fonts, etc. are
-+  ;; embedded in the drawing to enable re-editing from inkscape
-+ 
-   (if (not (selection-active-any?))
--      (set-message "no selection!" "")
--      (let* (;; step 1 prepare and typeset selection
--	     ;;if selection is part of math need to re-encapsulate
--	     ;; it with math to obtain proper typesetting :
--	     (tm-fragment
--	      (if (tree-multi-paragraph? (selection-tree))
--	          (selection-tree)
--	          (if (in-math?)
-+    (set-message "no selection!" "")
-+    (let* (;; step 1 prepare and typeset selection
-+	  ;;if selection is part of math need to re-encapsulate
-+	  ;; it with math to obtain proper typesetting :
-+	  (tm-fragment
-+	    (if (tree-multi-paragraph? (selection-tree))
-+	        (selection-tree)
-+	        (if (in-math?)
- 		      (stree->tree `(equation* (document ,(selection-tree))))
- 		      (selection-tree))))
- 	     ;; also if selection spans several lines of text,
- 	     ;; need to encapsulate it in a fixed-width table
- 	     ;;to enforce pagewidth :
--	     (tm-fragment-enforce-pagewidth
--	      (stree->tree
--	       `(tabular
--		 (tformat (twith "table-width" "1par")
--			  (twith "table-hmode" "exact")
-+	  (tm-fragment-enforce-pagewidth
-+	    (stree->tree
-+	     `(tabular
-+		   (tformat (twith "table-width" "1par")
-+			  (twith "table-hmode" "min")
- 			  (cwith "1" "1" "1" "1" "cell-hyphen" "t")
- 			  (table (row (cell (document ,tm-fragment))))))))
--	     (temp0 (url-temp-ext "ps"))
--	     (temp1 (url-temp-ext "eps"))
--	     (dpi-pref (get-preference "printer dpi"))
--	     (suffix (url-suffix myurl)))
-+	  (temp1 (url-temp-ext "pdf"))
-+	  (dpi-pref (get-preference "printer dpi"))
-+	  (suffix (url-suffix myurl)))
- 
--	(set! no-error-yet #t)
--        (set-printer-dpi "236") ; 472 is ~ exact size
-+;;	(set! no-error-yet #t)
-+      (set-printer-dpi "236") ; 472 is ~ exact size
- 	;;set to a fixed value so our graphics does
- 	;;not depend on the printer dpi
- 	;;We need to set this weird dpi value so that the size of the svg
- 	;;produced is about twice that of direct pdf or ps output. Why??
--	(print-snippet temp0 tm-fragment-enforce-pagewidth)
--	;;typeset fragment to ps as starting point
--	(set-printer-dpi dpi-pref)
-+	  (print-snippet temp1 tm-fragment-enforce-pagewidth)
-+	  (set-printer-dpi dpi-pref)
- 	;; revert to preference dpi
--	(system-2-check ps2eps temp0 temp1)
--	;;make eps to get optimized bounding box. We could generate
--	;; directly the eps, but then the bounding box width
--	;; is a full pagewidth
--	(system-remove temp0)
- 	;; step 2 generate output according to desired output format
- 
--	(cond ((== suffix "eps")
--	       (system-copy temp1 myurl))
--	      ((== suffix "pdf")
--	       (system-2-check ps2pdf temp1 myurl))
--	      ((== suffix "svg")
--	       ;; assume target is inkscape with texmacs.ink plugin
--	       ;; allowing to re-edit the original tm selection
--	       ;; (presumably an equation)
--	       (let* ((temp2 (url-temp-ext "pdf")))
--		 ;; still need pdf as intermediate format
--		 (system-2-check ps2pdf temp1 temp2)
--		 (system-2-check pdf2svg temp2 myurl)
--		 ;; chaining these 2 specific converters is crucial
-+	  (cond 
-+	    ((== suffix "pdf") (system-copy temp1 myurl))
-+	    ((== suffix "svg")
-+	       ;; assume target is inkscape
-+		   (file-convert temp1 myurl)
-+		 ;; using either pdf2svg or pdf2cairo converters is crucial
- 		 ;; for svg inport in inkscape:
- 		 ;; fonts are properly passed as vector outlines
--		 (refactor-svg myurl tm-fragment)
-+		 ;; file converters are defined in init-images.scm
-+		   (refactor-svg myurl tm-fragment))
- 		 ;; modify svg, embedding texmacs code
--		 (system-remove temp2)
--		 ))
--	      (else
--		;; other formats : use imagemagick generic converter
--		;; this is where png, jpg, etc is generated
--		;; we ask imagemagick to insert texmacs source
--		;; in image metadata (comment)
--		(system-2-check
--		 (string-append "convert -density 300 -comment \""
--				(tm-encode tm-fragment) "\"")
--		 temp1 myurl)))
--
--	(system-remove temp1) ;; temp eps file not needed anymore
-+	    (else
-+            (file-convert temp1 myurl)))
+ (define-preferences
++  ("texmacs->image:format" "svg" noop)
++  ("texmacs->image:scale" "2.0" noop)
+   ("texmacs->image:raster-resolution" "300" noop)
+-  ("texmacs->image:format" "svg" noop))
++  ("equation-editor-server" "off" noop))
 +
-+	  (system-remove temp1) ;; temp pdf file not needed anymore
- 	)))
- 
- (tm-define (export-selection-as-pdf myurl)
-diff --git a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
-index 18eac52..5f8923d 100644
---- a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
-+++ b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
-@@ -473,21 +473,97 @@
- 
- ;; Images ----------
- 
--(define-preference-names "texmacs->graphics:format"
--  ("svg" "Svg")
--  ("eps" "Eps")
--  ("png" "Png"))
 +(define (pretty-format-list)
 +  (let* ((desired-image-format-list '(("svg" "Svg")  ("eps" "Eps")
 +           ("png" "Png")("tif" "Tiff") ("jpg" "Jpeg")))
 +         (valid-image-format-list 
 +           (filter (lambda (x) (file-converter-exists? "x.pdf" (string-append "y." (car x)) ))
 +             desired-image-format-list)))
-+   (eval `(define-preference-names "texmacs->graphics:format" ,@ valid-image-format-list))
++   (eval `(define-preference-names "texmacs->image:format" ,@ valid-image-format-list))
 +   (cadr (apply map list valid-image-format-list))))
 +
 +(define (svg-converter-available)
-+  (not (not (converter-search "pdf-file" "svg-file"))))
++  (nnot (converter-search "pdf-file" "svg-file")))
 +
 +(define (inkscape-detected)
 +  (if (or (os-mingw?) (os-win32?)) #t (url-exists-in-path? "inkscape"))) ;;no reliable way on windows
@@ -384,15 +741,20 @@ index 18eac52..5f8923d 100644
 +
 +(define (inkscape-extension-installed)
 +  (url-exists? (inkscape-extension)))
-+  
++
 +(define (get-svg-converter)
-+  (if (or (os-win32?) (os-mingw?)) (show-message "'pdftocairo.exe' is normally distributed with TeXmacs. Please file a bug report." "missing svg converter")
-+      (if (os-macos?) (show-message "Please install either 'pdf2svg' or 'pdftocairo' (included in poppler) from MacPorts, Fink or Homebrew" "missing svg converter")
-+           (show-message "Please install either 'pdf2svg' or 'pdftocairo' (included in poppler-utils) using your distribution package management system" "missing svg converter"))))
++  (if (or (os-win32?) (os-mingw?)) 
++    (show-message "pdftocairo is bundled with TeXmacs at this address: https://github.com/slowphil/mingw-w64-texmacs/releases"
++      "'pdftocairo' is needed for co-operating with Inkscape, but it is not present.")
++    (if (os-macos?) 
++      (show-message "Please install either 'pdf2svg' or 'pdftocairo' (included in poppler) from MacPorts, Fink or Homebrew"
++        "missing svg converter")
++      (show-message "Please install either 'pdf2svg' or 'pdftocairo' (included in poppler-utils) using your distribution package management system"
++        "missing svg converter"))))
 +(define (start-inkscape)
 +  (if (or (os-win32?) (os-mingw?))
-+   (show-message "Make sure Inkscape is installed on your system, and then start it once." "missing Inkscape preferences")
-+   (shell "inkscape")))
++    (show-message "Make sure Inkscape is installed on your system, and then start it once." "missing Inkscape preferences")
++    (shell "inkscape")))
 +
 +(define (install-inkscape-extension)
 +  (let ((dest-dir (escape-shell (url-concretize 
@@ -404,29 +766,40 @@ index 18eac52..5f8923d 100644
 +           (system (string-append "copy " source-dir " " dest-dir))
 +           (system (string-append "cp " source-dir " " dest-dir)))
 +       (refresh-now "svg-configutation")))
- 
- (tm-widget (image-preferences-widget)
-   ===
-   (bold (text "TeXmacs -> Image"))
-   ===
--  (aligned
--    (item (text "Format:")
--      (enum (set-pretty-preference "texmacs->graphics:format" answer)
--            '("Svg" "Eps" "Png")
++
++(define (get-equation-editor-server)
++  (get-boolean-preference "equation-editor-server"))
++
++(define (set-equation-editor-server on?)
++  (set-boolean-preference "equation-editor-server" on?)
++  (refresh-now "svg-configutation"))
++
++
++(tm-widget (image-preferences-widget)
++  ===
++  (bold (text "TeXmacs -> Image"))
++  ===
 +  (refreshable "svg-configutation"
 +    (aligned
 +      (item (text "Bitmap resolution (dpi):")
-+        (enum (set-pretty-preference "texmacs->graphics:raster-resolution" answer)
++        (enum (set-pretty-preference "texmacs->image:raster-resolution" answer)
 +            '("600" "300" "150" "")
-+            (get-pretty-preference "texmacs->graphics:raster-resolution")
++            (get-pretty-preference "texmacs->image:raster-resolution")
 +            "5em")) 
 +      (item (text "Clipboard image format:")
-+        (enum (set-pretty-preference "texmacs->graphics:format" answer)
++        (enum (set-pretty-preference "texmacs->image:format" answer)
 +            (pretty-format-list)
-             (get-pretty-preference "texmacs->graphics:format")
--            "5em"))))
-+            "5em")))
++            (get-pretty-preference "texmacs->image:format")
++            "5em"))
++	  (item (text "Output scale factor:")
++        (enum (set-pretty-preference "texmacs->image:scale" answer)
++            '("1" "1.5" "2" "")
++            (get-pretty-preference "texmacs->image:scale")
++            "5em"))) 
++    
 +    ======
++  (bold (text "Configure TeXmacs as equation editor external programs"))
++  ===
 +    (aligned (meti (hlist  // (text "Svg converter available") >>> 
 +                (if (not (svg-converter-available)) 
 +				  (explicit-buttons ("get converter" (get-svg-converter)))))
@@ -445,17 +818,553 @@ index 18eac52..5f8923d 100644
 +    (if (and (inkscape-detected) (inkscape-prefs-found) (svg-converter-available))
 +      (aligned (meti (hlist  // (text "Inkscape extension installed") >>> 
 +		    (explicit-buttons ("install/update extension" (install-inkscape-extension))))              
-+            (inert (toggle (noop) (inkscape-extension-installed)))))))
++            (inert (toggle (noop) (inkscape-extension-installed))))
++         (meti (hlist  // (text "Enable socket communications (faster)"))              
++            (toggle (set-equation-editor-server answer)
++              (get-equation-editor-server))))))
++
 +    ======
 +      (centered
 +       (hlist  /// (explicit-buttons ("Refresh" (refresh-now "svg-configutation")))
 +           /// (explicit-buttons ("Help" (load-help-buffer (url-resolve (url-glue (string->url "$TEXMACS_DOC_PATH") "/main/convert/man-graphics-export.en.tm") "r"))))))
 +
 +)
++
+ 
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;; private functions
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
+-;; temporary files with extensions
++(define (baseline-relpos t)
++;; compute relative position of baseline  
++  (number->string (exact->inexact
++    (/ 
++      (- 
++;        (string->number(cadr (box-info (stree->tree `(with "text-at-valign" "bottom" ,t)) "B")))
++ ;       (string->number(cadr (box-info (stree->tree `(with "text-at-valign" "base" ,t)) "B"))))
++        (string->number(cadr (box-info (stree->tree `(with "doc-at-valign" "bottom" ,t)) "B")))
++        (string->number(cadr (box-info (stree->tree `(with "doc-at-valign" "base" ,t)) "B"))))
++      (string->number(cadr (box-info t "H")))))))
+ 
+ (define (url-temp-ext ext)
++;; temporary files with extensions
+   (url-glue (url-temp) (string-append "." ext)))
+ 
+-;; new system function call that check that output is produced
+-;; and give minimum information if not
+-
+-
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;; commodity functions for tree manipulations
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+@@ -65,8 +195,9 @@
+   ;; similar to "remove tag" operation in the editor
+   (let* ((parent (tree-ref node :up))
+          (pos (+ (tree-index node) 1))
+-         (lastindex (if (< (length firstlast) 2) (- (tree-arity node) 1) (cadr firstlast) ))
+-         (firstindex (- (if (null? firstlast) 0 (car firstlast)) 1)))
++         (lastindex (- (if (< (length firstlast) 2) (tree-arity node) (cadr firstlast) )1))
++         (firstindex (- (if (null? firstlast) 1 (car firstlast)) 1)))
++;;    (display* firstindex " " lastindex "\n")  
+     (do ((i lastindex (- i 1))) ((= i firstindex))
+       (copy-node! (tree-ref node i) parent pos))
+     (remove-node! node)
+@@ -76,47 +207,106 @@
+   ;; replace a node's content by a new string.
+   ;; Makes the node a leaf if it wasn't one
+   (tree-assign! leaf (string->tree newtext)))
+-
++  
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+-;; 2 functions for remapping cross-referenced items (glyphs)
+-;; in the svg using unique ids. This is needed to avoid collisions between
+-;; definitions belonging to differents formulas in inkscape
++;; Main functions needed for making reeditable svg
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
+-(define (newids! lablist tm-fragment-string)
+-  ;; replaces all ids in the svg
+-  ;; plus returns an associationlist for mapping old id to new ones
+-  ;; we will use it to replace hyperlinks to the former ids to the new ones
+-  (let* ((unique (number->string (string-hash tm-fragment-string 1000000)))
+-         ;; generate a reproducible 6-digit number that depends
+-         ;; on the tm code of the selection
+-         (basename (string-append "tm" unique "-"))
+-         (newalist '())
+-         (n (length lablist)))
+-    (do ((i 0 (+ i 1))) ((= i n))
+-      (let* ((newlabel (string-append basename (number->string i)))
+-             (labelnode (list-ref lablist i))
+-             (oldlabel (tree->string labelnode)))
+-        (set! newalist (assoc-set! newalist (string-append "#" oldlabel)
+-                                   (string-append "#" newlabel) ))
+-        (replace-leaftext! labelnode newlabel)))
+-    newalist))
+-
+-(define (replace-hlinks! hreflist alist)
+-  ;; use the above association list to actualy replace
+-  ;; the xlink:href items with updated targets
+-  (map (lambda (leaf)
+-         (let ((newtarget (assoc-ref alist (tree->string leaf))))
+-           (replace-leaftext! leaf newtarget)))
+-       hreflist))
++(define (replace-hlinks! svgroot defs tm-fragment-string)
++;; function for remapping cross-referenced items (glyphs)
++;; in the svg using unique ids. This is needed to avoid collisions between
++;; definitions belonging to differents formulas in inkscape
++  (let* 
++    ((deflist (select defs '(:* @ id :%1)))
++     ;; list of all ids in the drawing, pointed to by 'clip-path'
++     ;; attributes or xlink:href attribute of 'use' nodes 
++     (hreflist (select svgroot '(:* @ (:or xlink:href clip-path style) :%1)))
++     (unique (number->string (string-hash tm-fragment-string 1000000)))
++     ;; generate a reproducible 6-digit number that depends
++     ;; on the tm code of the selection
++     (basename (string-append "tm" unique "-"))
++     (n (length deflist)))
++    (if (> n 0)
++      (do ((i 0 (+ i 1))) ((= i n))
++        (let* 
++          ((labelnode (list-ref deflist i))
++           (deftype (tree-label (tree-ref labelnode :up :up :up)))
++           (newlabel (string-append basename (number->string i)))
++           (callerfound #f))
++          (map 
++            (lambda (x) 
++              (let* 
++                ((stylestr (tree->string x))
++                 (labelstr (tree->string labelnode))
++                 (labelength (string-length labelstr))
++                 (pos (string-contains stylestr labelstr)))
++                (if (and pos (or (== (string-length stylestr) (+ pos labelength)) (== (substring stylestr (+ pos labelength) (+ 1 pos labelength)) ")")))
++                  (begin 
++                    (replace-leaftext! x (string-replace stylestr labelstr newlabel))
++                    (set! callerfound #t)))))
++            hreflist)
++          (if callerfound
++            (replace-leaftext! labelnode newlabel)
++            (remove-node! (tree-ref labelnode :up :up :up))) ;;that def was previously removed or never used (it happens!)
++        )))))
++
++;; the svg generated by poppler from texmacs pdf output
++;; has many useless <g clip-path=xxx some_element> (and even often nested)
++;; making the svg unecessarily complicated and big.
++;; We remove unecessary clip-pathes and flatten some structures.
++;; The resulting svg for simple text and formulas is clean
++;; WARNING : these functions could cause errors if the pdf->svg converter
++;; is not poppler-based (pdftocairo or pdf2svg)
++
++(define (clean-svg1! svgroot)
++;in remove useless outer clip-path in nested g clip-path g, but keep id if exists
++  (let* 
++    ((gclipg (reverse(select svgroot '(:* g @ clip-path :up :up g :up)))))
++    (map-in-order 
++      (lambda (x) 
++        (let* ((childg (tree-ref x 'g)) 
++               (gattr (tree-ref x '@)) 
++               (gid (tree-ref gattr 'id))) 
++          (if (nnot gid) (move-node! (tree-ref gattr 'id) (tree-ref childg '@) 1))
++          (remove-node! gattr )
++          (remove-node-raise-children! x))
++          )
++       gclipg)))
++
++(define (clean-svg2! maingroup)
++;;in main group flatten g use, keeping g attributes except clip-paths
++  (let* 
++    ((guse (reverse (select maingroup '(g use)))))
++    (map-in-order 
++      (lambda (x) 
++        (let* ((parentg (tree-ref x :up))) 
++          (map remove-node! (select parentg '(@ (:or clip-rule clip-path))))
++          (map (lambda (y) (move-node! y (tree-ref x '@) 1)) (select parentg '(@ :%1)))
++          (remove-node! (tree-ref parentg '@))
++          (remove-node-raise-children! parentg)))
++      guse)))
++
++(define (clean-svg3! defs)
++;;in defs flatten (g symbol path), keeping symbol attributes
++  (let* 
++    ((gsymbolpath (reverse (select defs '(g symbol path :up))))
++     (gsymbol #f))
++    (if (nnull? gsymbolpath)
++      (begin
++        (set! gsymbol (tree-ref (car gsymbolpath) :up))
++        (map-in-order 
++          (lambda (x) 
++            (let* ((symbolpath (tree-ref x 'path))) 
++            (map (lambda (y) (move-node! y (tree-ref symbolpath '@) 1)) (select x '(@ :%1)))
++            (remove-node! (tree-ref x '@))
++            (remove-node-raise-children! x)))
++          gsymbolpath)
++        (remove-node-raise-children! gsymbol)))))
+ 
+-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;; define latex and texmacs string representation of selection
+ ;; we escape them to ascii so that they do not interfere with xml
+ ;; <  -> &lt;  > -> &gt; \ -> \\, all characters above #127->\xXX ...
+ ;; see  TeXmacs/langs/encodings/cork-escaped-to-ascii.scm
+-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+-
+ (define (latex-encode tm-fragment-tree)
+   ;; for the latex representation we mimick what is done when
+   ;; "copy to latex" is performed
+@@ -129,87 +319,75 @@
+ (define (tm-encode tm-fragment-tree)
+   (escape-to-ascii (serialize-texmacs tm-fragment-tree)))
+ 
+-(define (remove-clip! clipg)
+-  (let* ((parent (tree-ref clipg :up))
+-         (pos (+ (tree-index clipg) 1))
+-         (lastindex (- (tree-arity clipg) 1)))
+-    (do ((i lastindex (- i 1))) ((= i 0))
+-      (let* ((node (tree-ref clipg i)))
+-             (move-node! node parent pos)))
+-    (remove-node! clipg)
+-    ))
+-
+-(tm-define (cr2? s) (or (equal? (tree->stree s) "\n") (equal? (tree->stree s) "\n  ")))
+-
+-(define (refactor-svg dest tm-fragment)
+-  ;; reorganize svg file and inject attributes containing tm code of
+-  ;; equation. dest is the url of the svg file to be edited
+-  ;; A latex fragment is also added for compatibility with
+-  ;; 'textext' inkscape extension
+-  ;; FIXME : no error checking, no return value...
+-  ;; for improvements (we could pass the style that was used when
+-  ;; the equation was created, the fonts,...)
+-
++(define (refactor-svg dest tm-fragment relbaseline)
++;; dest is the url of the svg file to be edited
++;; We reorganize & cleanup the svg file and inject attributes containing:
++;; - the tm code of equation
++;; - style info from the original document (style, fonts, layout, ...)
++;; - A latex fragment for compatibility with 'textext' inkscape extension
++;; - the relative position of the baseline to enable vertical alignement
++;;   in an external application
++;; FIXME : no error checking, no return value...
+ 
+   (let*
+-      (;; first: load svg and transform to an active tree in
+-       ;; temporary buffer so that we can manipulate it
+-       ;; using texmacs primitives for trees
+-       (svg-in (string-load dest)) ;; load svg file as string
+-       (s-svg-in (parse-xml svg-in)) ;; parse to stree
+-       (mybuf (buffer-new))
+-       ;; create temporary buffer for subsequent manipulations of svg tree
+-       (void (buffer-set-body mybuf (tree-assign-node! (stree->tree s-svg-in)
+-                                                       'concat)))
+-       ;; populate buffer with tree
+-       ;; replace *TOP* node by concat otherwise displaying
+-       ;; that buffer crashes texmacs
+-
+-       ;; second: define a bunch of locations in the tree
+-       (buftree (buffer-get-body mybuf)) ;; the whole tree
+-       (svgroot (car (select buftree '(:* svg)))) ;; the <svg > node
+-       (maingroup (car (select svgroot '(g))))
+-       ;; the main group in the svg, containing the drawing layout
+-       (maingroup-attrib (car (select maingroup '(@))))
+-       ;; attributes of the main group
+-       (defs (car (select svgroot '(defs))))
+-       ;; the defs, containing the glyph vector outlines,
+-       ;; hyperlinked from the drawing (a.k.a cloned)
+-       (idlist (select svgroot '(:* id :%1)))
+-       ;; list of all ids in the drawing, used to label glyph outlines
+-       (hreflist (select maingroup '(:* @ xlink:href :%1)))
+-       ;; list of hyperlinks to the glyphs labels
+-
+-       ;; third: the new data we want to insert in the tree
+-       (latex-code (latex-encode tm-fragment))
+-       (tm-code (tm-encode tm-fragment))
+-       (tm-style (tm-encode (get-all-inits)))
+-       ;; define new attributes containing latex and texmacs code:
+-       (extra-latex-attrib
+-        `((xmlns:ns0 "http://www.iki.fi/pav/software/textext/")
+-          (ns0:text ,latex-code) (ns0:preamble "texmacs_latex.sty")))
+-       (extra-tm-attrib `((xmlns:ns1 "http://www.texmacs.org/")
+-                          (ns1:texmacscode ,tm-code) (ns1:texmacstyle ,tm-style)))
+-       ;; OK, the texmacs namespace maybe not correctly described at that url
+-       (old->new-labels (newids! idlist tm-code))
+-       ;; rename all ids, create an association list of old to new ids
+-       )
+-
+-    ;; fourth: modify tree
+-    (replace-hlinks! hreflist old->new-labels)
+-    ;; replace hlinks with new pointers
+-    (map remove-node! (select svgroot '(:* (:match :cr2?))))
+-    (map remove-clip! (reverse (select maingroup '(:* g @ clip-path :up :up))))
+-    (map remove-node! (select defs '(:* clipPath) ))
+-    ;; cleanup & simplify svg tree removing unecessary clips
+-    (tree-insert! maingroup-attrib 1 extra-latex-attrib)
+-    ;; for textext compatibility
++    ( ;; 1: load svg and transform to an active tree in
++      ;; temporary buffer so that we can manipulate it
++      ;; using texmacs primitives for trees
++      (svg-in (string-load dest)) ;; load svg file as string
++      (s-svg-in (parse-xml svg-in)) ;; parse to stree
++      (mybuf (buffer-new))
++      ;; create temporary buffer for subsequent manipulations of svg tree
++      (void (buffer-set-body mybuf (tree-assign-node! (stree->tree s-svg-in)
++                                                     'concat)))
++      ;; populate buffer with tree
++      ;; replace *TOP* node by concat otherwise displaying
++      ;; that buffer crashes texmacs
++      
++      ;; 2: define a bunch of locations in the tree
++      (buftree (buffer-get-body mybuf)) ;; the whole tree
++      (svgroot (car (select buftree '(:* svg)))) ;; the <svg > node
++      (maingroup (car (select svgroot '(g))))
++      ;; the main group in the svg, containing the drawing layout
++      (maingroup-attrib (car (select maingroup '(@))))
++      ;; attributes of the main group
++      (defs (car (select svgroot '(defs))))
++      ;; the defs, containing the glyph vector outlines,
++      ;; hyperlinked from the drawing (a.k.a cloned)
++      
++      ;; 3: the new data we want to insert in the tree
++      (latex-code (latex-encode tm-fragment))
++      (tm-code (tm-encode tm-fragment))
++      (tm-style (tm-encode (get-all-inits)))
++      ;; define new attributes containing latex and texmacs code:
++      (extra-latex-attrib
++      `((xmlns:ns0 "http://www.iki.fi/pav/software/textext/")
++        (ns0:text ,latex-code) (ns0:preamble "texmacs_latex.sty")))
++      (extra-tm-attrib 
++      `((xmlns:ns1 "http://www.texmacs.org/")
++        (ns1:texmacscode ,tm-code) (ns1:texmacsstyle ,tm-style)
++        (ns1:texmacsbaseline ,relbaseline)))
++      ;; OK, the texmacs namespace maybe not correctly described at that url ...
++    )
++
++    ;; 4: modify tree
++    ;; 4.1, (optional) simplify svg tree, removing unecessary clips and structures
++    ;; we don't even try simplifiying if the selection contains an image
++    ;; as it may have an arbitrarily complex svg structure
++    (if (not (or (== (tree-label tm-fragment) 'image) (nnull? (select tm-fragment '(:* image))))) 
++      (begin
++        (clean-svg1! svgroot)
++        (clean-svg2! maingroup)
++        (clean-svg3! defs)))
++    ;; 4.2, replace hlinks with new pointers, removing unused defs
++    (replace-hlinks! svgroot defs (string-append tm-code tm-style (get-preference "texmacs->image:scale")))
++    ;; 4.3 (not optional!), add our own new attributes for re-editting equation  
++    (tree-insert! maingroup-attrib 1 extra-latex-attrib) ;; for textext compatibility
+     (tree-insert! maingroup-attrib 2 extra-tm-attrib)
++    ;; 4.4 move defs containing the glyph outlines inside main group
++    ;; so that they remain together in inkscape (doesn't work when we go through clipboard, though)
+     (move-node! defs maingroup 2)
+-    ;; move defs containing the glyph outlines inside main group
+-    ;; so that they remain together in inkscape
+ 
+-    ;; Fifth : finally create output
++    ;; 5: finally create output
+     (let* (;; convert back to stree, recreate the *TOP* node,
+            ;; and restore *PI* xml
+            ;; (instead of *PI* "xml" given by tree->stree -
+@@ -251,59 +429,93 @@
+   (:synopsis "Generates graphics format of the current selection")
+   (:argument myurl "A full file url with extension")
+   (:returns "nothing")
+-  ;; global document parameters such as style, fonts, etc. are respected
+-  ;; in the typesetting. However they are presently not passed to
+-  ;; the svg and therefore lost when re-editing the svg
++  ;; for svg export, the texmacs code of the selection as well as 
++  ;; global document parameters such as style, fonts, etc. are
++  ;; embedded in the drawing to enable re-editing from inkscape
++ 
++  (cond
++   ((not (selection-active-any?)) (set-message "no selection!" ""))
++   ((not (file-converter-exists? "x.pdf" (string-append "y." (url-suffix myurl)) )) 
++      (show-message (string-append "pdf to " (url-suffix myurl) " converter not available. Sorry.") "Cannot generate image" ))
++   (else 
++    (let*
++     (
++;; step 1 prepare and typeset selection
++;; if selection is inside inline or display math preserve inline/display style
++
++      (tm-fragment
++        (cond
++          ((match? (tree->stree (selection-tree)) 
++                    '(:or (equation* :*) (equation :*) (eqnarray :*) (eqnarray* :*) (math :*)))
++            (display "is some math \n") (selection-tree)) 
++          ((==  (tree->string (get-env-tree-at "mode" (selection-get-start))) "math")
++             (if (==  (tree->string (get-env-tree-at "math-display" (selection-get-start))) "true")
++               (begin 
++                 (display "in display math \n") 
++                 (stree->tree `(equation* (document ,(selection-tree)))))
++               (begin 
++                 (display "in math \n")
++	             (stree->tree `(math (document ,(selection-tree)))))))
++          (else (display "other \n")(selection-tree))))
++
++;; is selection wider than 1par (and needs linebreaks and or hyphenation)?
++      (maxwidth (length-decode "1par"))
++      (partmpt (string-append (number->string maxwidth) "tmpt"))
++      (parcm (length-add  "0cm" partmpt))
++      (pagewcm (length-add  "0cm" (string-append (number->string (* (+ 0 (get-page-width #t)) 10)) "tmpt")))
++      ;; get-page-width return dimension in the cpp "SI" unit which seems to be == "10tmpt"
++;; output scale of image?
++      (str-scale  (get-preference "texmacs->image:scale"))
++      (scale (string->number str-scale))
++
++;; use math-at/text-at so as to be able to determine the baseline offset
++;; also if selection wider than par
++;; we preserve on-screen rendering by encapsulating
++;; it in a fixed-width table
++;; FIXME : in some cases output may differ from on-screen rendering (WYSWIGness is not perfect)
++      (tm-fragment-formated
++        (stree->tree `(with "magnify" ,str-scale "page-width" 
++          ,(length-mult scale pagewcm)
++           "doc-at-width" ,(length-mult scale parcm) "doc-at-hmode" "min" "doc-at-padding" "0spc";"doc-at-ppsep" "" 
++             (document-at (document ,tm-fragment) (point "0par" "0")))))
++;            (text-at 
++ ;             (tabular (tformat 
++  ;              (twith "table-width" ,(length-mult scale parcm))
++   ;             (twith "table-hmode" "min")
++    ;            (twith "table-valign" "T") ;;(=top baseline)
++     ;           (cwith "1" "1" "1" "1" "cell-hyphen" "t")
++      ;          (cwith "1" "-1" "1" "-1" "cell-lsep" "0spc")
++       ;         (cwith "1" "-1" "1" "-1" "cell-tsep" "0sep")
++        ;        (cwith "1" "-1" "1" "-1" "cell-rsep" "0spc")
++         ;       (cwith "1" "-1" "1" "-1" "cell-bsep" "0sep")
++          ;      (table (row (cell (document ,tm-fragment))))))
++           ;   (point "0par" "0")))))
++              
++;; compute relative position of baseline  
++    (relbaseline (baseline-relpos tm-fragment-formated))
++
++    (temp1 (url-temp-ext "pdf"))
++    (suffix (url-suffix myurl)))
++
++    (print-snippet temp1 (stree->tree `(with "doc-at-valign" "base" ,tm-fragment-formated)) )
+ 
+-  (if (not (selection-active-any?))
+-      (set-message "no selection!" "")
+-      (let* (;; step 1 prepare and typeset selection
+-	     ;;if selection is part of math need to re-encapsulate
+-	     ;; it with math to obtain proper typesetting :
+-	     (tm-fragment
+-	      (if (tree-multi-paragraph? (selection-tree))
+-	          (selection-tree)
+-	          (if (in-math?)
+-		      (stree->tree `(equation* (document ,(selection-tree))))
+-		      (selection-tree))))
+-	     ;; also if selection spans several lines of text,
+-	     ;; need to encapsulate it in a fixed-width table
+-	     ;;to enforce pagewidth :
+-	     (tm-fragment-enforce-pagewidth
+-	      (stree->tree
+-	       `(tabular
+-		 (tformat (twith "table-width" "1par")
+-			  (twith "table-hmode" "exact")
+-			  (cwith "1" "1" "1" "1" "cell-hyphen" "t")
+-			  (table (row (cell (document ,tm-fragment))))))))
+-         (temp0 (url-temp-ext "pdf"))
+-	     (dpi-pref (get-preference "printer dpi"))
+-	     (suffix (url-suffix myurl)))
+-
+-        (set-printer-dpi "236") ; 472 is ~ exact size
+-	;;set to a fixed value so our graphics does
+-	;;not depend on the printer dpi
+-	;;We need to set this weird dpi value so that the size of the svg
+-	;;produced is about twice that of direct pdf or ps output. Why??
+-	(print-snippet temp0 tm-fragment-enforce-pagewidth)
+-	;;typeset fragment to ps as starting point
+-	(set-printer-dpi dpi-pref)
+-	;; revert to preference dpi
+ 	;; step 2 generate output according to desired output format
+ 
+ 	  (cond 
+-	    ((== suffix "pdf") (system-copy temp0 myurl))
++	    ((== suffix "pdf") (system-copy temp1 myurl))
+ 	    ((== suffix "svg")
+ 	       ;; assume target is inkscape
+-		   (file-convert temp0 myurl)
++		   (file-convert temp1 myurl)
+ 		 ;; using either pdf2svg or pdf2cairo converters is crucial
+ 		 ;; for svg inport in inkscape:
+ 		 ;; fonts are properly passed as vector outlines
+ 		 ;; file converters are defined in init-images.scm
+-         (refactor-svg myurl tm-fragment))
++         (display* "relbaseline= " relbaseline "\n")
++         (refactor-svg myurl tm-fragment relbaseline))
+ 		 ;; modify svg, embedding texmacs code
+ 	    (else
+-            (file-convert temp0 myurl)))
++            (file-convert temp1 myurl)))
++
++	  (system-remove temp1) ;; temp pdf file not needed anymore
++	))))
+ 
+-	  (system-remove temp0) ;; temp pdf file not needed anymore
+-	)))
+diff --git a/TeXmacs/progs/init-texmacs.scm b/TeXmacs/progs/init-texmacs.scm
+index e856e35..e344a4c 100644
+--- a/TeXmacs/progs/init-texmacs.scm
++++ b/TeXmacs/progs/init-texmacs.scm
+@@ -328,7 +328,7 @@
+ (lazy-format (convert bibtex init-bibtex) bibtex)
+ (lazy-format (convert images init-images)
+              postscript pdf xfig xmgrace svg xpm jpeg ppm gif png pnm)
+-(lazy-define (convert images tmimage)
++(lazy-define (convert images tmimage) image-preferences-widget
+              export-selection-as-graphics clipboard-copy-image)
+ (lazy-define (convert rewrite init-rewrite) texmacs->code texmacs->verbatim)
+ (lazy-define (convert html tmhtml-expand) tmhtml-env-patch)
+diff --git a/TeXmacs/progs/kernel/library/content.scm b/TeXmacs/progs/kernel/library/content.scm
+index b7849d3..b028924 100644
+--- a/TeXmacs/progs/kernel/library/content.scm
++++ b/TeXmacs/progs/kernel/library/content.scm
+@@ -51,7 +51,9 @@
+   (if (string? x) x (tree->string x)))
+ 
+ (define-public (tm->list x)
+-  (if (list? x) x (tree->list x)))
++  (cond ((list? x) x) 
++        ((tm-atomic? x) (list x)) ;;we need that case (otherwise tree->list throws "wrong type argument")
++   (else (tree->list x))))
+ 
+ (define-public (tm->stree t)
+   (tree->stree (tm->tree t)))
+diff --git a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
+index 6c68efc..8abd465 100644
+--- a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
++++ b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
+@@ -472,31 +472,7 @@
+               (get-boolean-preference "texmacs->pdf:check")))))
+ 
+ ;; Images ----------
+-
+-(define (pretty-format-list)
+-  (let* ((desired-image-format-list '(("svg" "Svg")  ("eps" "Eps")
+-           ("png" "Png")("tif" "Tiff") ("jpg" "Jpeg")))
+-         (valid-image-format-list 
+-           (filter (lambda (x) (file-converter-exists? "x.pdf" (string-append "y." (car x)) ))
+-             desired-image-format-list)))
+-   (eval `(define-preference-names "texmacs->image:format" ,@ valid-image-format-list))
+-   (cadr (apply map list valid-image-format-list))))
+-
+-(tm-widget (image-preferences-widget)
+-  ===
+-  (bold (text "TeXmacs -> Image"))
+-  ===
+-  (aligned
+-      (item (text "Bitmap resolution (dpi):")
+-        (enum (set-pretty-preference "texmacs->image:raster-resolution" answer)
+-            '("600" "300" "150" "")
+-            (get-pretty-preference "texmacs->image:raster-resolution")
+-            "5em")) 
+-      (item (text "Clipboard image format:")
+-        (enum (set-pretty-preference "texmacs->image:format" answer)
+-            (pretty-format-list)
+-            (get-pretty-preference "texmacs->image:format")
+-            "5em"))))
++;; see module convert images tmimage.scm
  
  ;; All converters ----------
  
-@@ -495,15 +571,15 @@
+@@ -504,15 +480,15 @@
    ===
    (padded
      (tabs
@@ -474,6 +1383,141 @@ index 18eac52..5f8923d 100644
        (tab (text "Verbatim")
          (centered
            (dynamic (verbatim-preferences-widget))))
+diff --git a/plugins/equation-editor/progs/init-equation-editor.scm b/plugins/equation-editor/progs/init-equation-editor.scm
+new file mode 100644
+index 0000000..99bd03f
+--- /dev/null
++++ b/plugins/equation-editor/progs/init-equation-editor.scm
+@@ -0,0 +1,129 @@
++;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
++;;
++;; MODULE      : init-equation-editor.scm
++;; DESCRIPTION : plugin that enables using TeXmacs as a graphical
++;;               equation editor for external programs 
++;; COPYRIGHT   : (C) 2016  Philippe Joyez
++;;
++;; This software falls under the GNU general public license version 3 or later.
++;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
++;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
++;;
++;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
++;; This plugin enables using TeXmacs as 
++;; graphical "equation editor" which
++;; can be called from other applications
++;; (notably from within Inkscape using
++;; the "Texmacs extension" which can be installed
++;; in Inkscape from Texmacs convert->images preferences).
++;; 
++;; In this mode the equation to be edited 
++;; is loaded from a temporary tm file and displayed with 
++;; a toolbar with "done" and "cancel" buttons.
++;; When the "done" button is pressed 
++;; an updated svg image of the equation (containing the
++;; texmacs representation of the equation) is created 
++;;
++;; The external application can communicate with texmacs 
++;; (and this plugin) in two ways:
++;; a) launching texmacs with command line 
++;; options -x "(lazy-plugin-force)(equ-edit-cmdline)"
++;; (see below) and using stdin/stdout pipes
++;; b) connecting with an already running texmacs instance
++;; using texmacs' socket server feature  
++;; (enabled by the preference "equation-editor-server" 
++;; controlled in the preference>convert>image widget).
++;; Using socket communication is much faster since it
++;; spares the boot-up time of texmacs.
++;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
++;;
++;;(import-from (debug debug-menu))(debug-toggle "io")
++
++(plugin-configure equation-editor 
++  (:require #t)
++  ;;(display "config equation-editor\n")
++)
++
++;;(when (supports-equation-editor?) (display "equation-editor plugin loaded\n"))
++
++
++;; Do (server-start) automatically at boot-up if preferences are set so
++;; to enable incoming connections
++
++(if (get-boolean-preference "equation-editor-server")
++  (begin 
++    (import-from (server server-base)) ;; define tm-service for use below
++    (with srv (client-start "localhost")
++      (if (== srv -1) 
++        (begin (display "starting server\n") (server-start))
++        (begin (display "found local server\n")(client-stop srv)
++        )))
++
++;; need a login for connecting to texmac's server
++    (server-set-user-information "inkscape" "inkscape-modify-equation" "inkscape" "" "no")
++
++;; service where inkscape connects, sending the path of a temporary file
++;; with the equation to be edited and (possibly) a latex code of the equation
++;; (for compatibility with latex-based inkscape extensions)
++    (tm-service (remote-equ file latex)
++      (set! current-envelope envelope)
++      (set! current-equ-url (system->url file))
++        ;;(display* "remote-equ envelope = " current-envelope "\n")
++        (load-buffer-in-new-window current-equ-url)
++        (equ-edit-toolbar)
++        (if (!= latex "") 
++          (insert (latex->texmacs (parse-latex (string-append "\\[" latex "\\]")))))
++    )
++  ))
++
++;; is operation in socket server mode preferred?
++(define-preferences 
++  ("equation-editor-server" "on" noop)) ;; actual pref value set in preference widget
++
++(define (current-envelope) #f)
++(define (current-equ-url) #f)
++
++(tm-define (equ-edit-cmdline)
++  (:synopsis "Shows equation-edit toolbar in non-server mode; can be called on command line with -x \"(lazy-plugin-force)(equ-edit-cmdline)\"")
++  (set! current-envelope #f) ;;envelope shall be #f if not acting as socket server
++  (set! current-equ-url (system->url (cAr (program-arguments))))
++  (equ-edit-toolbar))
++
++(define (equ-edit-done)
++  (begin 
++    (if (!= (current-buffer) current-equ-url) (switch-to-buffer current-equ-url))
++    (select-all)
++    (export-selection-as-graphics (url-glue current-equ-url ".svg"))
++    (if (not current-envelope) (display "done\n") (server-return current-envelope #t) )
++;; NB: when in non-server mode Inkscape watches for "done" in stdout           
++    (equ-edit-end)))
++
++(define (equ-edit-cancel)
++  (begin 
++    (if (not current-envelope ) (display "cancel\n") (server-return current-envelope  #f) )
++    (equ-edit-end)))
++
++(define (equ-edit-end) 
++  (let ((stay (get-boolean-preference "equation-editor-server"))) ;; should we keep server running ?
++;; we should also check (server-started?) but it's always false in qt-texmacs...
++        (show-icon-bar 3 #f)
++        (if (nnot current-envelope) (server-error current-envelope  "disconnect"))  ;;how to simply disconnect that client? 
++        (if stay (begin   
++          (if (> (length (window-list)) 1)  
++              (begin (safely-kill-window) ))
++          (if (== (length (buffer-list)) 1)  
++              (begin (switch-to-buffer (buffer-new))))
++          (buffer-close current-equ-url))
++          (if (not current-envelope)  (quit) ))
++  ))            
++
++(define (equ-edit-toolbar)
++  "Displays control buttons in the toolbar"
++  (begin 
++     
++    (menu-bind texmacs-extra-icons 
++       ((balloon "Done" "update equation in Inkscape") (equ-edit-done ) )
++       ((balloon "Cancel" "abandon modifying equation") (equ-edit-cancel )))
++    (show-icon-bar 3 #t)))
++
++
 diff --git a/src/System/Boot/init_texmacs.cpp b/src/System/Boot/init_texmacs.cpp
 index 9693613..b2b10b6 100644
 --- a/src/System/Boot/init_texmacs.cpp
@@ -517,6 +1561,3 @@ index 9693613..b2b10b6 100644
    
    string s= scheme_tree_to_block (texmacs_settings);
    //cout << "settings_t= " << texmacs_settings << "\n";
--- 
-1.9.1
-

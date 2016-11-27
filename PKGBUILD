@@ -31,7 +31,6 @@ depends=(
           "${MINGW_PACKAGE_PREFIX}-guile1.8"
 		  "${MINGW_PACKAGE_PREFIX}-poppler-qt4"
 
-
         )
 source=("${_pkgname}::svn://svn.savannah.gnu.org/texmacs/trunk/src"
         )
@@ -58,7 +57,6 @@ prepare() {
   patch -i ../../qt_m4.patch -p2
   patch -i ../../raux_win.patch -p0
   patch -i ../../better-image-i-o.patch -p1
-  patch -i ../../enable-using-hunspell.patch -p1
   autoreconf
   
   patch -i ../../configure.patch -p2
