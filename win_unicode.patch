@@ -1,0 +1,6552 @@
+diff --git a/src/Data/String/converter.cpp b/src/Data/String/converter.cpp
+index 5c55adf..43db989 100644
+--- a/src/Data/String/converter.cpp
++++ b/src/Data/String/converter.cpp
+@@ -482,15 +482,6 @@ cork_to_ascii (string input) {
+   return apply (conv, input);
+ }
+ 
+-#ifndef QTTEXMACS
+-string
+-cork_to_os8bits (const string s){
+-  // return convert(s , "Cork", get_locale_charset ());
+-  // since this is X11 we can assume locale_charset==UTF8
+-  return convert(s , "Cork", "UTF-8");  
+-}
+-#endif
+-
+ 
+ #ifdef USE_ICONV
+ 
+diff --git a/src/Data/String/converter.hpp b/src/Data/String/converter.hpp
+index 772753d..2c91d71 100644
+--- a/src/Data/String/converter.hpp
++++ b/src/Data/String/converter.hpp
+@@ -88,7 +88,6 @@ string t2a_to_utf8 (string input);
+ string cyrillic_subset_in_t2a_to_code_point (string input);
+ string code_point_to_cyrillic_subset_in_t2a (string input);
+ string cork_to_ascii (string input);
+-string cork_to_os8bits (string s);
+ bool check_using_iconv (string input, string encoding);
+ string convert_using_iconv (string input, string from, string to); 
+ 
+diff --git a/src/Plugins/Pdf/pdf_hummus_renderer.cpp b/src/Plugins/Pdf/pdf_hummus_renderer.cpp
+index b115acb..b3a5bdb 100644
+--- a/src/Plugins/Pdf/pdf_hummus_renderer.cpp
++++ b/src/Plugins/Pdf/pdf_hummus_renderer.cpp
+@@ -303,13 +303,7 @@ pdf_hummus_renderer_rep::pdf_hummus_renderer_rep (
+   // setup library
+ 
+   EStatusCode status;
+-#if (defined (__MINGW__) || defined (__MINGW32__))
+-    // WIN is using 8bit encodings, but pdfwriter expects UTF8
+-    // if path or file contains non-ascii characters we need an extra conversion step. 
+-    status = pdfWriter.StartPDF(as_charp(western_to_utf8(concretize (pdf_file_name))), ePDFVersion14 ); // PDF 1.4 for alpha
+-#else
+ 	status = pdfWriter.StartPDF(as_charp(concretize (pdf_file_name)), ePDFVersion14 ); // PDF 1.4 for alpha
+-#endif  
+ 	//   , LogConfiguration(true, true, "/Users/mgubi/Desktop/pdfwriter-x.log")
+ 	//   , PDFCreationSettings(false) ); // true = compression on
+ 	if (status != PDFHummus::eSuccess) {
+@@ -1195,13 +1189,7 @@ pdf_hummus_renderer_rep::make_pdf_font (string fontname)
+     PDFUsedFont* font;
+     {
+       //debug_convert << "GetFontForFile "  << u  << LF;
+-#if (defined (__MINGW__) || defined (__MINGW32__))
+-    // WIN is using 8bit encodings, but pdfwriter expects UTF8
+-    // if path or file contains non-ascii characters we need an extra conversion step. 
+-      c_string _u (western_to_utf8(concretize (u)));
+-#else
+       c_string _u (concretize (u));
+-#endif  
+       font = pdfWriter.GetFontForFile((char*)_u);
+       //tm_delete_array(_rname);
+     }
+@@ -1545,11 +1533,7 @@ pdf_image_rep::flush (PDFWriter& pdfw)
+   EStatusCode status = PDFHummus::eFailure;
+   DocumentContext& dc = pdfw.GetDocumentContext();
+   
+-#if (defined (__MINGW__) || defined (__MINGW32__))
+-  PDFDocumentCopyingContext *copyingContext = pdfw.CreatePDFCopyingContext(as_charp(western_to_utf8(concretize(temp))));
+-#else
+   PDFDocumentCopyingContext *copyingContext = pdfw.CreatePDFCopyingContext(as_charp(concretize(temp)));
+-#endif  
+   if(copyingContext) {
+ 	  PDFPageInput pageInput(copyingContext->GetSourceDocumentParser(),
+                                        copyingContext->GetSourceDocumentParser()->ParsePage(0));
+@@ -1574,11 +1558,7 @@ void
+ hummus_pdf_image_size (url image, int& w, int& h) {
+   InputFile pdfFile;
+   PDFParser* parser= new PDFParser();
+-#if (defined (__MINGW__) || defined (__MINGW32__))
+-  pdfFile.OpenFile(as_charp(western_to_utf8(concretize(image))));
+-#else
+   pdfFile.OpenFile(as_charp(concretize(image)));
+-#endif
+   EStatusCode status = parser->StartPDFParsing(pdfFile.GetInputStream());
+   if (status != PDFHummus::eFailure) {
+     PDFPageInput pageInput(parser, parser->ParsePage(0));
+diff --git a/src/Plugins/Qt/QTMFileDialog.cpp b/src/Plugins/Qt/QTMFileDialog.cpp
+index af36ef8..856d0be 100644
+--- a/src/Plugins/Qt/QTMFileDialog.cpp
++++ b/src/Plugins/Qt/QTMFileDialog.cpp
+@@ -122,7 +122,7 @@ BEGIN_SLOT
+   xps->setText ("");
+   yps->setText ("");
+ 
+-  string localname = from_qstring_os8bits(file);
++  string localname = from_qstring_utf8(file);
+   url image_url= url_system (localname);
+   if (DEBUG_CONVERT) debug_convert<<"image preview :["<<image_url<<"]"<<LF;
+   if (!(as_string(image_url)=="") && !is_directory(image_url) && exists(image_url) ){
+@@ -147,7 +147,7 @@ BEGIN_SLOT
+ 	  }
+ 	  //generate thumbnail :
+ 	  image_to_png (image_url, temp, w, h);
+-	  img.load (os8bits_to_qstring (as_string (temp)));
++	  img.load (utf8_to_qstring (as_string (temp)));
+ 	  remove (temp);
+     }
+   }
+diff --git a/src/Plugins/Qt/qt_chooser_widget.cpp b/src/Plugins/Qt/qt_chooser_widget.cpp
+index e9f41ec..4887a52 100644
+--- a/src/Plugins/Qt/qt_chooser_widget.cpp
++++ b/src/Plugins/Qt/qt_chooser_widget.cpp
+@@ -206,7 +206,7 @@ void
+ qt_chooser_widget_rep::perform_dialog () {
+   QString caption = to_qstring (win_title);
+   c_string tmp (directory * "/" * file);
+-  QString path = QString::fromLocal8Bit (tmp);
++  QString path = QString::fromUtf8 (tmp);
+   
+ #if (defined(Q_WS_MAC) )// || defined(Q_WS_WIN)) //at least windows Xp and 7 lack image preview, switch to custom dialog
+   QFileDialog* dialog = new QFileDialog (NULL, caption, path);
+@@ -263,7 +263,7 @@ qt_chooser_widget_rep::perform_dialog () {
+     fileNames = dialog->selectedFiles();
+     if (fileNames.count() > 0) {
+       if (type != "image") {
+-      string localname = from_qstring_os8bits(fileNames.first());
++      string localname = from_qstring_utf8(fileNames.first());
+       file = "(system->url " * scm_quote (localname) * ")";}
+       else {
+       string imname    = from_qstring_utf8 (fileNames.first());
+diff --git a/src/Plugins/Qt/qt_picture.cpp b/src/Plugins/Qt/qt_picture.cpp
+index d2c7c1a..73bfeab 100644
+--- a/src/Plugins/Qt/qt_picture.cpp
++++ b/src/Plugins/Qt/qt_picture.cpp
+@@ -156,11 +156,11 @@ QImage*
+ get_image (url u, int w, int h) {
+   QImage *pm = NULL;
+   if (qt_supports (u))
+-    pm= new QImage (os8bits_to_qstring (concretize (u))); 
++    pm= new QImage (utf8_to_qstring (concretize (u))); 
+   else {
+     url temp= url_temp (".png");
+     image_to_png (u, temp, w, h);
+-    pm= new QImage (os8bits_to_qstring (as_string (temp)));
++    pm= new QImage (utf8_to_qstring (as_string (temp)));
+     remove (temp);
+   }
+   if (pm == NULL || pm->isNull ()) {
+diff --git a/src/Plugins/Qt/qt_sys_utils.cpp b/src/Plugins/Qt/qt_sys_utils.cpp
+index 5411221..cb60750 100644
+--- a/src/Plugins/Qt/qt_sys_utils.cpp
++++ b/src/Plugins/Qt/qt_sys_utils.cpp
+@@ -29,7 +29,7 @@ qt_system (string cmd, string& result) {
+   proc.setProcessChannelMode (QProcess::MergedChannels);
+   c_string _cmd (cmd);
+ #if defined (__MINGW__) || defined (__MINGW32__)
+-  QString qcmd = QString::fromLocal8Bit (_cmd);
++  QString qcmd = QString::fromUtf8 (_cmd);
+ #else
+   QString qcmd = "sh -c \"";
+   qcmd += _cmd;
+diff --git a/src/Plugins/Qt/qt_utilities.cpp b/src/Plugins/Qt/qt_utilities.cpp
+index a3e97c2..cfe896b 100644
+--- a/src/Plugins/Qt/qt_utilities.cpp
++++ b/src/Plugins/Qt/qt_utilities.cpp
+@@ -318,31 +318,6 @@ from_qstring_utf8 (const QString &s) {
+   return string ((char*) cstr);
+ }
+ 
+-// os8bits == UTF-8 on linux/Mac OS but ==locale codepage on windows
+-// Qt offers no way to explicitly know what is the encoding used!
+-// note that older Unix/linuxes did not use UTF-8
+-QString
+-os8bits_to_qstring (const string& s) {
+-  c_string p (s);
+-  QString nss= QString::fromLocal8Bit (p, N(s));
+-  return nss;
+-}
+-
+-string
+-from_qstring_os8bits (const QString &s) {
+-  QByteArray arr= s.toLocal8Bit ();
+-  const char* cstr= arr.constData ();
+-  return string ((char*) cstr);
+-}
+-
+-string
+-cork_to_os8bits (const string s){   
+-  // Note: this function is declared in converter.hpp 
+-  // (and implemented in converter.cpp for X11)
+-  // In Qt version we stick to Qt routines for consistency
+-  return from_qstring_os8bits(utf8_to_qstring (cork_to_utf8 (s)));
+-}
+-
+ // This should provide better lookup times
+ static QHash<QString, QColor> _NamedColors;
+ 
+@@ -412,7 +387,7 @@ qt_supports (url u) {
+ bool
+ qt_image_size (url image, int& w, int& h) {// w, h in points
+   if (DEBUG_CONVERT) debug_convert << "qt_image_size :" <<LF;
+-  QImage im= QImage (os8bits_to_qstring (concretize (image)));
++  QImage im= QImage (utf8_to_qstring (concretize (image)));
+   if (im.isNull ()) {
+       convert_error << "Cannot read image file '" << image << "'"
+       << " in qt_image_size" << LF;
+@@ -431,14 +406,14 @@ qt_image_size (url image, int& w, int& h) {// w, h in points
+ void
+ qt_convert_image (url image, url dest, int w, int h) {// w, h in pixels
+   if (DEBUG_CONVERT) debug_convert << "qt_convert_image " << image << " -> "<<dest<<LF;
+-  QImage im (os8bits_to_qstring (concretize (image)));
++  QImage im (utf8_to_qstring (concretize (image)));
+   if (im.isNull ())
+     convert_error << "Cannot read image file '" << image << "'"
+     << " in qt_convert_image" << LF;
+   else {
+     if (w > 0 && h > 0)
+       im= im.scaled (w, h, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+-    im.scaled (w, h).save (os8bits_to_qstring (concretize (dest)));
++    im.scaled (w, h).save (utf8_to_qstring (concretize (dest)));
+   }
+ }
+ 
+@@ -463,8 +438,8 @@ qt_image_to_pdf (url image, url outfile, int w_pt, int h_pt, int dpi) {
+   printer.setFullPage(true);
+   if (!dpi) dpi=96; 
+   printer.setResolution(dpi);
+-  printer.setOutputFileName(os8bits_to_qstring (concretize (outfile)));
+-  QImage im (os8bits_to_qstring (concretize (image)));
++  printer.setOutputFileName(utf8_to_qstring (concretize (outfile)));
++  QImage im (utf8_to_qstring (concretize (image)));
+   if (im.isNull ()) {
+     convert_error << "Cannot read image file '" << image << "'"
+     << " in qt_image_to_pdf" << LF;
+diff --git a/src/Plugins/Qt/qt_utilities.hpp b/src/Plugins/Qt/qt_utilities.hpp
+index 3bacc95..b388ccb 100644
+--- a/src/Plugins/Qt/qt_utilities.hpp
++++ b/src/Plugins/Qt/qt_utilities.hpp
+@@ -66,8 +66,6 @@ string       from_qstring (const QString & s);
+ QString   utf8_to_qstring (const string& s);
+ QString latin1_to_qstring (const string& s);
+ string  from_qstring_utf8 (const QString & s);
+-QString os8bits_to_qstring (const string& s);
+-string from_qstring_os8bits (const QString &s);
+ 
+ /*! Returns a QString with the translation of the argument to the current
+  language.
+diff --git a/src/Plugins/Windows/compat/mingw.c b/src/Plugins/Windows/compat/mingw.c
+new file mode 100644
+index 0000000..c29d81c
+--- /dev/null
++++ b/src/Plugins/Windows/compat/mingw.c
+@@ -0,0 +1,774 @@
++#include "../git-compat-util.h"
++#include "win32.h"
++#include <conio.h>
++#include <wchar.h>
++#include <winioctl.h>
++
++#define HCAST(type, handle) ((type)(intptr_t)handle)
++
++int err_win_to_posix(DWORD winerr)
++{
++	int error = ENOSYS;
++	switch(winerr) {
++	case ERROR_ACCESS_DENIED: error = EACCES; break;
++	case ERROR_ACCOUNT_DISABLED: error = EACCES; break;
++	case ERROR_ACCOUNT_RESTRICTION: error = EACCES; break;
++	case ERROR_ALREADY_ASSIGNED: error = EBUSY; break;
++	case ERROR_ALREADY_EXISTS: error = EEXIST; break;
++	case ERROR_ARITHMETIC_OVERFLOW: error = ERANGE; break;
++	case ERROR_BAD_COMMAND: error = EIO; break;
++	case ERROR_BAD_DEVICE: error = ENODEV; break;
++	case ERROR_BAD_DRIVER_LEVEL: error = ENXIO; break;
++	case ERROR_BAD_EXE_FORMAT: error = ENOEXEC; break;
++	case ERROR_BAD_FORMAT: error = ENOEXEC; break;
++	case ERROR_BAD_LENGTH: error = EINVAL; break;
++	case ERROR_BAD_PATHNAME: error = ENOENT; break;
++	case ERROR_BAD_PIPE: error = EPIPE; break;
++	case ERROR_BAD_UNIT: error = ENODEV; break;
++	case ERROR_BAD_USERNAME: error = EINVAL; break;
++	case ERROR_BROKEN_PIPE: error = EPIPE; break;
++	case ERROR_BUFFER_OVERFLOW: error = ENAMETOOLONG; break;
++	case ERROR_BUSY: error = EBUSY; break;
++	case ERROR_BUSY_DRIVE: error = EBUSY; break;
++	case ERROR_CALL_NOT_IMPLEMENTED: error = ENOSYS; break;
++	case ERROR_CANNOT_MAKE: error = EACCES; break;
++	case ERROR_CANTOPEN: error = EIO; break;
++	case ERROR_CANTREAD: error = EIO; break;
++	case ERROR_CANTWRITE: error = EIO; break;
++	case ERROR_CRC: error = EIO; break;
++	case ERROR_CURRENT_DIRECTORY: error = EACCES; break;
++	case ERROR_DEVICE_IN_USE: error = EBUSY; break;
++	case ERROR_DEV_NOT_EXIST: error = ENODEV; break;
++	case ERROR_DIRECTORY: error = EINVAL; break;
++	case ERROR_DIR_NOT_EMPTY: error = ENOTEMPTY; break;
++	case ERROR_DISK_CHANGE: error = EIO; break;
++	case ERROR_DISK_FULL: error = ENOSPC; break;
++	case ERROR_DRIVE_LOCKED: error = EBUSY; break;
++	case ERROR_ENVVAR_NOT_FOUND: error = EINVAL; break;
++	case ERROR_EXE_MARKED_INVALID: error = ENOEXEC; break;
++	case ERROR_FILENAME_EXCED_RANGE: error = ENAMETOOLONG; break;
++	case ERROR_FILE_EXISTS: error = EEXIST; break;
++	case ERROR_FILE_INVALID: error = ENODEV; break;
++	case ERROR_FILE_NOT_FOUND: error = ENOENT; break;
++	case ERROR_GEN_FAILURE: error = EIO; break;
++	case ERROR_HANDLE_DISK_FULL: error = ENOSPC; break;
++	case ERROR_INSUFFICIENT_BUFFER: error = ENOMEM; break;
++	case ERROR_INVALID_ACCESS: error = EACCES; break;
++	case ERROR_INVALID_ADDRESS: error = EFAULT; break;
++	case ERROR_INVALID_BLOCK: error = EFAULT; break;
++	case ERROR_INVALID_DATA: error = EINVAL; break;
++	case ERROR_INVALID_DRIVE: error = ENODEV; break;
++	case ERROR_INVALID_EXE_SIGNATURE: error = ENOEXEC; break;
++	case ERROR_INVALID_FLAGS: error = EINVAL; break;
++	case ERROR_INVALID_FUNCTION: error = ENOSYS; break;
++	case ERROR_INVALID_HANDLE: error = EBADF; break;
++	case ERROR_INVALID_LOGON_HOURS: error = EACCES; break;
++	case ERROR_INVALID_NAME: error = EINVAL; break;
++	case ERROR_INVALID_OWNER: error = EINVAL; break;
++	case ERROR_INVALID_PARAMETER: error = EINVAL; break;
++	case ERROR_INVALID_PASSWORD: error = EPERM; break;
++	case ERROR_INVALID_PRIMARY_GROUP: error = EINVAL; break;
++	case ERROR_INVALID_REPARSE_DATA: error = EINVAL; break;
++	case ERROR_INVALID_SIGNAL_NUMBER: error = EINVAL; break;
++	case ERROR_INVALID_TARGET_HANDLE: error = EIO; break;
++	case ERROR_INVALID_WORKSTATION: error = EACCES; break;
++	case ERROR_IO_DEVICE: error = EIO; break;
++	case ERROR_IO_INCOMPLETE: error = EINTR; break;
++	case ERROR_LOCKED: error = EBUSY; break;
++	case ERROR_LOCK_VIOLATION: error = EACCES; break;
++	case ERROR_LOGON_FAILURE: error = EACCES; break;
++	case ERROR_MAPPED_ALIGNMENT: error = EINVAL; break;
++	case ERROR_META_EXPANSION_TOO_LONG: error = E2BIG; break;
++	case ERROR_MORE_DATA: error = EPIPE; break;
++	case ERROR_NEGATIVE_SEEK: error = ESPIPE; break;
++	case ERROR_NOACCESS: error = EFAULT; break;
++	case ERROR_NONE_MAPPED: error = EINVAL; break;
++	case ERROR_NOT_A_REPARSE_POINT: error = EINVAL; break;
++	case ERROR_NOT_ENOUGH_MEMORY: error = ENOMEM; break;
++	case ERROR_NOT_READY: error = EAGAIN; break;
++	case ERROR_NOT_SAME_DEVICE: error = EXDEV; break;
++	case ERROR_NO_DATA: error = EPIPE; break;
++	case ERROR_NO_MORE_SEARCH_HANDLES: error = EIO; break;
++	case ERROR_NO_PROC_SLOTS: error = EAGAIN; break;
++	case ERROR_NO_SUCH_PRIVILEGE: error = EACCES; break;
++	case ERROR_OPEN_FAILED: error = EIO; break;
++	case ERROR_OPEN_FILES: error = EBUSY; break;
++	case ERROR_OPERATION_ABORTED: error = EINTR; break;
++	case ERROR_OUTOFMEMORY: error = ENOMEM; break;
++	case ERROR_PASSWORD_EXPIRED: error = EACCES; break;
++	case ERROR_PATH_BUSY: error = EBUSY; break;
++	case ERROR_PATH_NOT_FOUND: error = ENOENT; break;
++	case ERROR_PIPE_BUSY: error = EBUSY; break;
++	case ERROR_PIPE_CONNECTED: error = EPIPE; break;
++	case ERROR_PIPE_LISTENING: error = EPIPE; break;
++	case ERROR_PIPE_NOT_CONNECTED: error = EPIPE; break;
++	case ERROR_PRIVILEGE_NOT_HELD: error = EACCES; break;
++	case ERROR_READ_FAULT: error = EIO; break;
++	case ERROR_REPARSE_ATTRIBUTE_CONFLICT: error = EINVAL; break;
++	case ERROR_REPARSE_TAG_INVALID: error = EINVAL; break;
++	case ERROR_REPARSE_TAG_MISMATCH: error = EINVAL; break;
++	case ERROR_SEEK: error = EIO; break;
++	case ERROR_SEEK_ON_DEVICE: error = ESPIPE; break;
++	case ERROR_SHARING_BUFFER_EXCEEDED: error = ENFILE; break;
++	case ERROR_SHARING_VIOLATION: error = EACCES; break;
++	case ERROR_STACK_OVERFLOW: error = ENOMEM; break;
++	case ERROR_SWAPERROR: error = ENOENT; break;
++	case ERROR_TOO_MANY_MODULES: error = EMFILE; break;
++	case ERROR_TOO_MANY_OPEN_FILES: error = EMFILE; break;
++	case ERROR_UNRECOGNIZED_MEDIA: error = ENXIO; break;
++	case ERROR_UNRECOGNIZED_VOLUME: error = ENODEV; break;
++	case ERROR_WAIT_NO_CHILDREN: error = ECHILD; break;
++	case ERROR_WRITE_FAULT: error = EIO; break;
++	case ERROR_WRITE_PROTECT: error = EROFS; break;
++	}
++	return error;
++}
++
++static inline int is_file_in_use_error(DWORD errcode)
++{
++	switch (errcode) {
++	case ERROR_SHARING_VIOLATION:
++	case ERROR_ACCESS_DENIED:
++		return 1;
++	}
++
++	return 0;
++}
++
++
++/* Normalizes NT paths as returned by some low-level APIs. */
++static wchar_t *normalize_ntpath(wchar_t *wbuf)
++{
++	int i;
++	/* fix absolute path prefixes */
++	if (wbuf[0] == '\\') {
++		/* strip NT namespace prefixes */
++		if (!wcsncmp(wbuf, L"\\??\\", 4) ||
++		    !wcsncmp(wbuf, L"\\\\?\\", 4))
++			wbuf += 4;
++		else if (!wcsnicmp(wbuf, L"\\DosDevices\\", 12))
++			wbuf += 12;
++		/* replace remaining '...UNC\' with '\\' */
++		if (!wcsnicmp(wbuf, L"UNC\\", 4)) {
++			wbuf += 2;
++			*wbuf = '\\';
++		}
++	}
++	/* convert backslashes to slashes */
++	for (i = 0; wbuf[i]; i++)
++		if (wbuf[i] == '\\')
++			wbuf[i] = '/';
++	return wbuf;
++}
++
++static int is_dir_empty(const wchar_t *wpath)
++{
++	WIN32_FIND_DATAW findbuf;
++	HANDLE handle;
++	wchar_t wbuf[MAX_LONG_PATH + 2];
++	wcscpy(wbuf, wpath);
++	wcscat(wbuf, L"\\*");
++	handle = FindFirstFileW(wbuf, &findbuf);
++	if (handle == INVALID_HANDLE_VALUE)
++		return GetLastError() == ERROR_NO_MORE_FILES;
++
++	while (!wcscmp(findbuf.cFileName, L".") ||
++			!wcscmp(findbuf.cFileName, L".."))
++		if (!FindNextFileW(handle, &findbuf)) {
++			DWORD err = GetLastError();
++			FindClose(handle);
++			return err == ERROR_NO_MORE_FILES;
++		}
++	FindClose(handle);
++	return 0;
++}
++
++int mingw_rmdir(const char *pathname)
++{
++	int tries = 0;
++	wchar_t wpathname[MAX_LONG_PATH];
++	if (xutftowcs_long_path(wpathname, pathname) < 0)
++		return -1;
++
++		if (!_wrmdir(wpathname))
++			return 0;
++		if (!is_file_in_use_error(GetLastError()))
++			errno = err_win_to_posix(GetLastError());
++		if (!is_dir_empty(wpathname)) {
++			errno = ENOTEMPTY;
++		}
++	return -1;
++}
++
++int core_long_paths=1; //boolean value from git meaning that we handle 
++// if true : pathes up to MAX_LONG_PATH (=2048, modifiable) 
++// if false : MAX_PATH (=248 Windows default, fixed)
++
++int mingw_mkdir(const char *path, int mode)
++{
++	int ret;
++	wchar_t wpath[MAX_LONG_PATH];
++	/* CreateDirectoryW path limit is 248 (MAX_PATH - 8.3 file name) */
++	if (xutftowcs_path_ex(wpath, path, MAX_LONG_PATH, -1, 248,
++			core_long_paths) < 0)
++		return -1;
++
++	ret = _wmkdir(wpath);
++	return ret;
++}
++
++int mingw_open (const char *filename, int oflags, ...)
++{
++	va_list args;
++	unsigned mode;
++	int fd;
++	wchar_t wfilename[MAX_LONG_PATH];
++
++	va_start(args, oflags);
++	mode = va_arg(args, int);
++	va_end(args);
++
++	if (filename && !strcmp(filename, "/dev/null"))
++		filename = "nul";
++
++	if (xutftowcs_long_path(wfilename, filename) < 0)
++		return -1;
++	fd = _wopen(wfilename, oflags, mode);
++
++	if (fd < 0 && (oflags & O_ACCMODE) != O_RDONLY && errno == EACCES) {
++		DWORD attrs = GetFileAttributesW(wfilename);
++		if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY))
++			errno = EISDIR;
++	}
++	return fd;
++}
++
++#undef fopen
++FILE *mingw_fopen (const char *filename, const char *otype)
++{
++	FILE *file;
++	wchar_t wfilename[MAX_LONG_PATH], wotype[4];
++	if (filename && !strcmp(filename, "/dev/null"))
++		filename = "nul";
++	if (xutftowcs_long_path(wfilename, filename) < 0 ||
++		xutftowcs(wotype, otype, ARRAY_SIZE(wotype)) < 0)
++		return NULL;
++	file = _wfopen(wfilename, wotype);
++	return file;
++}
++
++#undef write
++ssize_t mingw_write(int fd, const void *buf, size_t len)
++{
++	ssize_t result = write(fd, buf, len);
++
++	if (result < 0 && errno == EINVAL && buf) {
++		/* check if fd is a pipe */
++		HANDLE h = (HANDLE) _get_osfhandle(fd);
++		if (GetFileType(h) == FILE_TYPE_PIPE)
++			errno = EPIPE;
++		else
++			errno = EINVAL;
++	}
++
++	return result;
++}
++
++int mingw_access(const char *filename, int mode)
++{
++	wchar_t wfilename[MAX_LONG_PATH];
++	if (xutftowcs_long_path(wfilename, filename) < 0)
++		return -1;
++	/* X_OK is not supported by the MSVCRT version */
++	return _waccess(wfilename, mode & ~X_OK);
++}
++
++/* cached length of current directory for handle_long_path */
++static int current_directory_len = 0;
++
++int mingw_chmod(const char *filename, int mode)
++{
++	wchar_t wfilename[MAX_LONG_PATH];
++	if (xutftowcs_long_path(wfilename, filename) < 0)
++		return -1;
++	return _wchmod(wfilename, mode);
++}
++
++/**
++ * Verifies that safe_create_leading_directories() would succeed.
++ */
++static int has_valid_directory_prefix(wchar_t *wfilename)
++{
++	int n = wcslen(wfilename);
++
++	while (n > 0) {
++		wchar_t c = wfilename[--n];
++		DWORD attributes;
++
++		if (!is_dir_sep(c))
++			continue;
++
++		wfilename[n] = L'\0';
++		attributes = GetFileAttributesW(wfilename);
++		wfilename[n] = c;
++		if (attributes == FILE_ATTRIBUTE_DIRECTORY ||
++				attributes == FILE_ATTRIBUTE_DEVICE)
++			return 1;
++		if (attributes == INVALID_FILE_ATTRIBUTES)
++			switch (GetLastError()) {
++			case ERROR_PATH_NOT_FOUND:
++				continue;
++			case ERROR_FILE_NOT_FOUND:
++				/* This implies parent directory exists. */
++				return 1;
++			}
++		return 0;
++	}
++	return 1;
++}
++
++int mingw_lstat(const char *file_name, struct stat *buf)
++{
++	WIN32_FILE_ATTRIBUTE_DATA fdata;
++	WIN32_FIND_DATAW findbuf;
++	wchar_t wfilename[MAX_LONG_PATH];
++	int wlen = xutftowcs_long_path(wfilename, file_name);
++	if (wlen < 0)
++		return -1;
++
++	/* strip trailing '/', or GetFileAttributes will fail */
++	while (wlen && is_dir_sep(wfilename[wlen - 1]))
++		wfilename[--wlen] = 0;
++	if (!wlen) {
++		errno = ENOENT;
++		return -1;
++	}
++
++	if (GetFileAttributesExW(wfilename, GetFileExInfoStandard, &fdata)) {
++		/* for reparse points, use FindFirstFile to get the reparse tag */
++		if (fdata.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
++			HANDLE handle = FindFirstFileW(wfilename, &findbuf);
++			if (handle == INVALID_HANDLE_VALUE)
++				goto error;
++			FindClose(handle);
++		}
++		buf->st_ino = 0;
++		buf->st_gid = 0;
++		buf->st_uid = 0;
++		buf->st_nlink = 1;
++		buf->st_mode = file_attr_to_st_mode(fdata.dwFileAttributes,
++				findbuf.dwReserved0);
++		buf->st_size = S_ISLNK(buf->st_mode) ? MAX_LONG_PATH :
++			fdata.nFileSizeLow | (((off_t) fdata.nFileSizeHigh) << 32);
++		buf->st_dev = buf->st_rdev = 0; /* not used by Git */
++		filetime_to_timespec(&(fdata.ftLastAccessTime), &(buf->st_atim));
++		filetime_to_timespec(&(fdata.ftLastWriteTime), &(buf->st_mtim));
++		filetime_to_timespec(&(fdata.ftCreationTime), &(buf->st_ctim));
++		return 0;
++	}
++error:
++	switch (GetLastError()) {
++	case ERROR_ACCESS_DENIED:
++	case ERROR_SHARING_VIOLATION:
++	case ERROR_LOCK_VIOLATION:
++	case ERROR_SHARING_BUFFER_EXCEEDED:
++		errno = EACCES;
++		break;
++	case ERROR_BUFFER_OVERFLOW:
++		errno = ENAMETOOLONG;
++		break;
++	case ERROR_NOT_ENOUGH_MEMORY:
++		errno = ENOMEM;
++		break;
++	case ERROR_PATH_NOT_FOUND:
++		if (!has_valid_directory_prefix(wfilename)) {
++			errno = ENOTDIR;
++			break;
++		}
++		/* fallthru */
++	default:
++		errno = ENOENT;
++		break;
++	}
++	return -1;
++}
++
++int (*lstat)(const char *file_name, struct stat *buf) = mingw_lstat;
++
++static int get_file_info_by_handle(HANDLE hnd, struct stat *buf)
++{
++	BY_HANDLE_FILE_INFORMATION fdata;
++	if (!GetFileInformationByHandle(hnd, &fdata)) {
++		errno = err_win_to_posix(GetLastError());
++		return -1;
++	}
++	buf->st_ino = 0;
++	buf->st_dev = buf->st_rdev = 0; /* not used by Git */
++	buf->st_gid = buf->st_uid = 0;
++	buf->st_nlink = 1;
++	buf->st_mode = file_attr_to_st_mode(fdata.dwFileAttributes, 0);
++	buf->st_size = fdata.nFileSizeLow | (((off_t) fdata.nFileSizeHigh) << 32);
++	filetime_to_timespec(&(fdata.ftLastAccessTime), &(buf->st_atim));
++	filetime_to_timespec(&(fdata.ftLastWriteTime), &(buf->st_mtim));
++	filetime_to_timespec(&(fdata.ftCreationTime), &(buf->st_ctim));
++	return 0;
++}
++
++int mingw_stat(const char *file_name, struct stat *buf)
++{
++	wchar_t wfile_name[MAX_LONG_PATH];
++	HANDLE hnd;
++	int result;
++
++	/* open the file and let Windows resolve the links */
++	if (xutftowcs_long_path(wfile_name, file_name) < 0)
++		return -1;
++	hnd = CreateFileW(wfile_name, 0,
++			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
++			OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
++	if (hnd == INVALID_HANDLE_VALUE) {
++		errno = err_win_to_posix(GetLastError());
++		return -1;
++	}
++	result = get_file_info_by_handle(hnd, buf);
++	CloseHandle(hnd);
++	return result;
++}
++
++int mingw_fstat(int fd, struct stat *buf)
++{
++	HANDLE fh = (HANDLE)_get_osfhandle(fd);
++	DWORD avail, type = GetFileType(fh) & ~FILE_TYPE_REMOTE;
++
++	switch (type) {
++	case FILE_TYPE_DISK:
++		return get_file_info_by_handle(fh, buf);
++
++	case FILE_TYPE_CHAR:
++	case FILE_TYPE_PIPE:
++		/* initialize stat fields */
++		memset(buf, 0, sizeof(*buf));
++		buf->st_nlink = 1;
++
++		if (type == FILE_TYPE_CHAR) {
++			buf->st_mode = _S_IFCHR;
++		} else {
++			buf->st_mode = _S_IFIFO;
++			if (PeekNamedPipe(fh, NULL, 0, NULL, &avail, NULL))
++				buf->st_size = avail;
++		}
++		return 0;
++
++	default:
++		errno = EBADF;
++		return -1;
++	}
++}
++
++static inline void time_t_to_filetime(time_t t, FILETIME *ft)
++{
++	long long winTime = t * 10000000LL + 116444736000000000LL;
++	ft->dwLowDateTime = winTime;
++	ft->dwHighDateTime = winTime >> 32;
++}
++
++int mingw_utime (const char *file_name, const struct utimbuf *times)
++{
++	FILETIME mft, aft;
++	int fh, rc;
++	DWORD attrs;
++	wchar_t wfilename[MAX_LONG_PATH];
++	if (xutftowcs_long_path(wfilename, file_name) < 0)
++		return -1;
++
++	/* must have write permission */
++	attrs = GetFileAttributesW(wfilename);
++	if (attrs != INVALID_FILE_ATTRIBUTES &&
++	    (attrs & FILE_ATTRIBUTE_READONLY)) {
++		/* ignore errors here; open() will report them */
++		SetFileAttributesW(wfilename, attrs & ~FILE_ATTRIBUTE_READONLY);
++	}
++
++	if ((fh = _wopen(wfilename, O_RDWR | O_BINARY)) < 0) {
++		rc = -1;
++		goto revert_attrs;
++	}
++
++	if (times) {
++		time_t_to_filetime(times->modtime, &mft);
++		time_t_to_filetime(times->actime, &aft);
++	} else {
++		GetSystemTimeAsFileTime(&mft);
++		aft = mft;
++	}
++	if (!SetFileTime((HANDLE)_get_osfhandle(fh), NULL, &aft, &mft)) {
++		errno = EINVAL;
++		rc = -1;
++	} else
++		rc = 0;
++	close(fh);
++
++revert_attrs:
++	if (attrs != INVALID_FILE_ATTRIBUTES &&
++	    (attrs & FILE_ATTRIBUTE_READONLY)) {
++		/* ignore errors again */
++		SetFileAttributesW(wfilename, attrs);
++	}
++	return rc;
++}
++
++#undef strftime
++size_t mingw_strftime(char *s, size_t max,
++		      const char *format, const struct tm *tm)
++{
++	size_t ret = strftime(s, max, format, tm);
++
++	if (!ret && errno == EINVAL)
++		die("invalid strftime format: '%s'", format);
++	return ret;
++}
++
++char *mingw_getcwd(char *pointer, int len)
++{
++	wchar_t cwd[MAX_PATH], wpointer[MAX_PATH];
++	DECLARE_PROC_ADDR(kernel32.dll, DWORD, GetFinalPathNameByHandleW,
++			  HANDLE, LPWSTR, DWORD, DWORD);
++	DWORD ret = GetCurrentDirectoryW(ARRAY_SIZE(cwd), cwd);
++
++	if (ret < 0 || ret >= ARRAY_SIZE(cwd))
++		return NULL;
++	ret = GetLongPathNameW(cwd, wpointer, ARRAY_SIZE(wpointer));
++	if (!ret && GetLastError() == ERROR_ACCESS_DENIED &&
++		INIT_PROC_ADDR(GetFinalPathNameByHandleW)) {
++		HANDLE hnd = CreateFileW(cwd, 0,
++			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
++			OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
++		if (hnd == INVALID_HANDLE_VALUE)
++			return NULL;
++		ret = GetFinalPathNameByHandleW(hnd, wpointer, ARRAY_SIZE(wpointer), 0);
++		CloseHandle(hnd);
++		if (!ret || ret >= ARRAY_SIZE(wpointer))
++			return NULL;
++		if (xwcstoutf(pointer, normalize_ntpath(wpointer), len) < 0)
++			return NULL;
++		return pointer;
++	}
++	if (!ret || ret >= ARRAY_SIZE(wpointer))
++		return NULL;
++	if (xwcstoutf(pointer, wpointer, len) < 0)
++		return NULL;
++	convert_slashes(pointer);
++	return pointer;
++}
++
++/*
++ * See http://msdn2.microsoft.com/en-us/library/17w5ykft(vs.71).aspx
++ * (Parsing C++ Command-Line Arguments)
++ */
++
++/* UTF8 versions of getenv and putenv (and unsetenv).
++ * Internally, they use the CRT's stock UNICODE routines
++ * to avoid data loss.
++ *
++ * Unlike the mingw version, we DO NOT directly write to
++ * the CRT variables.  We also DO NOT try to manage/replace
++ * the CRT storage.
++ */
++char *msc_getenv(const char *name)
++{
++	int len_key, len_value;
++	wchar_t *w_key;
++	char *value;
++	const wchar_t *w_value;
++
++	if (!name || !*name)
++		return NULL;
++
++	len_key = strlen(name) + 1;
++	w_key = calloc(len_key, sizeof(wchar_t));
++	xutftowcs(w_key, name, len_key);
++	w_value = _wgetenv(w_key);
++	free(w_key);
++
++	if (!w_value)
++		return NULL;
++
++	len_value = wcslen(w_value) * 3 + 1;
++	value = calloc(len_value, sizeof(char));
++	xwcstoutf(value, w_value, len_value);
++
++	/* TODO Warning: We return "value" which is an allocated
++	 * value and the caller is NOT expecting to have to free
++	 * it, so we leak memory.
++	 */
++	return value;
++}
++
++int msc_putenv(const char *name)
++{
++	int len, result;
++	char *equal;
++	wchar_t *wide;
++
++	if (!name || !*name)
++		return 0;
++
++	len = strlen(name);
++	equal = strchr(name, '=');
++	wide = calloc(len+1+!equal, sizeof(wchar_t));
++	xutftowcs(wide, name, len+1);
++	if (!equal)
++		wcscat(wide, L"=");
++
++	result = _wputenv(wide);
++
++	free(wide);
++	return result;
++}
++
++int xutftowcsn(wchar_t *wcs, const char *utfs, size_t wcslen, int utflen)
++{
++	int upos = 0, wpos = 0;
++	const unsigned char *utf = (const unsigned char*) utfs;
++	if (!utf || !wcs || wcslen < 1) {
++		errno = EINVAL;
++		return -1;
++	}
++	/* reserve space for \0 */
++	wcslen--;
++	if (utflen < 0)
++		utflen = INT_MAX;
++
++	while (upos < utflen) {
++		int c = utf[upos++] & 0xff;
++		if (utflen == INT_MAX && c == 0)
++			break;
++
++		if (wpos >= wcslen) {
++			wcs[wpos] = 0;
++			errno = ERANGE;
++			return -1;
++		}
++
++		if (c < 0x80) {
++			/* ASCII */
++			wcs[wpos++] = c;
++		} else if (c >= 0xc2 && c < 0xe0 && upos < utflen &&
++				(utf[upos] & 0xc0) == 0x80) {
++			/* 2-byte utf-8 */
++			c = ((c & 0x1f) << 6);
++			c |= (utf[upos++] & 0x3f);
++			wcs[wpos++] = c;
++		} else if (c >= 0xe0 && c < 0xf0 && upos + 1 < utflen &&
++				!(c == 0xe0 && utf[upos] < 0xa0) && /* over-long encoding */
++				(utf[upos] & 0xc0) == 0x80 &&
++				(utf[upos + 1] & 0xc0) == 0x80) {
++			/* 3-byte utf-8 */
++			c = ((c & 0x0f) << 12);
++			c |= ((utf[upos++] & 0x3f) << 6);
++			c |= (utf[upos++] & 0x3f);
++			wcs[wpos++] = c;
++		} else if (c >= 0xf0 && c < 0xf5 && upos + 2 < utflen &&
++				wpos + 1 < wcslen &&
++				!(c == 0xf0 && utf[upos] < 0x90) && /* over-long encoding */
++				!(c == 0xf4 && utf[upos] >= 0x90) && /* > \u10ffff */
++				(utf[upos] & 0xc0) == 0x80 &&
++				(utf[upos + 1] & 0xc0) == 0x80 &&
++				(utf[upos + 2] & 0xc0) == 0x80) {
++			/* 4-byte utf-8: convert to \ud8xx \udcxx surrogate pair */
++			c = ((c & 0x07) << 18);
++			c |= ((utf[upos++] & 0x3f) << 12);
++			c |= ((utf[upos++] & 0x3f) << 6);
++			c |= (utf[upos++] & 0x3f);
++			c -= 0x10000;
++			wcs[wpos++] = 0xd800 | (c >> 10);
++			wcs[wpos++] = 0xdc00 | (c & 0x3ff);
++		} else if (c >= 0xa0) {
++			/* invalid utf-8 byte, printable unicode char: convert 1:1 */
++			wcs[wpos++] = c;
++		} else {
++			/* invalid utf-8 byte, non-printable unicode: convert to hex */
++			static const char *hex = "0123456789abcdef";
++			wcs[wpos++] = hex[c >> 4];
++			if (wpos < wcslen)
++				wcs[wpos++] = hex[c & 0x0f];
++		}
++	}
++	wcs[wpos] = 0;
++	return wpos;
++}
++
++int xwcstoutf(char *utf, const wchar_t *wcs, size_t utflen)
++{
++	if (!wcs || !utf || utflen < 1) {
++		errno = EINVAL;
++		return -1;
++	}
++	utflen = WideCharToMultiByte(CP_UTF8, 0, wcs, -1, utf, utflen, NULL, NULL);
++	if (utflen)
++		return utflen - 1;
++	errno = ERANGE;
++	return -1;
++}
++
++int handle_long_path(wchar_t *path, int len, int max_path, int expand)
++{
++	int result;
++	wchar_t buf[MAX_LONG_PATH];
++
++	/*
++	 * we don't need special handling if path is relative to the current
++	 * directory, and current directory + path don't exceed the desired
++	 * max_path limit. This should cover > 99 % of cases with minimal
++	 * performance impact (git almost always uses relative paths).
++	 */
++	if ((len < 2 || (!is_dir_sep(path[0]) && path[1] != ':')) &&
++	    (current_directory_len + len < max_path))
++		return len;
++
++	/*
++	 * handle everything else:
++	 * - absolute paths: "C:\dir\file"
++	 * - absolute UNC paths: "\\server\share\dir\file"
++	 * - absolute paths on current drive: "\dir\file"
++	 * - relative paths on other drive: "X:file"
++	 * - prefixed paths: "\\?\...", "\\.\..."
++	 */
++
++	/* convert to absolute path using GetFullPathNameW */
++	result = GetFullPathNameW(path, MAX_LONG_PATH, buf, NULL);
++	if (!result) {
++		errno = err_win_to_posix(GetLastError());
++		return -1;
++	}
++
++	/*
++	 * return absolute path if it fits within max_path (even if
++	 * "cwd + path" doesn't due to '..' components)
++	 */
++	if (result < max_path) {
++		wcscpy(path, buf);
++		return result;
++	}
++
++	/* error out if we shouldn't expand the path or buf is too small */
++	if (!expand || result >= MAX_LONG_PATH - 6) {
++		errno = ENAMETOOLONG;
++		return -1;
++	}
++
++	/* prefix full path with "\\?\" or "\\?\UNC\" */
++	if (buf[0] == '\\') {
++		/* ...unless already prefixed */
++		if (buf[1] == '\\' && (buf[2] == '?' || buf[2] == '.'))
++			return len;
++
++		wcscpy(path, L"\\\\?\\UNC\\");
++		wcscpy(path + 8, buf + 2);
++		return result + 6;
++	} else {
++		wcscpy(path, L"\\\\?\\");
++		wcscpy(path + 4, buf);
++		return result + 4;
++	}
++}
+diff --git a/src/Plugins/Windows/compat/mingw.h b/src/Plugins/Windows/compat/mingw.h
+new file mode 100644
+index 0000000..aaa9123
+--- /dev/null
++++ b/src/Plugins/Windows/compat/mingw.h
+@@ -0,0 +1,436 @@
++#ifdef __MINGW64_VERSION_MAJOR
++#include <stdint.h>
++#include <wchar.h>
++typedef _sigset_t sigset_t;
++#endif
++#include <winsock2.h>
++#include <ws2tcpip.h>
++
++/* MinGW-w64 reports to have flockfile, but it does not actually have it. */
++#ifdef __MINGW64_VERSION_MAJOR
++#undef _POSIX_THREAD_SAFE_FUNCTIONS
++#endif
++
++extern int core_long_paths;
++
++/*
++ * things that are not available in header files
++ */
++
++typedef int uid_t;
++
++#define S_IFLNK    0120000 /* Symbolic link */
++#define S_ISLNK(x) (((x) & S_IFMT) == S_IFLNK)
++#define S_ISSOCK(x) 0
++
++#ifndef S_IRWXG
++#define S_IRGRP 0
++#define S_IWGRP 0
++#define S_IXGRP 0
++#define S_IRWXG (S_IRGRP | S_IWGRP | S_IXGRP)
++#endif
++#ifndef S_IRWXO
++#define S_IROTH 0
++#define S_IWOTH 0
++#define S_IXOTH 0
++#define S_IRWXO (S_IROTH | S_IWOTH | S_IXOTH)
++#endif
++
++#define S_ISUID 0004000
++#define S_ISGID 0002000
++#define S_ISVTX 0001000
++
++#define WIFEXITED(x) 1
++#define WIFSIGNALED(x) 0
++#define WEXITSTATUS(x) ((x) & 0xff)
++#define WTERMSIG(x) SIGTERM
++
++#ifndef EWOULDBLOCK
++#define EWOULDBLOCK EAGAIN
++#endif
++#ifndef ELOOP
++#define ELOOP EMLINK
++#endif
++#define SHUT_WR SD_SEND
++
++#define SIGHUP 1
++#define SIGQUIT 3
++#define SIGKILL 9
++#define SIGPIPE 13
++#define SIGALRM 14
++#define SIGCHLD 17
++
++#define F_GETFD 1
++#define F_SETFD 2
++#define FD_CLOEXEC 0x1
++
++#if !defined O_CLOEXEC && defined O_NOINHERIT
++#define O_CLOEXEC	O_NOINHERIT
++#endif
++
++#ifndef EAFNOSUPPORT
++#define EAFNOSUPPORT WSAEAFNOSUPPORT
++#endif
++#ifndef ECONNABORTED
++#define ECONNABORTED WSAECONNABORTED
++#endif
++#ifndef ENOTSOCK
++#define ENOTSOCK WSAENOTSOCK
++#endif
++
++
++/*
++ * sanitize preprocessor namespace polluted by Windows headers defining
++ * macros which collide with git local versions
++ */
++#undef HELP_COMMAND /* from winuser.h */
++
++/*
++ * trivial stubs
++ */
++
++int mingw_mkdir(const char *path, int mode);
++//#define mkdir mingw_mkdir
++
++/*
++ * replacements of existing functions
++ */
++
++
++int mingw_rmdir(const char *path);
++//#define rmdir mingw_rmdir
++
++int mingw_open (const char *filename, int oflags, ...);
++#define open mingw_open
++
++FILE *mingw_fopen (const char *filename, const char *otype);
++#define fopen mingw_fopen
++
++ssize_t mingw_write(int fd, const void *buf, size_t len);
++#define write mingw_write
++
++int mingw_access(const char *filename, int mode);
++#undef access
++#define access mingw_access
++
++int mingw_chmod(const char *filename, int mode);
++#define chmod mingw_chmod
++
++char *mingw_getcwd(char *pointer, int len);
++#define getcwd mingw_getcwd
++
++/*
++ * We bind *env() routines (even the mingw_ ones) to private msc_ versions.
++ * These talk to the CRT using UNICODE/wchar_t, but maintain the original
++ * narrow-char API.
++ *
++ * Note that the MSCRT maintains both ANSI (getenv()) and UNICODE (_wgetenv())
++ * routines and stores both versions of each environment variable in parallel
++ * (and secretly updates both when you set one or the other), but it uses CP_ACP
++ * to do the conversion rather than CP_UTF8.
++ *
++ * Since everything in the git code base is UTF8, we define the msc_ routines
++ * to access the CRT using the UNICODE routines and manually convert them to
++ * UTF8.  This also avoids round-trip problems.
++ *
++ * This also helps with our linkage, since "_wenviron" is publicly exported
++ * from the CRT.  But to access "_environ" we would have to statically link
++ * to the CRT (/MT).
++ *
++ * We also use "wmain(argc,argv,env)" and get the initial UNICODE setup for us.
++ * This avoids the need for the msc_startup() to import and convert the
++ * inherited environment.
++ *
++ * We require NO_SETENV (and let gitsetenv() call our msc_putenv).
++ */
++#define getenv       msc_getenv
++#define putenv       msc_putenv
++#define unsetenv     msc_putenv
++#define mingw_getenv msc_getenv
++#define mingw_putenv msc_putenv
++char *msc_getenv(const char *name);
++int   msc_putenv(const char *name);
++
++
++/*
++ * The unit of FILETIME is 100-nanoseconds since January 1, 1601, UTC.
++ * Returns the 100-nanoseconds ("hekto nanoseconds") since the epoch.
++ */
++static inline long long filetime_to_hnsec(const FILETIME *ft)
++{
++	long long winTime = ((long long)ft->dwHighDateTime << 32) + ft->dwLowDateTime;
++	/* Windows to Unix Epoch conversion */
++	return winTime - 116444736000000000LL;
++}
++
++/*
++ * Use mingw specific stat()/lstat()/fstat() implementations on Windows,
++ * including our own struct stat with 64 bit st_size and nanosecond-precision
++ * file times.
++ */
++#ifndef __MINGW64_VERSION_MAJOR
++#define off_t off64_t
++#define lseek _lseeki64
++#ifndef _MSC_VER
++struct timespec {
++	time_t tv_sec;
++	long tv_nsec;
++};
++#endif
++#endif
++
++static inline void filetime_to_timespec(const FILETIME *ft, struct timespec *ts)
++{
++	long long hnsec = filetime_to_hnsec(ft);
++	ts->tv_sec = (time_t)(hnsec / 10000000);
++	ts->tv_nsec = (hnsec % 10000000) * 100;
++}
++
++struct mingw_stat {
++    _dev_t st_dev;
++    _ino_t st_ino;
++    _mode_t st_mode;
++    short st_nlink;
++    short st_uid;
++    short st_gid;
++    _dev_t st_rdev;
++    off64_t st_size;
++    struct timespec st_atim;
++    struct timespec st_mtim;
++    struct timespec st_ctim;
++};
++
++#define st_atime st_atim.tv_sec
++#define st_mtime st_mtim.tv_sec
++#define st_ctime st_ctim.tv_sec
++
++#ifdef stat
++#undef stat
++#endif
++#define stat mingw_stat
++int mingw_lstat(const char *file_name, struct stat *buf);
++int mingw_stat(const char *file_name, struct stat *buf);
++int mingw_fstat(int fd, struct stat *buf);
++#ifdef fstat
++#undef fstat
++#endif
++#define fstat mingw_fstat
++#ifdef lstat
++#undef lstat
++#endif
++extern int (*lstat)(const char *file_name, struct stat *buf);
++
++
++int mingw_utime(const char *file_name, const struct utimbuf *times);
++#define utime mingw_utime
++size_t mingw_strftime(char *s, size_t max,
++		   const char *format, const struct tm *tm);
++#define strftime mingw_strftime
++
++/*
++ * git specific compatibility
++ */
++
++#define has_dos_drive_prefix(path) \
++	(isalpha(*(path)) && (path)[1] == ':' ? 2 : 0)
++int mingw_skip_dos_drive_prefix(char **path);
++#define skip_dos_drive_prefix mingw_skip_dos_drive_prefix
++#define has_unc_prefix(path) (*(path) == '\\' && (path)[1] == '\\' ? 2 : 0)
++#define is_dir_sep(c) ((c) == '/' || (c) == '\\')
++static inline char *mingw_find_last_dir_sep(const char *path)
++{
++	char *ret = NULL;
++	for (; *path; ++path)
++		if (is_dir_sep(*path))
++			ret = (char *)path;
++	return ret;
++}
++static inline void convert_slashes(char *path)
++{
++	for (; *path; path++)
++		if (*path == '\\')
++			*path = '/';
++}
++#define find_last_dir_sep mingw_find_last_dir_sep
++int mingw_offset_1st_component(const char *path);
++#define offset_1st_component mingw_offset_1st_component
++#define PATH_SEP ';'
++#if !defined(__MINGW64_VERSION_MAJOR) && (!defined(_MSC_VER) || _MSC_VER < 1800)
++#define PRIuMAX "I64u"
++#define PRId64 "I64d"
++#else
++#include <inttypes.h>
++#endif
++
++/**
++ * Max length of long paths (exceeding MAX_PATH). The actual maximum supported
++ * by NTFS is 32,767 (* sizeof(wchar_t)), but we choose an arbitrary smaller
++ * value to limit required stack memory.
++ */
++#define MAX_LONG_PATH 2048
++
++/**
++ * Handles paths that would exceed the MAX_PATH limit of Windows Unicode APIs.
++ *
++ * With expand == false, the function checks for over-long paths and fails
++ * with ENAMETOOLONG. The path parameter is not modified, except if cwd + path
++ * exceeds max_path, but the resulting absolute path doesn't (e.g. due to
++ * eliminating '..' components). The path parameter must point to a buffer
++ * of max_path wide characters.
++ *
++ * With expand == true, an over-long path is automatically converted in place
++ * to an absolute path prefixed with '\\?\', and the new length is returned.
++ * The path parameter must point to a buffer of MAX_LONG_PATH wide characters.
++ *
++ * Parameters:
++ * path: path to check and / or convert
++ * len: size of path on input (number of wide chars without \0)
++ * max_path: max short path length to check (usually MAX_PATH = 260, but just
++ * 248 for CreateDirectoryW)
++ * expand: false to only check the length, true to expand the path to a
++ * '\\?\'-prefixed absolute path
++ *
++ * Return:
++ * length of the resulting path, or -1 on failure
++ *
++ * Errors:
++ * ENAMETOOLONG if path is too long
++ */
++int handle_long_path(wchar_t *path, int len, int max_path, int expand);
++
++/**
++ * Converts UTF-8 encoded string to UTF-16LE.
++ *
++ * To support repositories with legacy-encoded file names, invalid UTF-8 bytes
++ * 0xa0 - 0xff are converted to corresponding printable Unicode chars \u00a0 -
++ * \u00ff, and invalid UTF-8 bytes 0x80 - 0x9f (which would make non-printable
++ * Unicode) are converted to hex-code.
++ *
++ * Lead-bytes not followed by an appropriate number of trail-bytes, over-long
++ * encodings and 4-byte encodings > \u10ffff are detected as invalid UTF-8.
++ *
++ * Maximum space requirement for the target buffer is two wide chars per UTF-8
++ * char (((strlen(utf) * 2) + 1) [* sizeof(wchar_t)]).
++ *
++ * The maximum space is needed only if the entire input string consists of
++ * invalid UTF-8 bytes in range 0x80-0x9f, as per the following table:
++ *
++ *               |                   | UTF-8 | UTF-16 |
++ *   Code point  |  UTF-8 sequence   | bytes | words  | ratio
++ * --------------+-------------------+-------+--------+-------
++ * 000000-00007f | 0-7f              |   1   |   1    |  1
++ * 000080-0007ff | c2-df + 80-bf     |   2   |   1    |  0.5
++ * 000800-00ffff | e0-ef + 2 * 80-bf |   3   |   1    |  0.33
++ * 010000-10ffff | f0-f4 + 3 * 80-bf |   4   |  2 (a) |  0.5
++ * invalid       | 80-9f             |   1   |  2 (b) |  2
++ * invalid       | a0-ff             |   1   |   1    |  1
++ *
++ * (a) encoded as UTF-16 surrogate pair
++ * (b) encoded as two hex digits
++ *
++ * Note that, while the UTF-8 encoding scheme can be extended to 5-byte, 6-byte
++ * or even indefinite-byte sequences, the largest valid code point \u10ffff
++ * encodes as only 4 UTF-8 bytes.
++ *
++ * Parameters:
++ * wcs: wide char target buffer
++ * utf: string to convert
++ * wcslen: size of target buffer (in wchar_t's)
++ * utflen: size of string to convert, or -1 if 0-terminated
++ *
++ * Returns:
++ * length of converted string (_wcslen(wcs)), or -1 on failure
++ *
++ * Errors:
++ * EINVAL: one of the input parameters is invalid (e.g. NULL)
++ * ERANGE: the output buffer is too small
++ */
++int xutftowcsn(wchar_t *wcs, const char *utf, size_t wcslen, int utflen);
++
++/**
++ * Simplified variant of xutftowcsn, assumes input string is \0-terminated.
++ */
++static inline int xutftowcs(wchar_t *wcs, const char *utf, size_t wcslen)
++{
++	return xutftowcsn(wcs, utf, wcslen, -1);
++}
++
++/**
++ * Simplified file system specific wrapper of xutftowcsn and handle_long_path.
++ * Converts ERANGE to ENAMETOOLONG. If expand is true, wcs must be at least
++ * MAX_LONG_PATH wide chars (see handle_long_path).
++ */
++static inline int xutftowcs_path_ex(wchar_t *wcs, const char *utf,
++		size_t wcslen, int utflen, int max_path, int expand)
++{
++	int result = xutftowcsn(wcs, utf, wcslen, utflen);
++	if (result < 0 && errno == ERANGE)
++		errno = ENAMETOOLONG;
++	if (result >= 0)
++		result = handle_long_path(wcs, result, max_path, expand);
++	return result;
++}
++
++/**
++ * Simplified file system specific variant of xutftowcsn, assumes output
++ * buffer size is MAX_PATH wide chars and input string is \0-terminated,
++ * fails with ENAMETOOLONG if input string is too long. Typically used for
++ * Windows APIs that don't support long paths, e.g. SetCurrentDirectory,
++ * LoadLibrary, CreateProcess...
++ */
++static inline int xutftowcs_path(wchar_t *wcs, const char *utf)
++{
++	return xutftowcs_path_ex(wcs, utf, MAX_PATH, -1, MAX_PATH, 0);
++}
++
++/**
++ * Simplified file system specific variant of xutftowcsn for Windows APIs
++ * that support long paths via '\\?\'-prefix, assumes output buffer size is
++ * MAX_LONG_PATH wide chars, fails with ENAMETOOLONG if input string is too
++ * long. The 'core.longpaths' git-config option controls whether the path
++ * is only checked or expanded to a long path.
++ */
++static inline int xutftowcs_long_path(wchar_t *wcs, const char *utf)
++{
++	return xutftowcs_path_ex(wcs, utf, MAX_LONG_PATH, -1, MAX_PATH,
++			core_long_paths);
++}
++
++/**
++ * Converts UTF-16LE encoded string to UTF-8.
++ *
++ * Maximum space requirement for the target buffer is three UTF-8 chars per
++ * wide char ((_wcslen(wcs) * 3) + 1).
++ *
++ * The maximum space is needed only if the entire input string consists of
++ * UTF-16 words in range 0x0800-0xd7ff or 0xe000-0xffff (i.e. \u0800-\uffff
++ * modulo surrogate pairs), as per the following table:
++ *
++ *               |                       | UTF-16 | UTF-8 |
++ *   Code point  |  UTF-16 sequence      | words  | bytes | ratio
++ * --------------+-----------------------+--------+-------+-------
++ * 000000-00007f | 0000-007f             |   1    |   1   |  1
++ * 000080-0007ff | 0080-07ff             |   1    |   2   |  2
++ * 000800-00ffff | 0800-d7ff / e000-ffff |   1    |   3   |  3
++ * 010000-10ffff | d800-dbff + dc00-dfff |   2    |   4   |  2
++ *
++ * Note that invalid code points > 10ffff cannot be represented in UTF-16.
++ *
++ * Parameters:
++ * utf: target buffer
++ * wcs: wide string to convert
++ * utflen: size of target buffer
++ *
++ * Returns:
++ * length of converted string, or -1 on failure
++ *
++ * Errors:
++ * EINVAL: one of the input parameters is invalid (e.g. NULL)
++ * ERANGE: the output buffer is too small
++ */
++int xwcstoutf(char *utf, const wchar_t *wcs, size_t utflen);
++
++/*
++ * Used by Pthread API implementation for Windows
++ */
++extern int err_win_to_posix(DWORD winerr);
+diff --git a/src/Plugins/Windows/compat/win32.h b/src/Plugins/Windows/compat/win32.h
+new file mode 100644
+index 0000000..614551b
+--- /dev/null
++++ b/src/Plugins/Windows/compat/win32.h
+@@ -0,0 +1,45 @@
++#ifndef WIN32_H
++#define WIN32_H
++
++/* common Win32 functions for MinGW and Cygwin */
++#ifndef GIT_WINDOWS_NATIVE	/* Not defined for Cygwin */
++#include <windows.h>
++#endif
++
++#include "./win32/lazyload.h"
++
++static inline int file_attr_to_st_mode (DWORD attr, DWORD tag)
++{
++	int fMode = S_IREAD;
++	if ((attr & FILE_ATTRIBUTE_REPARSE_POINT) && tag == IO_REPARSE_TAG_SYMLINK)
++		fMode |= S_IFLNK;
++	else if (attr & FILE_ATTRIBUTE_DIRECTORY)
++		fMode |= S_IFDIR;
++	else
++		fMode |= S_IFREG;
++	if (!(attr & FILE_ATTRIBUTE_READONLY))
++		fMode |= S_IWRITE;
++	return fMode;
++}
++
++static inline int get_file_attr(const char *fname, WIN32_FILE_ATTRIBUTE_DATA *fdata)
++{
++	if (GetFileAttributesExA(fname, GetFileExInfoStandard, fdata))
++		return 0;
++
++	switch (GetLastError()) {
++	case ERROR_ACCESS_DENIED:
++	case ERROR_SHARING_VIOLATION:
++	case ERROR_LOCK_VIOLATION:
++	case ERROR_SHARING_BUFFER_EXCEEDED:
++		return EACCES;
++	case ERROR_BUFFER_OVERFLOW:
++		return ENAMETOOLONG;
++	case ERROR_NOT_ENOUGH_MEMORY:
++		return ENOMEM;
++	default:
++		return ENOENT;
++	}
++}
++
++#endif
+diff --git a/src/Plugins/Windows/compat/win32/dirent.c b/src/Plugins/Windows/compat/win32/dirent.c
+new file mode 100644
+index 0000000..04808a3
+--- /dev/null
++++ b/src/Plugins/Windows/compat/win32/dirent.c
+@@ -0,0 +1,106 @@
++#include "../../git-compat-util.h"
++
++typedef struct dirent_DIR {
++	struct DIR base_dir;  /* extend base struct DIR */
++	struct dirent dd_dir; /* includes d_type */
++	HANDLE dd_handle;     /* FindFirstFile handle */
++	int dd_stat;          /* 0-based index */
++	char dd_name[MAX_PATH * 3]; /* file name (* 3 for UTF-8 conversion) */
++} dirent_DIR;
++
++DIR *(*opendir)(const char *dirname) = dirent_opendir;
++
++static inline void finddata2dirent(struct dirent *ent, WIN32_FIND_DATAW *fdata)
++{
++	/* convert UTF-16 name to UTF-8 (d_name points to dirent_DIR.dd_name) */
++	xwcstoutf(ent->d_name, fdata->cFileName, MAX_PATH * 3);
++
++	/* Set file type, based on WIN32_FIND_DATA */
++	if ((fdata->dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
++			&& fdata->dwReserved0 == IO_REPARSE_TAG_SYMLINK)
++		ent->d_type = DT_LNK;
++	else if (fdata->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
++		ent->d_type = DT_DIR;
++	else
++		ent->d_type = DT_REG;
++}
++
++static struct dirent *dirent_readdir(dirent_DIR *dir)
++{
++	if (!dir) {
++		errno = EBADF; /* No set_errno for mingw */
++		return NULL;
++	}
++
++	/* if first entry, dirent has already been set up by opendir */
++	if (dir->dd_stat) {
++		/* get next entry and convert from WIN32_FIND_DATA to dirent */
++		WIN32_FIND_DATAW fdata;
++		if (FindNextFileW(dir->dd_handle, &fdata)) {
++			finddata2dirent(&dir->dd_dir, &fdata);
++		} else {
++			DWORD lasterr = GetLastError();
++			/* POSIX says you shouldn't set errno when readdir can't
++			   find any more files; so, if another error we leave it set. */
++			if (lasterr != ERROR_NO_MORE_FILES)
++				errno = err_win_to_posix(lasterr);
++			return NULL;
++		}
++	}
++
++	++dir->dd_stat;
++	return &dir->dd_dir;
++}
++
++static int dirent_closedir(dirent_DIR *dir)
++{
++	if (!dir) {
++		errno = EBADF;
++		return -1;
++	}
++
++	FindClose(dir->dd_handle);
++	free(dir);
++	return 0;
++}
++
++DIR *dirent_opendir(const char *name)
++{
++	wchar_t pattern[MAX_LONG_PATH + 2]; /* + 2 for "\*" */
++	WIN32_FIND_DATAW fdata;
++	HANDLE h;
++	int len;
++	dirent_DIR *dir;
++
++	/* convert name to UTF-16 and check length */
++	if ((len = xutftowcs_path_ex(pattern, name, MAX_LONG_PATH, -1,
++			MAX_PATH - 2, core_long_paths)) < 0)
++		return NULL;
++
++	/*
++	 * append optional '\' and wildcard '*'. Note: we need to use '\' as
++	 * Windows doesn't translate '/' to '\' for "\\?\"-prefixed paths.
++	 */
++	if (len && !is_dir_sep(pattern[len - 1]))
++		pattern[len++] = '\\';
++	pattern[len++] = '*';
++	pattern[len] = 0;
++
++	/* open find handle */
++	h = FindFirstFileW(pattern, &fdata);
++	if (h == INVALID_HANDLE_VALUE) {
++		DWORD err = GetLastError();
++		errno = (err == ERROR_DIRECTORY) ? ENOTDIR : err_win_to_posix(err);
++		return NULL;
++	}
++
++	/* initialize DIR structure and copy first dir entry */
++	dir = malloc(sizeof(dirent_DIR));
++	dir->base_dir.preaddir = (struct dirent *(*)(DIR *dir)) dirent_readdir;
++	dir->base_dir.pclosedir = (int (*)(DIR *dir)) dirent_closedir;
++	dir->dd_dir.d_name = dir->dd_name;
++	dir->dd_handle = h;
++	dir->dd_stat = 0;
++	finddata2dirent(&dir->dd_dir, &fdata);
++	return (DIR*) dir;
++}
+diff --git a/src/Plugins/Windows/compat/win32/dirent.h b/src/Plugins/Windows/compat/win32/dirent.h
+new file mode 100644
+index 0000000..6b3ddee
+--- /dev/null
++++ b/src/Plugins/Windows/compat/win32/dirent.h
+@@ -0,0 +1,32 @@
++#ifndef DIRENT_H
++#define DIRENT_H
++
++#define DT_UNKNOWN 0
++#define DT_DIR     1
++#define DT_REG     2
++#define DT_LNK     3
++
++struct dirent {
++	unsigned char d_type; /* file type to prevent lstat after readdir */
++	char *d_name;         /* file name */
++};
++
++/*
++ * Base DIR structure, contains pointers to readdir/closedir implementations so
++ * that opendir may choose a concrete implementation on a call-by-call basis.
++ */
++typedef struct DIR {
++	struct dirent *(*preaddir)(struct DIR *dir);
++	int (*pclosedir)(struct DIR *dir);
++} DIR;
++
++/* default dirent implementation */
++extern DIR *dirent_opendir(const char *dirname);
++
++/* current dirent implementation */
++extern DIR *(*opendir)(const char *dirname);
++
++#define readdir(dir) (dir->preaddir(dir))
++#define closedir(dir) (dir->pclosedir(dir))
++
++#endif /* DIRENT_H */
+diff --git a/src/Plugins/Windows/compat/win32/lazyload.h b/src/Plugins/Windows/compat/win32/lazyload.h
+new file mode 100644
+index 0000000..9d1a055
+--- /dev/null
++++ b/src/Plugins/Windows/compat/win32/lazyload.h
+@@ -0,0 +1,43 @@
++#ifndef LAZYLOAD_H
++#define LAZYLOAD_H
++
++/* simplify loading of DLL functions */
++
++struct proc_addr {
++	const char *const dll;
++	const char *const function;
++	FARPROC pfunction;
++	unsigned initialized : 1;
++};
++
++/* Declares a function to be loaded dynamically from a DLL. */
++#define DECLARE_PROC_ADDR(dll, rettype, function, ...) \
++	static struct proc_addr proc_addr_##function = \
++	{ #dll, #function, NULL, 0 }; \
++	static rettype (WINAPI *function)(__VA_ARGS__)
++
++/*
++ * Loads a function from a DLL (once-only).
++ * Returns non-NULL function pointer on success.
++ * Returns NULL + errno == ENOSYS on failure.
++ */
++#define INIT_PROC_ADDR(function) (function = get_proc_addr(&proc_addr_##function))
++
++static inline void *get_proc_addr(struct proc_addr *proc)
++{
++	/* only do this once */
++	if (!proc->initialized) {
++		HANDLE hnd;
++		proc->initialized = 1;
++		hnd = LoadLibraryExA(proc->dll, NULL,
++				     LOAD_LIBRARY_SEARCH_SYSTEM32);
++		if (hnd)
++			proc->pfunction = GetProcAddress(hnd, proc->function);
++	}
++	/* set ENOSYS if DLL or function was not found */
++	if (!proc->pfunction)
++		errno = ENOSYS;
++	return proc->pfunction;
++}
++
++#endif
+diff --git a/src/Plugins/Windows/ctype.c b/src/Plugins/Windows/ctype.c
+new file mode 100644
+index 0000000..fc0225c
+--- /dev/null
++++ b/src/Plugins/Windows/ctype.c
+@@ -0,0 +1,66 @@
++/*
++ * Sane locale-independent, ASCII ctype.
++ *
++ * No surprises, and works with signed and unsigned chars.
++ */
++#include "git-compat-util.h"
++
++enum {
++	S = GIT_SPACE,
++	A = GIT_ALPHA,
++	D = GIT_DIGIT,
++	G = GIT_GLOB_SPECIAL,	/* *, ?, [, \\ */
++	R = GIT_REGEX_SPECIAL,	/* $, (, ), +, ., ^, {, | */
++	P = GIT_PATHSPEC_MAGIC, /* other non-alnum, except for ] and } */
++	X = GIT_CNTRL,
++	U = GIT_PUNCT,
++	Z = GIT_CNTRL | GIT_SPACE
++};
++
++const unsigned char sane_ctype[256] = {
++	X, X, X, X, X, X, X, X, X, Z, Z, X, X, Z, X, X,		/*   0.. 15 */
++	X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,		/*  16.. 31 */
++	S, P, P, P, R, P, P, P, R, R, G, R, P, P, R, P,		/*  32.. 47 */
++	D, D, D, D, D, D, D, D, D, D, P, P, P, P, P, G,		/*  48.. 63 */
++	P, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A,		/*  64.. 79 */
++	A, A, A, A, A, A, A, A, A, A, A, G, G, U, R, P,		/*  80.. 95 */
++	P, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A,		/*  96..111 */
++	A, A, A, A, A, A, A, A, A, A, A, R, R, U, P, X,		/* 112..127 */
++	/* Nothing in the 128.. range */
++};
++
++/* For case-insensitive kwset */
++const unsigned char tolower_trans_tbl[256] = {
++	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
++	0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
++	0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
++	0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
++	 ' ',  '!',  '"',  '#',  '$',  '%',  '&', 0x27,
++	 '(',  ')',  '*',  '+',  ',',  '-',  '.',  '/',
++	 '0',  '1',  '2',  '3',  '4',  '5',  '6',  '7',
++	 '8',  '9',  ':',  ';',  '<',  '=',  '>',  '?',
++	 '@',  'a',  'b',  'c',  'd',  'e',  'f',  'g',
++	 'h',  'i',  'j',  'k',  'l',  'm',  'n',  'o',
++	 'p',  'q',  'r',  's',  't',  'u',  'v',  'w',
++	 'x',  'y',  'z',  '[', 0x5c,  ']',  '^',  '_',
++	 '`',  'a',  'b',  'c',  'd',  'e',  'f',  'g',
++	 'h',  'i',  'j',  'k',  'l',  'm',  'n',  'o',
++	 'p',  'q',  'r',  's',  't',  'u',  'v',  'w',
++	 'x',  'y',  'z',  '{',  '|',  '}',  '~', 0x7f,
++	0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
++	0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f,
++	0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97,
++	0x98, 0x99, 0x9a, 0x9b, 0x9c, 0x9d, 0x9e, 0x9f,
++	0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7,
++	0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xae, 0xaf,
++	0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7,
++	0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbe, 0xbf,
++	0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7,
++	0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf,
++	0xd0, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7,
++	0xd8, 0xd9, 0xda, 0xdb, 0xdc, 0xdd, 0xde, 0xdf,
++	0xe0, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7,
++	0xe8, 0xe9, 0xea, 0xeb, 0xec, 0xed, 0xee, 0xef,
++	0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
++	0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff,
++};
+diff --git a/src/Plugins/Windows/git-compat-util-TeXmacs.patch b/src/Plugins/Windows/git-compat-util-TeXmacs.patch
+new file mode 100644
+index 0000000..e07c988
+--- /dev/null
++++ b/src/Plugins/Windows/git-compat-util-TeXmacs.patch
+@@ -0,0 +1,3255 @@
++diff -ru git-9e46438a63c7991eb394fb752fa0ccf2eb63e248/compat/mingw.c Windows/compat/mingw.c
++--- git-9e46438a63c7991eb394fb752fa0ccf2eb63e248/compat/mingw.c	2017-01-11 22:25:01.000000000 +0100
+++++ Windows/compat/mingw.c	2017-01-26 23:27:39.125875001 +0100
++@@ -3,9 +3,6 @@
++ #include <conio.h>
++ #include <wchar.h>
++ #include <winioctl.h>
++-#include "../strbuf.h"
++-#include "../run-command.h"
++-#include "../cache.h"
++ 
++ #define HCAST(type, handle) ((type)(intptr_t)handle)
++ 
++@@ -138,220 +135,6 @@
++ 	return 0;
++ }
++ 
++-static int read_yes_no_answer(void)
++-{
++-	char answer[1024];
++-
++-	if (fgets(answer, sizeof(answer), stdin)) {
++-		size_t answer_len = strlen(answer);
++-		int got_full_line = 0, c;
++-
++-		/* remove the newline */
++-		if (answer_len >= 2 && answer[answer_len-2] == '\r') {
++-			answer[answer_len-2] = '\0';
++-			got_full_line = 1;
++-		} else if (answer_len >= 1 && answer[answer_len-1] == '\n') {
++-			answer[answer_len-1] = '\0';
++-			got_full_line = 1;
++-		}
++-		/* flush the buffer in case we did not get the full line */
++-		if (!got_full_line)
++-			while ((c = getchar()) != EOF && c != '\n')
++-				;
++-	} else
++-		/* we could not read, return the
++-		 * default answer which is no */
++-		return 0;
++-
++-	if (tolower(answer[0]) == 'y' && !answer[1])
++-		return 1;
++-	if (!strncasecmp(answer, "yes", sizeof(answer)))
++-		return 1;
++-	if (tolower(answer[0]) == 'n' && !answer[1])
++-		return 0;
++-	if (!strncasecmp(answer, "no", sizeof(answer)))
++-		return 0;
++-
++-	/* did not find an answer we understand */
++-	return -1;
++-}
++-
++-static int ask_yes_no_if_possible(const char *format, va_list args)
++-{
++-	char question[4096];
++-	const char *retry_hook[] = { NULL, NULL, NULL };
++-
++-	vsnprintf(question, sizeof(question), format, args);
++-
++-	if ((retry_hook[0] = mingw_getenv("GIT_ASK_YESNO"))) {
++-		retry_hook[1] = question;
++-		return !run_command_v_opt(retry_hook, 0);
++-	}
++-
++-	if (!isatty(_fileno(stdin)) || !isatty(_fileno(stderr)))
++-		return 0;
++-
++-	while (1) {
++-		int answer;
++-		fprintf(stderr, "%s (y/n) ", question);
++-
++-		if ((answer = read_yes_no_answer()) >= 0)
++-			return answer;
++-
++-		fprintf(stderr, "Sorry, I did not understand your answer. "
++-				"Please type 'y' or 'n'\n");
++-	}
++-}
++-
++-static int retry_ask_yes_no(int *tries, const char *format, ...)
++-{
++-	static const int delay[] = { 0, 1, 10, 20, 40 };
++-	va_list args;
++-	int result, saved_errno = errno;
++-
++-	if ((*tries) < ARRAY_SIZE(delay)) {
++-		/*
++-		 * We assume that some other process had the file open at the wrong
++-		 * moment and retry. In order to give the other process a higher
++-		 * chance to complete its operation, we give up our time slice now.
++-		 * If we have to retry again, we do sleep a bit.
++-		 */
++-		Sleep(delay[*tries]);
++-		(*tries)++;
++-		return 1;
++-	}
++-
++-	va_start(args, format);
++-	result = ask_yes_no_if_possible(format, args);
++-	va_end(args);
++-	errno = saved_errno;
++-	return result;
++-}
++-
++-/* Windows only */
++-enum hide_dotfiles_type {
++-	HIDE_DOTFILES_FALSE = 0,
++-	HIDE_DOTFILES_TRUE,
++-	HIDE_DOTFILES_DOTGITONLY
++-};
++-
++-static enum hide_dotfiles_type hide_dotfiles = HIDE_DOTFILES_DOTGITONLY;
++-static char *unset_environment_variables;
++-int core_fscache;
++-int core_long_paths;
++-
++-int mingw_core_config(const char *var, const char *value)
++-{
++-	if (!strcmp(var, "core.hidedotfiles")) {
++-		if (value && !strcasecmp(value, "dotgitonly"))
++-			hide_dotfiles = HIDE_DOTFILES_DOTGITONLY;
++-		else
++-			hide_dotfiles = git_config_bool(var, value);
++-		return 0;
++-	}
++-
++-	if (!strcmp(var, "core.fscache")) {
++-		core_fscache = git_config_bool(var, value);
++-		return 0;
++-	}
++-
++-	if (!strcmp(var, "core.longpaths")) {
++-		core_long_paths = git_config_bool(var, value);
++-		return 0;
++-	}
++-
++-	if (!strcmp(var, "core.unsetenvvars")) {
++-		free(unset_environment_variables);
++-		unset_environment_variables = xstrdup(value);
++-		return 0;
++-	}
++-
++-	return 0;
++-}
++-
++-DECLARE_PROC_ADDR(kernel32.dll, BOOL, CreateSymbolicLinkW, LPCWSTR, LPCWSTR, DWORD);
++-
++-enum phantom_symlink_result {
++-	PHANTOM_SYMLINK_RETRY,
++-	PHANTOM_SYMLINK_DONE,
++-	PHANTOM_SYMLINK_DIRECTORY
++-};
++-
++-/*
++- * Changes a file symlink to a directory symlink if the target exists and is a
++- * directory.
++- */
++-static enum phantom_symlink_result process_phantom_symlink(
++-		const wchar_t *wtarget, const wchar_t *wlink) {
++-	HANDLE hnd;
++-	BY_HANDLE_FILE_INFORMATION fdata;
++-
++-	/* check that wlink is still a file symlink */
++-	if ((GetFileAttributesW(wlink)
++-			& (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_DIRECTORY))
++-			!= FILE_ATTRIBUTE_REPARSE_POINT)
++-		return PHANTOM_SYMLINK_DONE;
++-
++-	/* let Windows resolve the link by opening it */
++-	hnd = CreateFileW(wlink, 0,
++-			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
++-			OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
++-	if (hnd == INVALID_HANDLE_VALUE) {
++-		errno = err_win_to_posix(GetLastError());
++-		return PHANTOM_SYMLINK_RETRY;
++-	}
++-
++-	if (!GetFileInformationByHandle(hnd, &fdata)) {
++-		errno = err_win_to_posix(GetLastError());
++-		CloseHandle(hnd);
++-		return PHANTOM_SYMLINK_RETRY;
++-	}
++-	CloseHandle(hnd);
++-
++-	/* if target exists and is a file, we're done */
++-	if (!(fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
++-		return PHANTOM_SYMLINK_DONE;
++-
++-	/* otherwise recreate the symlink with directory flag */
++-	if (DeleteFileW(wlink) && CreateSymbolicLinkW(wlink, wtarget, 1))
++-		return PHANTOM_SYMLINK_DIRECTORY;
++-
++-	errno = err_win_to_posix(GetLastError());
++-	return PHANTOM_SYMLINK_RETRY;
++-}
++-
++-/* keep track of newly created symlinks to non-existing targets */
++-struct phantom_symlink_info {
++-	struct phantom_symlink_info *next;
++-	wchar_t *wlink;
++-	wchar_t *wtarget;
++-};
++-
++-static struct phantom_symlink_info *phantom_symlinks = NULL;
++-static CRITICAL_SECTION phantom_symlinks_cs;
++-
++-static void process_phantom_symlinks(void)
++-{
++-	struct phantom_symlink_info *current, **psi;
++-	EnterCriticalSection(&phantom_symlinks_cs);
++-	/* process phantom symlinks list */
++-	psi = &phantom_symlinks;
++-	while ((current = *psi)) {
++-		enum phantom_symlink_result result = process_phantom_symlink(
++-				current->wtarget, current->wlink);
++-		if (result == PHANTOM_SYMLINK_RETRY) {
++-			psi = &current->next;
++-		} else {
++-			/* symlink was processed, remove from list */
++-			*psi = current->next;
++-			free(current);
++-			/* if symlink was a directory, start over */
++-			if (result == PHANTOM_SYMLINK_DIRECTORY)
++-				psi = &phantom_symlinks;
++-		}
++-	}
++-	LeaveCriticalSection(&phantom_symlinks_cs);
++-}
++ 
++ /* Normalizes NT paths as returned by some low-level APIs. */
++ static wchar_t *normalize_ntpath(wchar_t *wbuf)
++@@ -378,32 +161,6 @@
++ 	return wbuf;
++ }
++ 
++-int mingw_unlink(const char *pathname)
++-{
++-	int tries = 0;
++-	wchar_t wpathname[MAX_LONG_PATH];
++-	if (xutftowcs_long_path(wpathname, pathname) < 0)
++-		return -1;
++-
++-	do {
++-		/* read-only files cannot be removed */
++-		_wchmod(wpathname, 0666);
++-		if (!_wunlink(wpathname))
++-			return 0;
++-		if (!is_file_in_use_error(GetLastError()))
++-			break;
++-		/*
++-		 * _wunlink() / DeleteFileW() for directory symlinks fails with
++-		 * ERROR_ACCESS_DENIED (EACCES), so try _wrmdir() as well. This is the
++-		 * same error we get if a file is in use (already checked above).
++-		 */
++-		if (!_wrmdir(wpathname))
++-			return 0;
++-	} while (retry_ask_yes_no(&tries, "Unlink of file '%s' failed. "
++-			"Should I try again?", pathname));
++-	return -1;
++-}
++-
++ static int is_dir_empty(const wchar_t *wpath)
++ {
++ 	WIN32_FIND_DATAW findbuf;
++@@ -433,64 +190,19 @@
++ 	if (xutftowcs_long_path(wpathname, pathname) < 0)
++ 		return -1;
++ 
++-	do {
++ 		if (!_wrmdir(wpathname))
++ 			return 0;
++ 		if (!is_file_in_use_error(GetLastError()))
++ 			errno = err_win_to_posix(GetLastError());
++-		if (errno != EACCES)
++-			break;
++ 		if (!is_dir_empty(wpathname)) {
++ 			errno = ENOTEMPTY;
++-			break;
++ 		}
++-	} while (retry_ask_yes_no(&tries, "Deletion of directory '%s' failed. "
++-			"Should I try again?", pathname));
++ 	return -1;
++ }
++ 
++-static inline int needs_hiding(const char *path)
++-{
++-	const char *basename;
++-
++-	if (hide_dotfiles == HIDE_DOTFILES_FALSE)
++-		return 0;
++-
++-	/* We cannot use basename(), as it would remove trailing slashes */
++-	mingw_skip_dos_drive_prefix((char **)&path);
++-	if (!*path)
++-		return 0;
++-
++-	for (basename = path; *path; path++)
++-		if (is_dir_sep(*path)) {
++-			do {
++-				path++;
++-			} while (is_dir_sep(*path));
++-			/* ignore trailing slashes */
++-			if (*path)
++-				basename = path;
++-		}
++-
++-	if (hide_dotfiles == HIDE_DOTFILES_TRUE)
++-		return *basename == '.';
++-
++-	assert(hide_dotfiles == HIDE_DOTFILES_DOTGITONLY);
++-	return !strncasecmp(".git", basename, 4) &&
++-		(!basename[4] || is_dir_sep(basename[4]));
++-}
++-
++-static int set_hidden_flag(const wchar_t *path, int set)
++-{
++-	DWORD original = GetFileAttributesW(path), modified;
++-	if (set)
++-		modified = original | FILE_ATTRIBUTE_HIDDEN;
++-	else
++-		modified = original & ~FILE_ATTRIBUTE_HIDDEN;
++-	if (original == modified || SetFileAttributesW(path, modified))
++-		return 0;
++-	errno = err_win_to_posix(GetLastError());
++-	return -1;
++-}
+++int core_long_paths=1; //boolean value from git meaning that we handle 
+++// if true : pathes up to MAX_LONG_PATH (=2048, modifiable) 
+++// if false : MAX_PATH (=248 Windows default, fixed)
++ 
++ int mingw_mkdir(const char *path, int mode)
++ {
++@@ -502,10 +214,6 @@
++ 		return -1;
++ 
++ 	ret = _wmkdir(wpath);
++-	if (!ret)
++-		process_phantom_symlinks();
++-	if (!ret && needs_hiding(path))
++-		return set_hidden_flag(wpath, 1);
++ 	return ret;
++ }
++ 
++@@ -532,53 +240,12 @@
++ 		if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY))
++ 			errno = EISDIR;
++ 	}
++-	if ((oflags & O_CREAT) && needs_hiding(filename)) {
++-		/*
++-		 * Internally, _wopen() uses the CreateFile() API which errors
++-		 * out with an ERROR_ACCESS_DENIED if CREATE_ALWAYS was
++-		 * specified and an already existing file's attributes do not
++-		 * match *exactly*. As there is no mode or flag we can set that
++-		 * would correspond to FILE_ATTRIBUTE_HIDDEN, let's just try
++-		 * again *without* the O_CREAT flag (that corresponds to the
++-		 * CREATE_ALWAYS flag of CreateFile()).
++-		 */
++-		if (fd < 0 && errno == EACCES)
++-			fd = _wopen(wfilename, oflags & ~O_CREAT, mode);
++-		if (fd >= 0 && set_hidden_flag(wfilename, 1))
++-			warning("could not mark '%s' as hidden.", filename);
++-	}
++ 	return fd;
++ }
++ 
++-static BOOL WINAPI ctrl_ignore(DWORD type)
++-{
++-	return TRUE;
++-}
++-
++-#undef fgetc
++-int mingw_fgetc(FILE *stream)
++-{
++-	int ch;
++-	if (!isatty(_fileno(stream)))
++-		return fgetc(stream);
++-
++-	SetConsoleCtrlHandler(ctrl_ignore, TRUE);
++-	while (1) {
++-		ch = fgetc(stream);
++-		if (ch != EOF || GetLastError() != ERROR_OPERATION_ABORTED)
++-			break;
++-
++-		/* Ctrl+C was pressed, simulate SIGINT and retry */
++-		mingw_raise(SIGINT);
++-	}
++-	SetConsoleCtrlHandler(ctrl_ignore, FALSE);
++-	return ch;
++-}
++-
++ #undef fopen
++ FILE *mingw_fopen (const char *filename, const char *otype)
++ {
++-	int hide = needs_hiding(filename);
++ 	FILE *file;
++ 	wchar_t wfilename[MAX_LONG_PATH], wotype[4];
++ 	if (filename && !strcmp(filename, "/dev/null"))
++@@ -586,58 +253,10 @@
++ 	if (xutftowcs_long_path(wfilename, filename) < 0 ||
++ 		xutftowcs(wotype, otype, ARRAY_SIZE(wotype)) < 0)
++ 		return NULL;
++-	if (hide && !access(filename, F_OK) && set_hidden_flag(wfilename, 0)) {
++-		error("could not unhide %s", filename);
++-		return NULL;
++-	}
++ 	file = _wfopen(wfilename, wotype);
++-	if (file && hide && set_hidden_flag(wfilename, 1))
++-		warning("could not mark '%s' as hidden.", filename);
++-	return file;
++-}
++-
++-FILE *mingw_freopen (const char *filename, const char *otype, FILE *stream)
++-{
++-	int hide = needs_hiding(filename);
++-	FILE *file;
++-	wchar_t wfilename[MAX_LONG_PATH], wotype[4];
++-	if (filename && !strcmp(filename, "/dev/null"))
++-		filename = "nul";
++-	if (xutftowcs_long_path(wfilename, filename) < 0 ||
++-		xutftowcs(wotype, otype, ARRAY_SIZE(wotype)) < 0)
++-		return NULL;
++-	if (hide && !access(filename, F_OK) && set_hidden_flag(wfilename, 0)) {
++-		error("could not unhide %s", filename);
++-		return NULL;
++-	}
++-	file = _wfreopen(wfilename, wotype, stream);
++-	if (file && hide && set_hidden_flag(wfilename, 1))
++-		warning("could not mark '%s' as hidden.", filename);
++ 	return file;
++ }
++ 
++-#undef fflush
++-int mingw_fflush(FILE *stream)
++-{
++-	int ret = fflush(stream);
++-
++-	/*
++-	 * write() is used behind the scenes of stdio output functions.
++-	 * Since git code does not check for errors after each stdio write
++-	 * operation, it can happen that write() is called by a later
++-	 * stdio function even if an earlier write() call failed. In the
++-	 * case of a pipe whose readable end was closed, only the first
++-	 * call to write() reports EPIPE on Windows. Subsequent write()
++-	 * calls report EINVAL. It is impossible to notice whether this
++-	 * fflush invocation triggered such a case, therefore, we have to
++-	 * catch all EINVAL errors whole-sale.
++-	 */
++-	if (ret && errno == EINVAL)
++-		errno = EPIPE;
++-
++-	return ret;
++-}
++-
++ #undef write
++ ssize_t mingw_write(int fd, const void *buf, size_t len)
++ {
++@@ -667,36 +286,6 @@
++ /* cached length of current directory for handle_long_path */
++ static int current_directory_len = 0;
++ 
++-int mingw_chdir(const char *dirname)
++-{
++-	int result;
++-	DECLARE_PROC_ADDR(kernel32.dll, DWORD, GetFinalPathNameByHandleW,
++-			  HANDLE, LPWSTR, DWORD, DWORD);
++-	wchar_t wdirname[MAX_LONG_PATH];
++-	if (xutftowcs_long_path(wdirname, dirname) < 0)
++-		return -1;
++-
++-	if (has_symlinks && INIT_PROC_ADDR(GetFinalPathNameByHandleW)) {
++-		HANDLE hnd = CreateFileW(wdirname, 0,
++-				FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
++-				OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
++-		if (hnd == INVALID_HANDLE_VALUE) {
++-			errno = err_win_to_posix(GetLastError());
++-			return -1;
++-		}
++-		if (!GetFinalPathNameByHandleW(hnd, wdirname, ARRAY_SIZE(wdirname), 0)) {
++-			errno = err_win_to_posix(GetLastError());
++-			CloseHandle(hnd);
++-			return -1;
++-		}
++-		CloseHandle(hnd);
++-	}
++-
++-	result = _wchdir(normalize_ntpath(wdirname));
++-	current_directory_len = GetCurrentDirectoryW(0, NULL);
++-	return result;
++-}
++-
++ int mingw_chmod(const char *filename, int mode)
++ {
++ 	wchar_t wfilename[MAX_LONG_PATH];
++@@ -939,83 +528,6 @@
++ 	return ret;
++ }
++ 
++-unsigned int sleep (unsigned int seconds)
++-{
++-	Sleep(seconds*1000);
++-	return 0;
++-}
++-
++-char *mingw_mktemp(char *template)
++-{
++-	wchar_t wtemplate[MAX_PATH];
++-	/* we need to return the path, thus no long paths here! */
++-	if (xutftowcs_path(wtemplate, template) < 0)
++-		return NULL;
++-	if (!_wmktemp(wtemplate))
++-		return NULL;
++-	if (xwcstoutf(template, wtemplate, strlen(template) + 1) < 0)
++-		return NULL;
++-	return template;
++-}
++-
++-int mkstemp(char *template)
++-{
++-	char *filename = mktemp(template);
++-	if (filename == NULL)
++-		return -1;
++-	return open(filename, O_RDWR | O_CREAT, 0600);
++-}
++-
++-int gettimeofday(struct timeval *tv, void *tz)
++-{
++-	FILETIME ft;
++-	long long hnsec;
++-
++-	GetSystemTimeAsFileTime(&ft);
++-	hnsec = filetime_to_hnsec(&ft);
++-	tv->tv_sec = hnsec / 10000000;
++-	tv->tv_usec = (hnsec % 10000000) / 10;
++-	return 0;
++-}
++-
++-int pipe(int filedes[2])
++-{
++-	HANDLE h[2];
++-
++-	/* this creates non-inheritable handles */
++-	if (!CreatePipe(&h[0], &h[1], NULL, 8192)) {
++-		errno = err_win_to_posix(GetLastError());
++-		return -1;
++-	}
++-	filedes[0] = _open_osfhandle(HCAST(int, h[0]), O_NOINHERIT);
++-	if (filedes[0] < 0) {
++-		CloseHandle(h[0]);
++-		CloseHandle(h[1]);
++-		return -1;
++-	}
++-	filedes[1] = _open_osfhandle(HCAST(int, h[1]), O_NOINHERIT);
++-	if (filedes[1] < 0) {
++-		close(filedes[0]);
++-		CloseHandle(h[1]);
++-		return -1;
++-	}
++-	return 0;
++-}
++-
++-struct tm *gmtime_r(const time_t *timep, struct tm *result)
++-{
++-	/* gmtime() in MSVCRT.DLL is thread-safe, but not reentrant */
++-	memcpy(result, gmtime(timep), sizeof(struct tm));
++-	return result;
++-}
++-
++-struct tm *localtime_r(const time_t *timep, struct tm *result)
++-{
++-	/* localtime() in MSVCRT.DLL is thread-safe, but not reentrant */
++-	memcpy(result, localtime(timep), sizeof(struct tm));
++-	return result;
++-}
++-
++ char *mingw_getcwd(char *pointer, int len)
++ {
++ 	wchar_t cwd[MAX_PATH], wpointer[MAX_PATH];
++@@ -1053,1719 +565,65 @@
++  * See http://msdn2.microsoft.com/en-us/library/17w5ykft(vs.71).aspx
++  * (Parsing C++ Command-Line Arguments)
++  */
++-static const char *quote_arg(const char *arg)
++-{
++-	/* count chars to quote */
++-	int len = 0, n = 0;
++-	int force_quotes = 0;
++-	char *q, *d;
++-	const char *p = arg;
++-	if (!*p) force_quotes = 1;
++-	while (*p) {
++-		if (isspace(*p) || *p == '*' || *p == '?' || *p == '{' || *p == '\'')
++-			force_quotes = 1;
++-		else if (*p == '"')
++-			n++;
++-		else if (*p == '\\') {
++-			int count = 0;
++-			while (*p == '\\') {
++-				count++;
++-				p++;
++-				len++;
++-			}
++-			if (*p == '"')
++-				n += count*2 + 1;
++-			continue;
++-		}
++-		len++;
++-		p++;
++-	}
++-	if (!force_quotes && n == 0)
++-		return arg;
++-
++-	/* insert \ where necessary */
++-	d = q = xmalloc(st_add3(len, n, 3));
++-	*d++ = '"';
++-	while (*arg) {
++-		if (*arg == '"')
++-			*d++ = '\\';
++-		else if (*arg == '\\') {
++-			int count = 0;
++-			while (*arg == '\\') {
++-				count++;
++-				*d++ = *arg++;
++-			}
++-			if (*arg == '"') {
++-				while (count-- > 0)
++-					*d++ = '\\';
++-				*d++ = '\\';
++-			}
++-		}
++-		*d++ = *arg++;
++-	}
++-	*d++ = '"';
++-	*d++ = 0;
++-	return q;
++-}
++-
++-static const char *parse_interpreter(const char *cmd)
++-{
++-	static char buf[100];
++-	char *p, *opt;
++-	int n, fd;
++ 
++-	/* don't even try a .exe */
++-	n = strlen(cmd);
++-	if (n >= 4 && !strcasecmp(cmd+n-4, ".exe"))
++-		return NULL;
++-
++-	fd = open(cmd, O_RDONLY);
++-	if (fd < 0)
++-		return NULL;
++-	n = read(fd, buf, sizeof(buf)-1);
++-	close(fd);
++-	if (n < 4)	/* at least '#!/x' and not error */
++-		return NULL;
++-
++-	if (buf[0] != '#' || buf[1] != '!')
++-		return NULL;
++-	buf[n] = '\0';
++-	p = buf + strcspn(buf, "\r\n");
++-	if (!*p)
++-		return NULL;
++-
++-	*p = '\0';
++-	if (!(p = strrchr(buf+2, '/')) && !(p = strrchr(buf+2, '\\')))
++-		return NULL;
++-	/* strip options */
++-	if ((opt = strchr(p+1, ' ')))
++-		*opt = '\0';
++-	return p+1;
++-}
++-
++-/*
++- * Splits the PATH into parts.
+++/* UTF8 versions of getenv and putenv (and unsetenv).
+++ * Internally, they use the CRT's stock UNICODE routines
+++ * to avoid data loss.
+++ *
+++ * Unlike the mingw version, we DO NOT directly write to
+++ * the CRT variables.  We also DO NOT try to manage/replace
+++ * the CRT storage.
++  */
++-static char **get_path_split(void)
+++char *msc_getenv(const char *name)
++ {
++-	char *p, **path, *envpath = mingw_getenv("PATH");
++-	int i, n = 0;
+++	int len_key, len_value;
+++	wchar_t *w_key;
+++	char *value;
+++	const wchar_t *w_value;
++ 
++-	if (!envpath || !*envpath)
+++	if (!name || !*name)
++ 		return NULL;
++ 
++-	envpath = xstrdup(envpath);
++-	p = envpath;
++-	while (p) {
++-		char *dir = p;
++-		p = strchr(p, ';');
++-		if (p) *p++ = '\0';
++-		if (*dir) {	/* not earlier, catches series of ; */
++-			++n;
++-		}
++-	}
++-	if (!n)
++-		return NULL;
+++	len_key = strlen(name) + 1;
+++	w_key = calloc(len_key, sizeof(wchar_t));
+++	xutftowcs(w_key, name, len_key);
+++	w_value = _wgetenv(w_key);
+++	free(w_key);
++ 
++-	ALLOC_ARRAY(path, n + 1);
++-	p = envpath;
++-	i = 0;
++-	do {
++-		if (*p)
++-			path[i++] = xstrdup(p);
++-		p = p+strlen(p)+1;
++-	} while (i < n);
++-	path[i] = NULL;
+++	if (!w_value)
+++		return NULL;
++ 
++-	free(envpath);
+++	len_value = wcslen(w_value) * 3 + 1;
+++	value = calloc(len_value, sizeof(char));
+++	xwcstoutf(value, w_value, len_value);
++ 
++-	return path;
+++	/* TODO Warning: We return "value" which is an allocated
+++	 * value and the caller is NOT expecting to have to free
+++	 * it, so we leak memory.
+++	 */
+++	return value;
++ }
++ 
++-static void free_path_split(char **path)
+++int msc_putenv(const char *name)
++ {
++-	char **p = path;
++-
++-	if (!path)
++-		return;
+++	int len, result;
+++	char *equal;
+++	wchar_t *wide;
++ 
++-	while (*p)
++-		free(*p++);
++-	free(path);
++-}
++-
++-/*
++- * exe_only means that we only want to detect .exe files, but not scripts
++- * (which do not have an extension)
++- */
++-static char *lookup_prog(const char *dir, const char *cmd, int isexe, int exe_only)
++-{
++-	char path[MAX_PATH];
++-	wchar_t wpath[MAX_PATH];
++-	snprintf(path, sizeof(path), "%s\\%s.exe", dir, cmd);
++-
++-	if (xutftowcs_path(wpath, path) < 0)
++-		return NULL;
++-
++-	if (!isexe && _waccess(wpath, F_OK) == 0)
++-		return xstrdup(path);
++-	wpath[wcslen(wpath)-4] = '\0';
++-	if ((!exe_only || isexe) && _waccess(wpath, F_OK) == 0) {
++-		if (!(GetFileAttributesW(wpath) & FILE_ATTRIBUTE_DIRECTORY)) {
++-			path[strlen(path)-4] = '\0';
++-			return xstrdup(path);
++-		}
++-	}
++-	return NULL;
++-}
++-
++-/*
++- * Determines the absolute path of cmd using the split path in path.
++- * If cmd contains a slash or backslash, no lookup is performed.
++- */
++-static char *path_lookup(const char *cmd, char **path, int exe_only)
++-{
++-	char *prog = NULL;
++-	int len = strlen(cmd);
++-	int isexe = len >= 4 && !strcasecmp(cmd+len-4, ".exe");
++-
++-	if (strchr(cmd, '/') || strchr(cmd, '\\'))
++-		prog = xstrdup(cmd);
++-
++-	while (!prog && *path)
++-		prog = lookup_prog(*path++, cmd, isexe, exe_only);
++-
++-	return prog;
++-}
++-
++-#if defined(_MSC_VER)
++-/*
++- * Build an environment block combining the inherited environment
++- * merged with the given list of settings.
++- *
++- * Values of the form "KEY=VALUE" in deltaenv override inherited values.
++- * Values of the form "KEY" in deltaenv delete inherited values.
++- *
++- * We return a contiguous block of UNICODE strings with a final trailing
++- * zero word.
++- */
++-static wchar_t *make_environment_block(char **deltaenv)
++-{
++-	/*
++-	 * The CRT (at least as of UCRT) secretly declares "_wenviron"
++-	 * as a function that returns a pointer to a mostly static table.
++-	 * Grab the pointer and cache it for the duration of our loop.
++-	 */
++-	extern wchar_t **_wenviron;
++-	const wchar_t **my_wenviron = _wenviron;
++-
++-	/*
++-	 * Internally, we create normal 'C' arrays of strings (pointing
++-	 * into the blocks) to help with some of the de-dup work.
++-	 */
++-	wchar_t **wptrs_ins = NULL;
++-	wchar_t **wptrs_del = NULL;
++-	wchar_t *wblock_ins = NULL;
++-	wchar_t *wblock_del = NULL;
++-	wchar_t *wend_ins;
++-	wchar_t *wend_del;
++-	wchar_t *w_ins;
++-	wchar_t *w_del;
++-
++-	int maxlen = 0;
++-	int nr_delta = 0;
++-	int nr_delta_ins = 0;
++-	int nr_delta_del = 0;
++-	int nr_wenv = 0;
++-	int j, k, k_ins, k_del;
++-
++-	/*
++-	 * Count the number of inserts and deletes in the deltaenv list.
++-	 * Allocate 'C' arrays for inserts and deletes.
++-	 * Also estimate the block size of our results.
++-	 */
++-	if (deltaenv && deltaenv[0] && *deltaenv[0]) {
++-		for (k = 0; deltaenv && deltaenv[k] && *deltaenv[k]; k++) {
++-			if (strchr(deltaenv[k], '=') == NULL)
++-				nr_delta_del++;
++-			else {
++-				maxlen += strlen(deltaenv[k]) + 1;
++-				nr_delta_ins++;
++-			}
++-		}
++-
++-		if (nr_delta_ins)
++-			wptrs_ins = (wchar_t**)calloc(nr_delta_ins + 1, sizeof(wchar_t*));
++-		if (nr_delta_del)
++-			wptrs_del = (wchar_t**)calloc(nr_delta_del + 1, sizeof(wchar_t*));
++-
++-		nr_delta = nr_delta_ins + nr_delta_del;
++-	}
++-	while (my_wenviron && my_wenviron[nr_wenv] && *my_wenviron[nr_wenv])
++-		maxlen += wcslen(my_wenviron[nr_wenv++]) + 1;
++-	maxlen++;
++-
++-	/*
++-	 * Allocate blocks for inserted and deleted items.
++-	 * The individual pointers in the 'C' arrays will point into here.
++-	 * We will use the wblock_ins as the final result.
++-	 */
++-	if (nr_delta_del) {
++-		wblock_del = (wchar_t*)calloc(maxlen, sizeof(wchar_t));
++-		wend_del = wblock_del + maxlen;
++-		w_del = wblock_del;
++-	}
++-	wblock_ins = (wchar_t*)calloc(maxlen, sizeof(wchar_t));
++-	wend_ins = wblock_ins + maxlen;
++-	w_ins = wblock_ins;
++-
++-	/*
++-	 * deltaenv values override inherited environment, so put them
++-	 * in the result list first (so that we can de-dup using the
++-	 * wide versions of them.
++-	 *
++-	 * Items in the deltaenv list that DO NOT contain an "=" are
++-	 * treated as unsetenv.
++-	 *
++-	 * I'm going assume that there are no duplicates in deltaenv itself.
++-	 */
++-	k_ins = 0;
++-	k_del = 0;
++-	for (k = 0; k < nr_delta; k++) {
++-		if (strchr(deltaenv[k], '=') == NULL) {
++-			wptrs_del[k_del++] = w_del;
++-			w_del += xutftowcs(w_del, deltaenv[k], (wend_del - w_del));
++-			*w_del++ = L'='; /* append '=' to make lookup easier in next step. */
++-			*w_del++ = 0;
++-		} else {
++-			wptrs_ins[k_ins++] = w_ins;
++-			w_ins += xutftowcs(w_ins, deltaenv[k], (wend_ins - w_ins)) + 1;
++-		}
++-	}
++-	assert(k_ins == nr_delta_ins);
++-	assert(k_del == nr_delta_del);
++-
++-	/*
++-	 * Walk the inherited environment and copy over unique, non-deleted
++-	 * ones into the result set. Note that we only have to de-dup WRT
++-	 * the values from deltaenv, because the inherited set should be unique.
++-	 */
++-	for (j = 0; j < nr_wenv; j++) {
++-		const wchar_t *v_j = my_wenviron[j];
++-		wchar_t *v_j_eq = wcschr(v_j, L'=');
++-		int len_j_eq, len_j;
++-
++-		if (!v_j_eq)
++-			continue; /* should not happen */
++-		len_j_eq = v_j_eq + 1 - v_j; /* length(v_j) including '=' */
++-
++-		/* lookup v_j in list of to-delete vars */
++-		for (k_del = 0; k_del < nr_delta_del; k_del++) {
++-			if (wcsnicmp(v_j, wptrs_del[k_del], len_j_eq) == 0)
++-				goto skip_it;
++-		}
++-
++-		/* lookup v_j in deltaenv portion of result set */
++-		for (k_ins = 0; k_ins < nr_delta_ins; k_ins++) {
++-			if (wcsnicmp(v_j, wptrs_ins[k_ins], len_j_eq) == 0)
++-				goto skip_it;
++-		}
++-
++-		/* item is unique, add it to results. */
++-		len_j = wcslen(v_j);
++-		memcpy(w_ins, v_j, len_j * sizeof(wchar_t));
++-		w_ins += len_j + 1;
++-
++-skip_it:
++-		;
++-	}
++-
++-	if (wptrs_ins)
++-		free(wptrs_ins);
++-	if (wptrs_del)
++-		free(wptrs_del);
++-	if (wblock_del)
++-		free(wblock_del);
++-
++-	return wblock_ins;
++-}
++-
++-#else
++-
++-static int do_putenv(char **env, const char *name, int size, int free_old);
++-
++-/* used number of elements of environ array, including terminating NULL */
++-static int environ_size = 0;
++-/* allocated size of environ array, in bytes */
++-static int environ_alloc = 0;
++-/* used as a indicator when the environment has been changed outside mingw.c */
++-static char **saved_environ;
++-
++-static void maybe_reinitialize_environ(void);
++-
++-/*
++- * Create environment block suitable for CreateProcess. Merges current
++- * process environment and the supplied environment changes.
++- */
++-static wchar_t *make_environment_block(char **deltaenv)
++-{
++-	wchar_t *wenvblk = NULL;
++-	char **tmpenv;
++-	int i = 0, size, wenvsz = 0, wenvpos = 0;
++-
++-	maybe_reinitialize_environ();
++-	size = environ_size;
++-
++-	while (deltaenv && deltaenv[i] && *deltaenv[i])
++-		i++;
++-
++-	/* copy the environment, leaving space for changes */
++-	ALLOC_ARRAY(tmpenv, size + i);
++-	memcpy(tmpenv, environ, size * sizeof(char*));
++-
++-	/* merge supplied environment changes into the temporary environment */
++-	for (i = 0; deltaenv && deltaenv[i] && *deltaenv[i]; i++)
++-		size = do_putenv(tmpenv, deltaenv[i], size, 0);
++-
++-	/* create environment block from temporary environment */
++-	for (i = 0; tmpenv[i] && *tmpenv[i]; i++) {
++-		size = 2 * strlen(tmpenv[i]) + 2; /* +2 for final \0 */
++-		ALLOC_GROW(wenvblk, (wenvpos + size) * sizeof(wchar_t), wenvsz);
++-		wenvpos += xutftowcs(&wenvblk[wenvpos], tmpenv[i], size) + 1;
++-	}
++-	/* add final \0 terminator */
++-	wenvblk[wenvpos] = 0;
++-	free(tmpenv);
++-	return wenvblk;
++-}
++-#endif
++-
++-static void do_unset_environment_variables(void)
++-{
++-	static int done;
++-	char *p = unset_environment_variables;
++-
++-	if (done || !p)
++-		return;
++-	done = 1;
++-
++-	for (;;) {
++-		char *comma = strchr(p, ',');
++-
++-		if (comma)
++-			*comma = '\0';
++-		unsetenv(p);
++-		if (!comma)
++-			break;
++-		p = comma + 1;
++-	}
++-}
++-
++-struct pinfo_t {
++-	struct pinfo_t *next;
++-	pid_t pid;
++-	HANDLE proc;
++-};
++-static struct pinfo_t *pinfo = NULL;
++-CRITICAL_SECTION pinfo_cs;
++-
++-static pid_t mingw_spawnve_fd(const char *cmd, const char **argv, char **deltaenv,
++-			      const char *dir,
++-			      int prepend_cmd, int fhin, int fhout, int fherr)
++-{
++-	STARTUPINFOW si;
++-	PROCESS_INFORMATION pi;
++-	struct strbuf args;
++-	wchar_t wcmd[MAX_PATH], wdir[MAX_PATH], *wargs, *wenvblk = NULL;
++-	unsigned flags = CREATE_UNICODE_ENVIRONMENT;
++-	BOOL ret;
++-	HANDLE cons;
++-
++-	do_unset_environment_variables();
++-
++-	/* Determine whether or not we are associated to a console */
++-	cons = CreateFile("CONOUT$", GENERIC_WRITE,
++-			FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
++-			FILE_ATTRIBUTE_NORMAL, NULL);
++-	if (cons == INVALID_HANDLE_VALUE) {
++-		/* There is no console associated with this process.
++-		 * Since the child is a console process, Windows
++-		 * would normally create a console window. But
++-		 * since we'll be redirecting std streams, we do
++-		 * not need the console.
++-		 * It is necessary to use DETACHED_PROCESS
++-		 * instead of CREATE_NO_WINDOW to make ssh
++-		 * recognize that it has no console.
++-		 */
++-		flags |= DETACHED_PROCESS;
++-	} else {
++-		/* There is already a console. If we specified
++-		 * DETACHED_PROCESS here, too, Windows would
++-		 * disassociate the child from the console.
++-		 * The same is true for CREATE_NO_WINDOW.
++-		 * Go figure!
++-		 */
++-		CloseHandle(cons);
++-	}
++-	memset(&si, 0, sizeof(si));
++-	si.cb = sizeof(si);
++-	si.dwFlags = STARTF_USESTDHANDLES;
++-	si.hStdInput = winansi_get_osfhandle(fhin);
++-	si.hStdOutput = winansi_get_osfhandle(fhout);
++-	si.hStdError = winansi_get_osfhandle(fherr);
++-
++-	/* executables and the current directory don't support long paths */
++-	if (*argv && !strcmp(cmd, *argv))
++-		wcmd[0] = L'\0';
++-	else if (xutftowcs_path(wcmd, cmd) < 0)
++-		return -1;
++-	if (dir && xutftowcs_path(wdir, dir) < 0)
++-		return -1;
++-
++-	/* concatenate argv, quoting args as we go */
++-	strbuf_init(&args, 0);
++-	if (prepend_cmd) {
++-		char *quoted = (char *)quote_arg(cmd);
++-		strbuf_addstr(&args, quoted);
++-		if (quoted != cmd)
++-			free(quoted);
++-	}
++-	for (; *argv; argv++) {
++-		char *quoted = (char *)quote_arg(*argv);
++-		if (*args.buf)
++-			strbuf_addch(&args, ' ');
++-		strbuf_addstr(&args, quoted);
++-		if (quoted != *argv)
++-			free(quoted);
++-	}
++-
++-	if (getenv("GIT_STRACE_COMMANDS")) {
++-		char **path = get_path_split();
++-		cmd = path_lookup("strace.exe", path, 1);
++-		if (!cmd)
++-			return error("strace not found!");
++-		if (xutftowcs_path(wcmd, cmd) < 0)
++-			return -1;
++-		strbuf_insert(&args, 0, "strace ", 7);
++-	}
++-
++-	ALLOC_ARRAY(wargs, st_add(st_mult(2, args.len), 1));
++-	xutftowcs(wargs, args.buf, 2 * args.len + 1);
++-	strbuf_release(&args);
++-
++-	wenvblk = make_environment_block(deltaenv);
++-
++-	memset(&pi, 0, sizeof(pi));
++-	ret = CreateProcessW(*wcmd ? wcmd : NULL, wargs, NULL, NULL, TRUE,
++-		flags, wenvblk, dir ? wdir : NULL, &si, &pi);
++-
++-	free(wenvblk);
++-	free(wargs);
++-
++-	if (!ret) {
++-		errno = ENOENT;
++-		return -1;
++-	}
++-	CloseHandle(pi.hThread);
++-
++-	/*
++-	 * The process ID is the human-readable identifier of the process
++-	 * that we want to present in log and error messages. The handle
++-	 * is not useful for this purpose. But we cannot close it, either,
++-	 * because it is not possible to turn a process ID into a process
++-	 * handle after the process terminated.
++-	 * Keep the handle in a list for waitpid.
++-	 */
++-	EnterCriticalSection(&pinfo_cs);
++-	{
++-		struct pinfo_t *info = xmalloc(sizeof(struct pinfo_t));
++-		info->pid = pi.dwProcessId;
++-		info->proc = pi.hProcess;
++-		info->next = pinfo;
++-		pinfo = info;
++-	}
++-	LeaveCriticalSection(&pinfo_cs);
++-
++-	return (pid_t)pi.dwProcessId;
++-}
++-
++-static pid_t mingw_spawnv(const char *cmd, const char **argv, int prepend_cmd)
++-{
++-	return mingw_spawnve_fd(cmd, argv, NULL, NULL, prepend_cmd, 0, 1, 2);
++-}
++-
++-pid_t mingw_spawnvpe(const char *cmd, const char **argv, char **deltaenv,
++-		     const char *dir,
++-		     int fhin, int fhout, int fherr)
++-{
++-	pid_t pid;
++-	char **path = get_path_split();
++-	char *prog = path_lookup(cmd, path, 0);
++-
++-	if (!prog) {
++-		errno = ENOENT;
++-		pid = -1;
++-	}
++-	else {
++-		const char *interpr = parse_interpreter(prog);
++-
++-		if (interpr) {
++-			const char *argv0 = argv[0];
++-			char *iprog = path_lookup(interpr, path, 1);
++-			argv[0] = prog;
++-			if (!iprog) {
++-				errno = ENOENT;
++-				pid = -1;
++-			}
++-			else {
++-				pid = mingw_spawnve_fd(iprog, argv, deltaenv, dir, 1,
++-						       fhin, fhout, fherr);
++-				free(iprog);
++-			}
++-			argv[0] = argv0;
++-		}
++-		else
++-			pid = mingw_spawnve_fd(prog, argv, deltaenv, dir, 0,
++-					       fhin, fhout, fherr);
++-		free(prog);
++-	}
++-	free_path_split(path);
++-	return pid;
++-}
++-
++-static int try_shell_exec(const char *cmd, char *const *argv)
++-{
++-	const char *interpr = parse_interpreter(cmd);
++-	char **path;
++-	char *prog;
++-	int pid = 0;
++-
++-	if (!interpr)
++-		return 0;
++-	path = get_path_split();
++-	prog = path_lookup(interpr, path, 1);
++-	if (prog) {
++-		int argc = 0;
++-#ifndef _MSC_VER
++-		const
++-#endif
++-		char **argv2;
++-		while (argv[argc]) argc++;
++-		ALLOC_ARRAY(argv2, argc + 1);
++-		argv2[0] = (char *)cmd;	/* full path to the script file */
++-		memcpy(&argv2[1], &argv[1], sizeof(*argv) * argc);
++-		pid = mingw_spawnv(prog, argv2, 1);
++-		if (pid >= 0) {
++-			int status;
++-			if (waitpid(pid, &status, 0) < 0)
++-				status = 255;
++-			exit(status);
++-		}
++-		pid = 1;	/* indicate that we tried but failed */
++-		free(prog);
++-		free(argv2);
++-	}
++-	free_path_split(path);
++-	return pid;
++-}
++-
++-int mingw_execv(const char *cmd, char *const *argv)
++-{
++-	/* check if git_command is a shell script */
++-	if (!try_shell_exec(cmd, argv)) {
++-		int pid, status;
++-
++-		pid = mingw_spawnv(cmd, (const char **)argv, 0);
++-		if (pid < 0)
++-			return -1;
++-		if (waitpid(pid, &status, 0) < 0)
++-			status = 255;
++-		exit(status);
++-	}
++-	return -1;
++-}
++-
++-int mingw_execvp(const char *cmd, char *const *argv)
++-{
++-	char **path = get_path_split();
++-	char *prog = path_lookup(cmd, path, 0);
++-
++-	if (prog) {
++-		mingw_execv(prog, argv);
++-		free(prog);
++-	} else
++-		errno = ENOENT;
++-
++-	free_path_split(path);
++-	return -1;
++-}
++-
++-int mingw_kill(pid_t pid, int sig)
++-{
++-	if (pid > 0 && sig == SIGTERM) {
++-		HANDLE h = OpenProcess(PROCESS_TERMINATE, FALSE, pid);
++-
++-		if (TerminateProcess(h, -1)) {
++-			CloseHandle(h);
++-			return 0;
++-		}
++-
++-		errno = err_win_to_posix(GetLastError());
++-		CloseHandle(h);
++-		return -1;
++-	} else if (pid > 0 && sig == 0) {
++-		HANDLE h = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
++-		if (h) {
++-			CloseHandle(h);
++-			return 0;
++-		}
++-	}
++-
++-	errno = EINVAL;
++-	return -1;
++-}
++-
++-#if defined(_MSC_VER)
++-
++-/* UTF8 versions of getenv and putenv (and unsetenv).
++- * Internally, they use the CRT's stock UNICODE routines
++- * to avoid data loss.
++- *
++- * Unlike the mingw version, we DO NOT directly write to
++- * the CRT variables.  We also DO NOT try to manage/replace
++- * the CRT storage.
++- */
++-char *msc_getenv(const char *name)
++-{
++-	int len_key, len_value;
++-	wchar_t *w_key;
++-	char *value;
++-	const wchar_t *w_value;
++-
++-	if (!name || !*name)
++-		return NULL;
++-
++-	len_key = strlen(name) + 1;
++-	w_key = calloc(len_key, sizeof(wchar_t));
++-	xutftowcs(w_key, name, len_key);
++-	w_value = _wgetenv(w_key);
++-	free(w_key);
++-
++-	if (!w_value)
++-		return NULL;
++-
++-	len_value = wcslen(w_value) * 3 + 1;
++-	value = calloc(len_value, sizeof(char));
++-	xwcstoutf(value, w_value, len_value);
++-
++-	/* TODO Warning: We return "value" which is an allocated
++-	 * value and the caller is NOT expecting to have to free
++-	 * it, so we leak memory.
++-	 */
++-	return value;
++-}
++-
++-int msc_putenv(const char *name)
++-{
++-	int len, result;
++-	char *equal;
++-	wchar_t *wide;
++-
++-	if (!name || !*name)
++-		return 0;
++-
++-	len = strlen(name);
++-	equal = strchr(name, '=');
++-	wide = calloc(len+1+!equal, sizeof(wchar_t));
++-	xutftowcs(wide, name, len+1);
++-	if (!equal)
++-		wcscat(wide, L"=");
++-
++-	result = _wputenv(wide);
++-
++-	free(wide);
++-	return result;
++-}
++-
++-#else
++-
++-/*
++- * Compare environment entries by key (i.e. stopping at '=' or '\0').
++- */
++-static int compareenv(const void *v1, const void *v2)
++-{
++-	const char *e1 = *(const char**)v1;
++-	const char *e2 = *(const char**)v2;
++-
++-	for (;;) {
++-		int c1 = *e1++;
++-		int c2 = *e2++;
++-		c1 = (c1 == '=') ? 0 : tolower(c1);
++-		c2 = (c2 == '=') ? 0 : tolower(c2);
++-		if (c1 > c2)
++-			return 1;
++-		if (c1 < c2)
++-			return -1;
++-		if (c1 == 0)
++-			return 0;
++-	}
++-}
++-
++-/*
++- * Functions implemented outside Git are able to modify the environment,
++- * too. For example, cURL's curl_global_init() function sets the CHARSET
++- * environment variable (at least in certain circumstances).
++- *
++- * Therefore we need to be *really* careful *not* to assume that we have
++- * sole control over the environment and reinitalize it when necessary.
++- */
++-static void maybe_reinitialize_environ(void)
++-{
++-	int i;
++-
++-	if (!saved_environ) {
++-		warning("MinGW environment not initialized yet");
++-		return;
++-	}
++-
++-	if (environ_size <= 0)
++-		return;
++-
++-	if (saved_environ != environ)
++-		/* We have *no* idea how much space was allocated outside */
++-		environ_alloc = 0;
++-	else if (!environ[environ_size - 1])
++-		return; /* still consistent */
++-
++-	for (i = 0; environ[i] && *environ[i]; i++)
++-		; /* continue counting */
++-	environ[i] = NULL;
++-	environ_size = i + 1;
++-
++-	/* sort environment for O(log n) getenv / putenv */
++-	qsort(environ, i, sizeof(char*), compareenv);
++-}
++-
++-static int bsearchenv(char **env, const char *name, size_t size)
++-{
++-	unsigned low = 0, high = size;
++-	while (low < high) {
++-		unsigned mid = low + ((high - low) >> 1);
++-		int cmp = compareenv(&env[mid], &name);
++-		if (cmp < 0)
++-			low = mid + 1;
++-		else if (cmp > 0)
++-			high = mid;
++-		else
++-			return mid;
++-	}
++-	return ~low; /* not found, return 1's complement of insert position */
++-}
++-
++-/*
++- * If name contains '=', then sets the variable, otherwise it unsets it
++- * Size includes the terminating NULL. Env must have room for size + 1 entries
++- * (in case of insert). Returns the new size. Optionally frees removed entries.
++- */
++-static int do_putenv(char **env, const char *name, int size, int free_old)
++-{
++-	int i = size <= 0 ? -1 : bsearchenv(env, name, size - 1);
++-
++-	/* optionally free removed / replaced entry */
++-	if (i >= 0 && free_old)
++-		free(env[i]);
++-
++-	if (strchr(name, '=')) {
++-		/* if new value ('key=value') is specified, insert or replace entry */
++-		if (i < 0) {
++-			i = ~i;
++-			memmove(&env[i + 1], &env[i], (size - i) * sizeof(char*));
++-			size++;
++-		}
++-		env[i] = (char*) name;
++-	} else if (i >= 0) {
++-		/* otherwise ('key') remove existing entry */
++-		size--;
++-		memmove(&env[i], &env[i + 1], (size - i) * sizeof(char*));
++-	}
++-	return size;
++-}
++-
++-char *mingw_getenv(const char *name)
++-{
++-	char *value;
++-	int pos;
++-
++-	if (environ_size <= 0)
++-		return NULL;
++-
++-	maybe_reinitialize_environ();
++-	pos = bsearchenv(environ, name, environ_size - 1);
++-
++-	if (pos < 0)
++-		return NULL;
++-	value = strchr(environ[pos], '=');
++-	return value ? &value[1] : NULL;
++-}
++-
++-int mingw_putenv(const char *namevalue)
++-{
++-	maybe_reinitialize_environ();
++-	ALLOC_GROW(environ, (environ_size + 1) * sizeof(char*), environ_alloc);
++-	saved_environ = environ;
++-	environ_size = do_putenv(environ, namevalue, environ_size, 1);
++-	return 0;
++-}
++-
++-#endif
++-
++-/*
++- * Note, this isn't a complete replacement for getaddrinfo. It assumes
++- * that service contains a numerical port, or that it is null. It
++- * does a simple search using gethostbyname, and returns one IPv4 host
++- * if one was found.
++- */
++-static int WSAAPI getaddrinfo_stub(const char *node, const char *service,
++-				   const struct addrinfo *hints,
++-				   struct addrinfo **res)
++-{
++-	struct hostent *h = NULL;
++-	struct addrinfo *ai;
++-	struct sockaddr_in *sin;
++-
++-	if (node) {
++-		h = gethostbyname(node);
++-		if (!h)
++-			return WSAGetLastError();
++-	}
++-
++-	ai = xmalloc(sizeof(struct addrinfo));
++-	*res = ai;
++-	ai->ai_flags = 0;
++-	ai->ai_family = AF_INET;
++-	ai->ai_socktype = hints ? hints->ai_socktype : 0;
++-	switch (ai->ai_socktype) {
++-	case SOCK_STREAM:
++-		ai->ai_protocol = IPPROTO_TCP;
++-		break;
++-	case SOCK_DGRAM:
++-		ai->ai_protocol = IPPROTO_UDP;
++-		break;
++-	default:
++-		ai->ai_protocol = 0;
++-		break;
++-	}
++-	ai->ai_addrlen = sizeof(struct sockaddr_in);
++-	if (hints && (hints->ai_flags & AI_CANONNAME))
++-		ai->ai_canonname = h ? xstrdup(h->h_name) : NULL;
++-	else
++-		ai->ai_canonname = NULL;
++-
++-	sin = xcalloc(1, ai->ai_addrlen);
++-	sin->sin_family = AF_INET;
++-	/* Note: getaddrinfo is supposed to allow service to be a string,
++-	 * which should be looked up using getservbyname. This is
++-	 * currently not implemented */
++-	if (service)
++-		sin->sin_port = htons(atoi(service));
++-	if (h)
++-		sin->sin_addr = *(struct in_addr *)h->h_addr;
++-	else if (hints && (hints->ai_flags & AI_PASSIVE))
++-		sin->sin_addr.s_addr = INADDR_ANY;
++-	else
++-		sin->sin_addr.s_addr = INADDR_LOOPBACK;
++-	ai->ai_addr = (struct sockaddr *)sin;
++-	ai->ai_next = NULL;
++-	return 0;
++-}
++-
++-static void WSAAPI freeaddrinfo_stub(struct addrinfo *res)
++-{
++-	free(res->ai_canonname);
++-	free(res->ai_addr);
++-	free(res);
++-}
++-
++-static int WSAAPI getnameinfo_stub(const struct sockaddr *sa, socklen_t salen,
++-				   char *host, DWORD hostlen,
++-				   char *serv, DWORD servlen, int flags)
++-{
++-	const struct sockaddr_in *sin = (const struct sockaddr_in *)sa;
++-	if (sa->sa_family != AF_INET)
++-		return EAI_FAMILY;
++-	if (!host && !serv)
++-		return EAI_NONAME;
++-
++-	if (host && hostlen > 0) {
++-		struct hostent *ent = NULL;
++-		if (!(flags & NI_NUMERICHOST))
++-			ent = gethostbyaddr((const char *)&sin->sin_addr,
++-					    sizeof(sin->sin_addr), AF_INET);
++-
++-		if (ent)
++-			snprintf(host, hostlen, "%s", ent->h_name);
++-		else if (flags & NI_NAMEREQD)
++-			return EAI_NONAME;
++-		else
++-			snprintf(host, hostlen, "%s", inet_ntoa(sin->sin_addr));
++-	}
++-
++-	if (serv && servlen > 0) {
++-		struct servent *ent = NULL;
++-		if (!(flags & NI_NUMERICSERV))
++-			ent = getservbyport(sin->sin_port,
++-					    flags & NI_DGRAM ? "udp" : "tcp");
++-
++-		if (ent)
++-			snprintf(serv, servlen, "%s", ent->s_name);
++-		else
++-			snprintf(serv, servlen, "%d", ntohs(sin->sin_port));
++-	}
++-
++-	return 0;
++-}
++-
++-static HMODULE ipv6_dll = NULL;
++-static void (WSAAPI *ipv6_freeaddrinfo)(struct addrinfo *res);
++-static int (WSAAPI *ipv6_getaddrinfo)(const char *node, const char *service,
++-				      const struct addrinfo *hints,
++-				      struct addrinfo **res);
++-static int (WSAAPI *ipv6_getnameinfo)(const struct sockaddr *sa, socklen_t salen,
++-				      char *host, DWORD hostlen,
++-				      char *serv, DWORD servlen, int flags);
++-/*
++- * gai_strerror is an inline function in the ws2tcpip.h header, so we
++- * don't need to try to load that one dynamically.
++- */
++-
++-static void socket_cleanup(void)
++-{
++-	WSACleanup();
++-	if (ipv6_dll)
++-		FreeLibrary(ipv6_dll);
++-	ipv6_dll = NULL;
++-	ipv6_freeaddrinfo = freeaddrinfo_stub;
++-	ipv6_getaddrinfo = getaddrinfo_stub;
++-	ipv6_getnameinfo = getnameinfo_stub;
++-}
++-
++-static void ensure_socket_initialization(void)
++-{
++-	WSADATA wsa;
++-	static int initialized = 0;
++-	const char *libraries[] = { "ws2_32.dll", "wship6.dll", NULL };
++-	const char **name;
++-
++-	if (initialized)
++-		return;
++-
++-	if (WSAStartup(MAKEWORD(2,2), &wsa))
++-		die("unable to initialize winsock subsystem, error %d",
++-			WSAGetLastError());
++-
++-	for (name = libraries; *name; name++) {
++-		ipv6_dll = LoadLibraryExA(*name, NULL,
++-					  LOAD_LIBRARY_SEARCH_SYSTEM32);
++-		if (!ipv6_dll)
++-			continue;
++-
++-		ipv6_freeaddrinfo = (void (WSAAPI *)(struct addrinfo *))
++-			GetProcAddress(ipv6_dll, "freeaddrinfo");
++-		ipv6_getaddrinfo = (int (WSAAPI *)(const char *, const char *,
++-						   const struct addrinfo *,
++-						   struct addrinfo **))
++-			GetProcAddress(ipv6_dll, "getaddrinfo");
++-		ipv6_getnameinfo = (int (WSAAPI *)(const struct sockaddr *,
++-						   socklen_t, char *, DWORD,
++-						   char *, DWORD, int))
++-			GetProcAddress(ipv6_dll, "getnameinfo");
++-		if (!ipv6_freeaddrinfo || !ipv6_getaddrinfo || !ipv6_getnameinfo) {
++-			FreeLibrary(ipv6_dll);
++-			ipv6_dll = NULL;
++-		} else
++-			break;
++-	}
++-	if (!ipv6_freeaddrinfo || !ipv6_getaddrinfo || !ipv6_getnameinfo) {
++-		ipv6_freeaddrinfo = freeaddrinfo_stub;
++-		ipv6_getaddrinfo = getaddrinfo_stub;
++-		ipv6_getnameinfo = getnameinfo_stub;
++-	}
++-
++-	atexit(socket_cleanup);
++-	initialized = 1;
++-}
++-
++-#undef gethostname
++-int mingw_gethostname(char *name, int namelen)
++-{
++-    ensure_socket_initialization();
++-    return gethostname(name, namelen);
++-}
++-
++-#undef gethostbyname
++-struct hostent *mingw_gethostbyname(const char *host)
++-{
++-	ensure_socket_initialization();
++-	return gethostbyname(host);
++-}
++-
++-void mingw_freeaddrinfo(struct addrinfo *res)
++-{
++-	ipv6_freeaddrinfo(res);
++-}
++-
++-int mingw_getaddrinfo(const char *node, const char *service,
++-		      const struct addrinfo *hints, struct addrinfo **res)
++-{
++-	ensure_socket_initialization();
++-	return ipv6_getaddrinfo(node, service, hints, res);
++-}
++-
++-int mingw_getnameinfo(const struct sockaddr *sa, socklen_t salen,
++-		      char *host, DWORD hostlen, char *serv, DWORD servlen,
++-		      int flags)
++-{
++-	ensure_socket_initialization();
++-	return ipv6_getnameinfo(sa, salen, host, hostlen, serv, servlen, flags);
++-}
++-
++-int mingw_socket(int domain, int type, int protocol)
++-{
++-	int sockfd;
++-	SOCKET s;
++-
++-	ensure_socket_initialization();
++-	s = WSASocket(domain, type, protocol, NULL, 0, 0);
++-	if (s == INVALID_SOCKET) {
++-		/*
++-		 * WSAGetLastError() values are regular BSD error codes
++-		 * biased by WSABASEERR.
++-		 * However, strerror() does not know about networking
++-		 * specific errors, which are values beginning at 38 or so.
++-		 * Therefore, we choose to leave the biased error code
++-		 * in errno so that _if_ someone looks up the code somewhere,
++-		 * then it is at least the number that are usually listed.
++-		 */
++-		errno = WSAGetLastError();
++-		return -1;
++-	}
++-	/* convert into a file descriptor */
++-	if ((sockfd = _open_osfhandle(s, O_RDWR|O_BINARY)) < 0) {
++-		closesocket(s);
++-		return error("unable to make a socket file descriptor: %s",
++-			strerror(errno));
++-	}
++-	return sockfd;
++-}
++-
++-#undef connect
++-int mingw_connect(int sockfd, struct sockaddr *sa, size_t sz)
++-{
++-	SOCKET s = (SOCKET)_get_osfhandle(sockfd);
++-	return connect(s, sa, sz);
++-}
++-
++-#undef bind
++-int mingw_bind(int sockfd, struct sockaddr *sa, size_t sz)
++-{
++-	SOCKET s = (SOCKET)_get_osfhandle(sockfd);
++-	return bind(s, sa, sz);
++-}
++-
++-#undef setsockopt
++-int mingw_setsockopt(int sockfd, int lvl, int optname, void *optval, int optlen)
++-{
++-	SOCKET s = (SOCKET)_get_osfhandle(sockfd);
++-	return setsockopt(s, lvl, optname, (const char*)optval, optlen);
++-}
++-
++-#undef shutdown
++-int mingw_shutdown(int sockfd, int how)
++-{
++-	SOCKET s = (SOCKET)_get_osfhandle(sockfd);
++-	return shutdown(s, how);
++-}
++-
++-#undef listen
++-int mingw_listen(int sockfd, int backlog)
++-{
++-	SOCKET s = (SOCKET)_get_osfhandle(sockfd);
++-	return listen(s, backlog);
++-}
++-
++-#undef accept
++-int mingw_accept(int sockfd1, struct sockaddr *sa, socklen_t *sz)
++-{
++-	int sockfd2;
++-
++-	SOCKET s1 = (SOCKET)_get_osfhandle(sockfd1);
++-	SOCKET s2 = accept(s1, sa, sz);
++-
++-	/* convert into a file descriptor */
++-	if ((sockfd2 = _open_osfhandle(s2, O_RDWR|O_BINARY)) < 0) {
++-		int err = errno;
++-		closesocket(s2);
++-		return error("unable to make a socket file descriptor: %s",
++-			strerror(err));
++-	}
++-	return sockfd2;
++-}
++-
++-#undef rename
++-int mingw_rename(const char *pold, const char *pnew)
++-{
++-	DWORD attrs = INVALID_FILE_ATTRIBUTES, gle;
++-	int tries = 0;
++-	wchar_t wpold[MAX_LONG_PATH], wpnew[MAX_LONG_PATH];
++-	if (xutftowcs_long_path(wpold, pold) < 0 ||
++-	    xutftowcs_long_path(wpnew, pnew) < 0)
++-		return -1;
++-
++-repeat:
++-	if (MoveFileExW(wpold, wpnew,
++-			MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED))
++-		return 0;
++-	gle = GetLastError();
++-
++-	/* revert file attributes on failure */
++-	if (attrs != INVALID_FILE_ATTRIBUTES)
++-		SetFileAttributesW(wpnew, attrs);
++-
++-	if (!is_file_in_use_error(gle)) {
++-		errno = err_win_to_posix(gle);
++-		return -1;
++-	}
++-
++-	if ((attrs = GetFileAttributesW(wpnew)) != INVALID_FILE_ATTRIBUTES) {
++-		if (attrs & FILE_ATTRIBUTE_DIRECTORY) {
++-			DWORD attrsold = GetFileAttributesW(wpold);
++-			if (attrsold == INVALID_FILE_ATTRIBUTES ||
++-			    !(attrsold & FILE_ATTRIBUTE_DIRECTORY))
++-				errno = EISDIR;
++-			else if (!_wrmdir(wpnew))
++-				goto repeat;
++-			return -1;
++-		}
++-		if ((attrs & FILE_ATTRIBUTE_READONLY) &&
++-		    SetFileAttributesW(wpnew, attrs & ~FILE_ATTRIBUTE_READONLY))
++-			goto repeat;
++-	}
++-	if (retry_ask_yes_no(&tries, "Rename from '%s' to '%s' failed. "
++-		       "Should I try again?", pold, pnew))
++-		goto repeat;
++-
++-	errno = EACCES;
++-	return -1;
++-}
++-
++-/*
++- * Note that this doesn't return the actual pagesize, but
++- * the allocation granularity. If future Windows specific git code
++- * needs the real getpagesize function, we need to find another solution.
++- */
++-int mingw_getpagesize(void)
++-{
++-	SYSTEM_INFO si;
++-	GetSystemInfo(&si);
++-	return si.dwAllocationGranularity;
++-}
++-
++-/* See https://msdn.microsoft.com/en-us/library/windows/desktop/ms724435.aspx */
++-enum EXTENDED_NAME_FORMAT {
++-	NameDisplay = 3,
++-	NameUserPrincipal = 8
++-};
++-
++-static char *get_extended_user_info(enum EXTENDED_NAME_FORMAT type)
++-{
++-	DECLARE_PROC_ADDR(secur32.dll, BOOL, GetUserNameExW,
++-		enum EXTENDED_NAME_FORMAT, LPCWSTR, PULONG);
++-	static wchar_t wbuffer[1024];
++-	DWORD len;
++-
++-	if (!INIT_PROC_ADDR(GetUserNameExW))
++-		return NULL;
++-
++-	len = ARRAY_SIZE(wbuffer);
++-	if (GetUserNameExW(type, wbuffer, &len)) {
++-		char *converted = xmalloc((len *= 3));
++-		if (xwcstoutf(converted, wbuffer, len) >= 0)
++-			return converted;
++-		free(converted);
++-	}
++-
++-	return NULL;
++-}
++-
++-char *mingw_query_user_email(void)
++-{
++-	return get_extended_user_info(NameUserPrincipal);
++-}
++-
++-struct passwd *getpwuid(int uid)
++-{
++-	static unsigned initialized;
++-	static char user_name[100];
++-	static struct passwd *p;
++-	DWORD len;
++-
++-	if (initialized)
++-		return p;
++-
++-	len = sizeof(user_name);
++-	if (!GetUserName(user_name, &len)) {
++-		initialized = 1;
++-		return NULL;
++-	}
++-
++-	p = xmalloc(sizeof(*p));
++-	p->pw_name = user_name;
++-	p->pw_gecos = get_extended_user_info(NameDisplay);
++-	if (!p->pw_gecos)
++-		p->pw_gecos = "unknown";
++-	p->pw_dir = NULL;
++-
++-	initialized = 1;
++-	return p;
++-}
++-
++-static HANDLE timer_event;
++-static HANDLE timer_thread;
++-static int timer_interval;
++-static int one_shot;
++-static sig_handler_t timer_fn = SIG_DFL, sigint_fn = SIG_DFL;
++-
++-/* The timer works like this:
++- * The thread, ticktack(), is a trivial routine that most of the time
++- * only waits to receive the signal to terminate. The main thread tells
++- * the thread to terminate by setting the timer_event to the signalled
++- * state.
++- * But ticktack() interrupts the wait state after the timer's interval
++- * length to call the signal handler.
++- */
++-
++-static unsigned __stdcall ticktack(void *dummy)
++-{
++-	while (WaitForSingleObject(timer_event, timer_interval) == WAIT_TIMEOUT) {
++-		mingw_raise(SIGALRM);
++-		if (one_shot)
++-			break;
++-	}
++-	return 0;
++-}
++-
++-static int start_timer_thread(void)
++-{
++-	timer_event = CreateEvent(NULL, FALSE, FALSE, NULL);
++-	if (timer_event) {
++-		timer_thread = (HANDLE) _beginthreadex(NULL, 0, ticktack, NULL, 0, NULL);
++-		if (!timer_thread )
++-			return errno = ENOMEM,
++-				error("cannot start timer thread");
++-	} else
++-		return errno = ENOMEM,
++-			error("cannot allocate resources for timer");
++-	return 0;
++-}
++-
++-static void stop_timer_thread(void)
++-{
++-	if (timer_event)
++-		SetEvent(timer_event);	/* tell thread to terminate */
++-	if (timer_thread) {
++-		int rc = WaitForSingleObject(timer_thread, 1000);
++-		if (rc == WAIT_TIMEOUT)
++-			error("timer thread did not terminate timely");
++-		else if (rc != WAIT_OBJECT_0)
++-			error("waiting for timer thread failed: %lu",
++-			      GetLastError());
++-		CloseHandle(timer_thread);
++-	}
++-	if (timer_event)
++-		CloseHandle(timer_event);
++-	timer_event = NULL;
++-	timer_thread = NULL;
++-}
++-
++-static inline int is_timeval_eq(const struct timeval *i1, const struct timeval *i2)
++-{
++-	return i1->tv_sec == i2->tv_sec && i1->tv_usec == i2->tv_usec;
++-}
++-
++-int setitimer(int type, struct itimerval *in, struct itimerval *out)
++-{
++-	static const struct timeval zero;
++-	static int atexit_done;
++-
++-	if (out != NULL)
++-		return errno = EINVAL,
++-			error("setitimer param 3 != NULL not implemented");
++-	if (!is_timeval_eq(&in->it_interval, &zero) &&
++-	    !is_timeval_eq(&in->it_interval, &in->it_value))
++-		return errno = EINVAL,
++-			error("setitimer: it_interval must be zero or eq it_value");
++-
++-	if (timer_thread)
++-		stop_timer_thread();
++-
++-	if (is_timeval_eq(&in->it_value, &zero) &&
++-	    is_timeval_eq(&in->it_interval, &zero))
++-		return 0;
++-
++-	timer_interval = in->it_value.tv_sec * 1000 + in->it_value.tv_usec / 1000;
++-	one_shot = is_timeval_eq(&in->it_interval, &zero);
++-	if (!atexit_done) {
++-		atexit(stop_timer_thread);
++-		atexit_done = 1;
++-	}
++-	return start_timer_thread();
++-}
++-
++-int sigaction(int sig, struct sigaction *in, struct sigaction *out)
++-{
++-	if (sig != SIGALRM)
++-		return errno = EINVAL,
++-			error("sigaction only implemented for SIGALRM");
++-	if (out != NULL)
++-		return errno = EINVAL,
++-			error("sigaction: param 3 != NULL not implemented");
++-
++-	timer_fn = in->sa_handler;
++-	return 0;
++-}
++-
++-#undef signal
++-sig_handler_t mingw_signal(int sig, sig_handler_t handler)
++-{
++-	sig_handler_t old;
++-
++-	switch (sig) {
++-	case SIGALRM:
++-		old = timer_fn;
++-		timer_fn = handler;
++-		break;
++-
++-	case SIGINT:
++-		old = sigint_fn;
++-		sigint_fn = handler;
++-		break;
++-
++-	default:
++-		return signal(sig, handler);
++-	}
++-
++-	return old;
++-}
++-
++-#undef raise
++-int mingw_raise(int sig)
++-{
++-	switch (sig) {
++-	case SIGALRM:
++-		if (timer_fn == SIG_DFL) {
++-			if (isatty(STDERR_FILENO))
++-				fputs("Alarm clock\n", stderr);
++-			exit(128 + SIGALRM);
++-		} else if (timer_fn != SIG_IGN)
++-			timer_fn(SIGALRM);
++-		return 0;
++-
++-	case SIGINT:
++-		if (sigint_fn == SIG_DFL)
++-			exit(128 + SIGINT);
++-		else if (sigint_fn != SIG_IGN)
++-			sigint_fn(SIGINT);
+++	if (!name || !*name)
++ 		return 0;
++ 
++-#if defined(_MSC_VER)
++-		/*
++-		 * <signal.h> in the CRT defines 8 signals as being
++-		 * supported on the platform.  Anything else causes
++-		 * an "Invalid signal or error" (which in DEBUG builds
++-		 * causes the Abort/Retry/Ignore dialog).  We by-pass
++-		 * the CRT for things we already know will fail.
++-		 */
++-		/*case SIGINT:*/
++-	case SIGILL:
++-	case SIGFPE:
++-	case SIGSEGV:
++-	case SIGTERM:
++-	case SIGBREAK:
++-	case SIGABRT:
++-	case SIGABRT_COMPAT:
++-		return raise(sig);
++-	default:
++-		errno = EINVAL;
++-		return -1;
++-
++-#else
++-
++-	default:
++-		return raise(sig);
++-
++-#endif
++-
++-	}
++-}
++-
++-int link(const char *oldpath, const char *newpath)
++-{
++-	DECLARE_PROC_ADDR(kernel32.dll, BOOL, CreateHardLinkW,
++-			LPCWSTR, LPCWSTR, LPSECURITY_ATTRIBUTES);
++-	wchar_t woldpath[MAX_LONG_PATH], wnewpath[MAX_LONG_PATH];
++-
++-	if (!INIT_PROC_ADDR(CreateHardLinkW))
++-		return -1;
++-
++-	if (xutftowcs_long_path(woldpath, oldpath) < 0 ||
++-	    xutftowcs_long_path(wnewpath, newpath) < 0)
++-		return -1;
++-
++-	if (!CreateHardLinkW(wnewpath, woldpath, NULL)) {
++-		errno = err_win_to_posix(GetLastError());
++-		return -1;
++-	}
++-	return 0;
++-}
++-
++-int symlink(const char *target, const char *link)
++-{
++-	wchar_t wtarget[MAX_LONG_PATH], wlink[MAX_LONG_PATH];
++-	int len;
++-
++-	/* fail if symlinks are disabled or API is not supported (WinXP) */
++-	if (!has_symlinks || !INIT_PROC_ADDR(CreateSymbolicLinkW)) {
++-		errno = ENOSYS;
++-		return -1;
++-	}
++-
++-	if ((len = xutftowcs_long_path(wtarget, target)) < 0
++-			|| xutftowcs_long_path(wlink, link) < 0)
++-		return -1;
++-
++-	/* convert target dir separators to backslashes */
++-	while (len--)
++-		if (wtarget[len] == '/')
++-			wtarget[len] = '\\';
++-
++-	/* create file symlink */
++-	if (!CreateSymbolicLinkW(wlink, wtarget, 0)) {
++-		errno = err_win_to_posix(GetLastError());
++-		return -1;
++-	}
++-
++-	/* convert to directory symlink if target exists */
++-	switch (process_phantom_symlink(wtarget, wlink)) {
++-	case PHANTOM_SYMLINK_RETRY:	{
++-		/* if target doesn't exist, add to phantom symlinks list */
++-		wchar_t wfullpath[MAX_LONG_PATH];
++-		struct phantom_symlink_info *psi;
++-
++-		/* convert to absolute path to be independent of cwd */
++-		len = GetFullPathNameW(wlink, MAX_LONG_PATH, wfullpath, NULL);
++-		if (!len || len >= MAX_LONG_PATH) {
++-			errno = err_win_to_posix(GetLastError());
++-			return -1;
++-		}
++-
++-		/* over-allocate and fill phantom_smlink_info structure */
++-		psi = xmalloc(sizeof(struct phantom_symlink_info)
++-			+ sizeof(wchar_t) * (len + wcslen(wtarget) + 2));
++-		psi->wlink = (wchar_t *)(psi + 1);
++-		wcscpy(psi->wlink, wfullpath);
++-		psi->wtarget = psi->wlink + len + 1;
++-		wcscpy(psi->wtarget, wtarget);
++-
++-		EnterCriticalSection(&phantom_symlinks_cs);
++-		psi->next = phantom_symlinks;
++-		phantom_symlinks = psi;
++-		LeaveCriticalSection(&phantom_symlinks_cs);
++-		break;
++-	}
++-	case PHANTOM_SYMLINK_DIRECTORY:
++-		/* if we created a dir symlink, process other phantom symlinks */
++-		process_phantom_symlinks();
++-		break;
++-	default:
++-		break;
++-	}
++-	return 0;
++-}
++-
++-#ifndef _WINNT_H
++-/*
++- * The REPARSE_DATA_BUFFER structure is defined in the Windows DDK (in
++- * ntifs.h) and in MSYS1's winnt.h (which defines _WINNT_H). So define
++- * it ourselves if we are on MSYS2 (whose winnt.h defines _WINNT_).
++- */
++-typedef struct _REPARSE_DATA_BUFFER {
++-	DWORD  ReparseTag;
++-	WORD   ReparseDataLength;
++-	WORD   Reserved;
++-#ifndef _MSC_VER
++-	_ANONYMOUS_UNION
++-#endif
++-	union {
++-		struct {
++-			WORD   SubstituteNameOffset;
++-			WORD   SubstituteNameLength;
++-			WORD   PrintNameOffset;
++-			WORD   PrintNameLength;
++-			ULONG  Flags;
++-			WCHAR PathBuffer[1];
++-		} SymbolicLinkReparseBuffer;
++-		struct {
++-			WORD   SubstituteNameOffset;
++-			WORD   SubstituteNameLength;
++-			WORD   PrintNameOffset;
++-			WORD   PrintNameLength;
++-			WCHAR PathBuffer[1];
++-		} MountPointReparseBuffer;
++-		struct {
++-			BYTE   DataBuffer[1];
++-		} GenericReparseBuffer;
++-	} DUMMYUNIONNAME;
++-} REPARSE_DATA_BUFFER, *PREPARSE_DATA_BUFFER;
++-#endif
++-
++-int readlink(const char *path, char *buf, size_t bufsiz)
++-{
++-	HANDLE handle;
++-	WCHAR wpath[MAX_LONG_PATH], *wbuf;
++-	REPARSE_DATA_BUFFER *b = alloca(MAXIMUM_REPARSE_DATA_BUFFER_SIZE);
++-	DWORD dummy;
++-	char tmpbuf[MAX_LONG_PATH];
++-	int len;
++-
++-	if (xutftowcs_long_path(wpath, path) < 0)
++-		return -1;
++-
++-	/* read reparse point data */
++-	handle = CreateFileW(wpath, 0,
++-			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
++-			OPEN_EXISTING,
++-			FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, NULL);
++-	if (handle == INVALID_HANDLE_VALUE) {
++-		errno = err_win_to_posix(GetLastError());
++-		return -1;
++-	}
++-	if (!DeviceIoControl(handle, FSCTL_GET_REPARSE_POINT, NULL, 0, b,
++-			MAXIMUM_REPARSE_DATA_BUFFER_SIZE, &dummy, NULL)) {
++-		errno = err_win_to_posix(GetLastError());
++-		CloseHandle(handle);
++-		return -1;
++-	}
++-	CloseHandle(handle);
++-
++-	/* get target path for symlinks or mount points (aka 'junctions') */
++-	switch (b->ReparseTag) {
++-	case IO_REPARSE_TAG_SYMLINK:
++-		wbuf = (WCHAR*) (((char*) b->SymbolicLinkReparseBuffer.PathBuffer)
++-				+ b->SymbolicLinkReparseBuffer.SubstituteNameOffset);
++-		*(WCHAR*) (((char*) wbuf)
++-				+ b->SymbolicLinkReparseBuffer.SubstituteNameLength) = 0;
++-		break;
++-	case IO_REPARSE_TAG_MOUNT_POINT:
++-		wbuf = (WCHAR*) (((char*) b->MountPointReparseBuffer.PathBuffer)
++-				+ b->MountPointReparseBuffer.SubstituteNameOffset);
++-		*(WCHAR*) (((char*) wbuf)
++-				+ b->MountPointReparseBuffer.SubstituteNameLength) = 0;
++-		break;
++-	default:
++-		errno = EINVAL;
++-		return -1;
++-	}
++-
++-	/*
++-	 * Adapt to strange readlink() API: Copy up to bufsiz *bytes*, potentially
++-	 * cutting off a UTF-8 sequence. Insufficient bufsize is *not* a failure
++-	 * condition. There is no conversion function that produces invalid UTF-8,
++-	 * so convert to a (hopefully large enough) temporary buffer, then memcpy
++-	 * the requested number of bytes (including '\0' for robustness).
++-	 */
++-	if ((len = xwcstoutf(tmpbuf, normalize_ntpath(wbuf), MAX_LONG_PATH)) < 0)
++-		return -1;
++-	memcpy(buf, tmpbuf, min(bufsiz, len + 1));
++-	return min(bufsiz, len);
++-}
++-
++-pid_t waitpid(pid_t pid, int *status, int options)
++-{
++-	HANDLE h = OpenProcess(SYNCHRONIZE | PROCESS_QUERY_INFORMATION,
++-	    FALSE, pid);
++-	if (!h) {
++-		errno = ECHILD;
++-		return -1;
++-	}
++-
++-	if (pid > 0 && options & WNOHANG) {
++-		if (WAIT_OBJECT_0 != WaitForSingleObject(h, 0)) {
++-			CloseHandle(h);
++-			return 0;
++-		}
++-		options &= ~WNOHANG;
++-	}
++-
++-	if (options == 0) {
++-		struct pinfo_t **ppinfo;
++-		if (WaitForSingleObject(h, INFINITE) != WAIT_OBJECT_0) {
++-			CloseHandle(h);
++-			return 0;
++-		}
++-
++-		if (status)
++-			GetExitCodeProcess(h, (LPDWORD)status);
++-
++-		EnterCriticalSection(&pinfo_cs);
++-
++-		ppinfo = &pinfo;
++-		while (*ppinfo) {
++-			struct pinfo_t *info = *ppinfo;
++-			if (info->pid == pid) {
++-				CloseHandle(info->proc);
++-				*ppinfo = info->next;
++-				free(info);
++-				break;
++-			}
++-			ppinfo = &info->next;
++-		}
++-
++-		LeaveCriticalSection(&pinfo_cs);
++-
++-		CloseHandle(h);
++-		return pid;
++-	}
++-	CloseHandle(h);
++-
++-	errno = EINVAL;
++-	return -1;
++-}
++-
++-int mingw_skip_dos_drive_prefix(char **path)
++-{
++-	int ret = has_dos_drive_prefix(*path);
++-	*path += ret;
++-	return ret;
++-}
++-
++-int mingw_offset_1st_component(const char *path)
++-{
++-	char *pos = (char *)path;
++-
++-	/* unc paths */
++-	if (!skip_dos_drive_prefix(&pos) &&
++-			is_dir_sep(pos[0]) && is_dir_sep(pos[1])) {
++-		/* skip server name */
++-		pos = strpbrk(pos + 2, "\\/");
++-		if (!pos)
++-			return 0; /* Error: malformed unc path */
+++	len = strlen(name);
+++	equal = strchr(name, '=');
+++	wide = calloc(len+1+!equal, sizeof(wchar_t));
+++	xutftowcs(wide, name, len+1);
+++	if (!equal)
+++		wcscat(wide, L"=");
++ 
++-		do {
++-			pos++;
++-		} while (*pos && !is_dir_sep(*pos));
++-	}
+++	result = _wputenv(wide);
++ 
++-	return pos + is_dir_sep(*pos) - path;
+++	free(wide);
+++	return result;
++ }
++ 
++ int xutftowcsn(wchar_t *wcs, const char *utfs, size_t wcslen, int utflen)
++@@ -2853,68 +711,6 @@
++ 	return -1;
++ }
++ 
++-static void setup_windows_environment(void)
++-{
++-	char *tmp = getenv("TMPDIR");
++-
++-	/* on Windows it is TMP and TEMP */
++-	if (!tmp) {
++-		if (!(tmp = getenv("TMP")))
++-			tmp = getenv("TEMP");
++-		if (tmp) {
++-			setenv("TMPDIR", tmp, 1);
++-			tmp = getenv("TMPDIR");
++-		}
++-	}
++-
++-	if (tmp) {
++-		/*
++-		 * Convert all dir separators to forward slashes,
++-		 * to help shell commands called from the Git
++-		 * executable (by not mistaking the dir separators
++-		 * for escape characters).
++-		 */
++-		convert_slashes(tmp);
++-	}
++-
++-	/* simulate TERM to enable auto-color (see color.c) */
++-	if (!getenv("TERM"))
++-		setenv("TERM", "cygwin", 1);
++-
++-	/* calculate HOME if not set */
++-	if (!getenv("HOME")) {
++-		/*
++-		 * try $HOMEDRIVE$HOMEPATH - the home share may be a network
++-		 * location, thus also check if the path exists (i.e. is not
++-		 * disconnected)
++-		 */
++-		if ((tmp = getenv("HOMEDRIVE"))) {
++-			struct strbuf buf = STRBUF_INIT;
++-			strbuf_addstr(&buf, tmp);
++-			if ((tmp = getenv("HOMEPATH"))) {
++-				strbuf_addstr(&buf, tmp);
++-				if (is_directory(buf.buf))
++-					setenv("HOME", buf.buf, 1);
++-				else
++-					tmp = NULL; /* use $USERPROFILE */
++-			}
++-			strbuf_release(&buf);
++-		}
++-		/* use $USERPROFILE if the home share is not available */
++-		if (!tmp && (tmp = getenv("USERPROFILE")))
++-			setenv("HOME", tmp, 1);
++-	}
++-
++-	/*
++-	 * Change 'core.symlinks' default to false, unless native symlinks are
++-	 * enabled in MSys2 (via 'MSYS=winsymlinks:nativestrict'). Thus we can
++-	 * run the test suite (which doesn't obey config files) with or without
++-	 * symlink support.
++-	 */
++-	if (!(tmp = getenv("MSYS")) || !strstr(tmp, "winsymlinks:nativestrict"))
++-		has_symlinks = 0;
++-}
++-
++ int handle_long_path(wchar_t *path, int len, int max_path, int expand)
++ {
++ 	int result;
++@@ -2976,304 +772,3 @@
++ 		return result + 4;
++ 	}
++ }
++-
++-#if !defined(_MSC_VER)
++-/*
++- * Disable MSVCRT command line wildcard expansion (__getmainargs called from
++- * mingw startup code, see init.c in mingw runtime).
++- */
++-int _CRT_glob = 0;
++-
++-typedef struct {
++-	int newmode;
++-} _startupinfo;
++-
++-extern int __wgetmainargs(int *argc, wchar_t ***argv, wchar_t ***env, int glob,
++-		_startupinfo *si);
++-#endif
++-
++-static NORETURN void die_startup(void)
++-{
++-	fputs("fatal: not enough memory for initialization", stderr);
++-	exit(128);
++-}
++-
++-static void *malloc_startup(size_t size)
++-{
++-	void *result = malloc(size);
++-	if (!result)
++-		die_startup();
++-	return result;
++-}
++-
++-static char *wcstoutfdup_startup(char *buffer, const wchar_t *wcs, size_t len)
++-{
++-	len = xwcstoutf(buffer, wcs, len) + 1;
++-	return memcpy(malloc_startup(len), buffer, len);
++-}
++-
++-static void maybe_redirect_std_handle(const wchar_t *key, DWORD std_id, int fd,
++-				      DWORD desired_access, DWORD flags)
++-{
++-	DWORD create_flag = fd ? OPEN_ALWAYS : OPEN_EXISTING;
++-	wchar_t buf[MAX_LONG_PATH];
++-	DWORD max = ARRAY_SIZE(buf);
++-	HANDLE handle;
++-	DWORD ret = GetEnvironmentVariableW(key, buf, max);
++-
++-	if (!ret || ret >= max)
++-		return;
++-
++-	/* make sure this does not leak into child processes */
++-	SetEnvironmentVariableW(key, NULL);
++-	if (!wcscmp(buf, L"off")) {
++-		close(fd);
++-		handle = GetStdHandle(std_id);
++-		if (handle != INVALID_HANDLE_VALUE)
++-			CloseHandle(handle);
++-		return;
++-	}
++-	if (std_id == STD_ERROR_HANDLE && !wcscmp(buf, L"2>&1")) {
++-		handle = GetStdHandle(STD_OUTPUT_HANDLE);
++-		if (handle == INVALID_HANDLE_VALUE) {
++-			close(fd);
++-			handle = GetStdHandle(std_id);
++-			if (handle != INVALID_HANDLE_VALUE)
++-				CloseHandle(handle);
++-		} else {
++-			int new_fd = _open_osfhandle((intptr_t)handle, O_BINARY);
++-			SetStdHandle(std_id, handle);
++-			dup2(new_fd, fd);
++-			/* do *not* close the new_fd: that would close stdout */
++-		}
++-		return;
++-	}
++-	handle = CreateFileW(buf, desired_access, 0, NULL, create_flag,
++-			     flags, NULL);
++-	if (handle != INVALID_HANDLE_VALUE) {
++-		int new_fd = _open_osfhandle((intptr_t)handle, O_BINARY);
++-		SetStdHandle(std_id, handle);
++-		dup2(new_fd, fd);
++-		close(new_fd);
++-	}
++-}
++-
++-static void maybe_redirect_std_handles(void)
++-{
++-	maybe_redirect_std_handle(L"GIT_REDIRECT_STDIN", STD_INPUT_HANDLE, 0,
++-				  GENERIC_READ, FILE_ATTRIBUTE_NORMAL);
++-	maybe_redirect_std_handle(L"GIT_REDIRECT_STDOUT", STD_OUTPUT_HANDLE, 1,
++-				  GENERIC_WRITE, FILE_ATTRIBUTE_NORMAL);
++-	maybe_redirect_std_handle(L"GIT_REDIRECT_STDERR", STD_ERROR_HANDLE, 2,
++-				  GENERIC_WRITE, FILE_FLAG_NO_BUFFERING);
++-}
++-
++-#if defined(_MSC_VER)
++-
++-#ifdef _DEBUG
++-#include <crtdbg.h>
++-#endif
++-
++-/*
++- * This routine sits between wmain() and "main" in git.exe.
++- * We receive UNICODE (wchar_t) values for argv and env.
++- *
++- * To be more compatible with the core git code, we convert
++- * argv into UTF8 and pass them directly to the "main" routine.
++- *
++- * We don't bother converting the given UNICODE env vector,
++- * but rather leave them in the CRT.  We replaced the various
++- * getenv/putenv routines to pull them directly from the CRT.
++- *
++- * This is unlike the MINGW version:
++- * [] It does the UNICODE-2-UTF8 conversion on both sets and
++- *    stuffs the values back into the CRT using exported symbols.
++- * [] It also maintains a private copy of the environment and
++- *    tries to track external changes to it.
++- */
++-int msc_startup(int argc, wchar_t **w_argv, wchar_t **w_env)
++-{
++-	char **my_utf8_argv = NULL, **save = NULL;
++-	char *buffer = NULL;
++-	int maxlen;
++-	int k, exit_status;
++-
++-#ifdef _DEBUG
++-	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_DEBUG);
++-#endif
++-
++-#ifdef USE_MSVC_CRTDBG
++-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
++-#endif
++-
++-	maybe_redirect_std_handles();
++-
++-	/* determine size of argv conversion buffer */
++-	maxlen = wcslen(_wpgmptr);
++-	for (k = 1; k < argc; k++)
++-		maxlen = max(maxlen, wcslen(w_argv[k]));
++-
++-	/* allocate buffer (wchar_t encodes to max 3 UTF-8 bytes) */
++-	maxlen = 3 * maxlen + 1;
++-	buffer = malloc_startup(maxlen);
++-
++-	/*
++-	 * Create a UTF-8 version of w_argv. Also create a "save" copy
++-	 * to remember all the string pointers because parse_options()
++-	 * will remove claimed items from the argv that we pass down.
++-	 */
++-	ALLOC_ARRAY(my_utf8_argv, argc + 1);
++-	ALLOC_ARRAY(save, argc + 1);
++-	save[0] = my_utf8_argv[0] = wcstoutfdup_startup(buffer, _wpgmptr, maxlen);
++-	for (k = 1; k < argc; k++)
++-		save[k] = my_utf8_argv[k] = wcstoutfdup_startup(buffer, w_argv[k], maxlen);
++-	save[k] = my_utf8_argv[k] = NULL;
++-
++-	free(buffer);
++-
++-	/* fix Windows specific environment settings */
++-	setup_windows_environment();
++-
++-	unset_environment_variables = xstrdup("PERL5LIB");
++-
++-	/* initialize critical section for waitpid pinfo_t list */
++-	InitializeCriticalSection(&pinfo_cs);
++-	InitializeCriticalSection(&phantom_symlinks_cs);
++-
++-	/* set up default file mode and file modes for stdin/out/err */
++-	_fmode = _O_BINARY;
++-	_setmode(_fileno(stdin), _O_BINARY);
++-	_setmode(_fileno(stdout), _O_BINARY);
++-	_setmode(_fileno(stderr), _O_BINARY);
++-
++-	/* initialize Unicode console */
++-	winansi_init();
++-
++-	/* init length of current directory for handle_long_path */
++-	current_directory_len = GetCurrentDirectoryW(0, NULL);
++-
++-	/* invoke the real main() using our utf8 version of argv. */
++-	exit_status = msc_main(argc, my_utf8_argv);
++-
++-	for (k = 0; k < argc; k++)
++-		free(save[k]);
++-	free(save);
++-	free(my_utf8_argv);
++-
++-	return exit_status;
++-}
++-
++-#else
++-
++-void mingw_startup(void)
++-{
++-	int i, maxlen, argc;
++-	char *buffer;
++-	wchar_t **wenv, **wargv;
++-	_startupinfo si;
++-
++-	maybe_redirect_std_handles();
++-
++-	/* get wide char arguments and environment */
++-	si.newmode = 0;
++-	if (__wgetmainargs(&argc, &wargv, &wenv, _CRT_glob, &si) < 0)
++-		die_startup();
++-
++-	/* determine size of argv and environ conversion buffer */
++-	maxlen = wcslen(_wpgmptr);
++-	for (i = 1; i < argc; i++)
++-		maxlen = max(maxlen, wcslen(wargv[i]));
++-	for (i = 0; wenv[i]; i++)
++-		maxlen = max(maxlen, wcslen(wenv[i]));
++-
++-	/*
++-	 * nedmalloc can't free CRT memory, allocate resizable environment
++-	 * list. Note that xmalloc / xmemdupz etc. call getenv, so we cannot
++-	 * use it while initializing the environment itself.
++-	 */
++-	environ_size = i + 1;
++-	environ_alloc = alloc_nr(environ_size * sizeof(char*));
++-	saved_environ = environ = malloc_startup(environ_alloc);
++-
++-	/* allocate buffer (wchar_t encodes to max 3 UTF-8 bytes) */
++-	maxlen = 3 * maxlen + 1;
++-	buffer = malloc_startup(maxlen);
++-
++-	/* convert command line arguments and environment to UTF-8 */
++-	__argv[0] = wcstoutfdup_startup(buffer, _wpgmptr, maxlen);
++-	for (i = 1; i < argc; i++)
++-		__argv[i] = wcstoutfdup_startup(buffer, wargv[i], maxlen);
++-	for (i = 0; wenv[i]; i++)
++-		environ[i] = wcstoutfdup_startup(buffer, wenv[i], maxlen);
++-	environ[i] = NULL;
++-	free(buffer);
++-
++-	/* sort environment for O(log n) getenv / putenv */
++-	qsort(environ, i, sizeof(char*), compareenv);
++-
++-	/* fix Windows specific environment settings */
++-	setup_windows_environment();
++-
++-	unset_environment_variables = xstrdup("PERL5LIB");
++-
++-	/*
++-	 * Avoid a segmentation fault when cURL tries to set the CHARSET
++-	 * variable and putenv() barfs at our nedmalloc'ed environment.
++-	 */
++-	if (!getenv("CHARSET")) {
++-		struct strbuf buf = STRBUF_INIT;
++-		strbuf_addf(&buf, "cp%u", GetACP());
++-		setenv("CHARSET", buf.buf, 1);
++-		strbuf_release(&buf);
++-	}
++-
++-	/* initialize critical section for waitpid pinfo_t list */
++-	InitializeCriticalSection(&pinfo_cs);
++-	InitializeCriticalSection(&phantom_symlinks_cs);
++-
++-	/* set up default file mode and file modes for stdin/out/err */
++-	_fmode = _O_BINARY;
++-	_setmode(_fileno(stdin), _O_BINARY);
++-	_setmode(_fileno(stdout), _O_BINARY);
++-	_setmode(_fileno(stderr), _O_BINARY);
++-
++-	/* initialize Unicode console */
++-	winansi_init();
++-
++-	/* init length of current directory for handle_long_path */
++-	current_directory_len = GetCurrentDirectoryW(0, NULL);
++-}
++-
++-#endif
++-
++-int uname(struct utsname *buf)
++-{
++-	unsigned v = (unsigned)GetVersion();
++-	memset(buf, 0, sizeof(*buf));
++-	xsnprintf(buf->sysname, sizeof(buf->sysname), "Windows");
++-	xsnprintf(buf->release, sizeof(buf->release),
++-		 "%u.%u", v & 0xff, (v >> 8) & 0xff);
++-	/* assuming NT variants only.. */
++-	xsnprintf(buf->version, sizeof(buf->version),
++-		  "%u", (v >> 16) & 0x7fff);
++-	return 0;
++-}
++-
++-const char *program_data_config(void)
++-{
++-	static struct strbuf path = STRBUF_INIT;
++-	static unsigned initialized;
++-
++-	if (!initialized) {
++-		const char *env = mingw_getenv("PROGRAMDATA");
++-		const char *extra = "";
++-		if (!env) {
++-			env = mingw_getenv("ALLUSERSPROFILE");
++-			extra = "/Application Data";
++-		}
++-		if (env)
++-			strbuf_addf(&path, "%s%s/Git/config", env, extra);
++-		initialized = 1;
++-	}
++-	return *path.buf ? path.buf : NULL;
++-}
++diff -ru git-9e46438a63c7991eb394fb752fa0ccf2eb63e248/compat/mingw.h Windows/compat/mingw.h
++--- git-9e46438a63c7991eb394fb752fa0ccf2eb63e248/compat/mingw.h	2017-01-11 22:25:01.000000000 +0100
+++++ Windows/compat/mingw.h	2017-01-26 23:04:28.205875001 +0100
++@@ -11,22 +11,13 @@
++ #undef _POSIX_THREAD_SAFE_FUNCTIONS
++ #endif
++ 
++-extern int core_fscache;
++ extern int core_long_paths;
++ 
++-extern int mingw_core_config(const char *var, const char *value);
++-#define platform_core_config mingw_core_config
++-
++ /*
++  * things that are not available in header files
++  */
++ 
++ typedef int uid_t;
++-typedef int socklen_t;
++-#ifndef __MINGW64_VERSION_MAJOR
++-typedef int pid_t;
++-#define hstrerror strerror
++-#endif
++ 
++ #define S_IFLNK    0120000 /* Symbolic link */
++ #define S_ISLNK(x) (((x) & S_IFMT) == S_IFLNK)
++@@ -87,31 +78,6 @@
++ #define ENOTSOCK WSAENOTSOCK
++ #endif
++ 
++-struct passwd {
++-	char *pw_name;
++-	char *pw_gecos;
++-	char *pw_dir;
++-};
++-
++-typedef void (__cdecl *sig_handler_t)(int);
++-struct sigaction {
++-	sig_handler_t sa_handler;
++-	unsigned sa_flags;
++-};
++-#define SA_RESTART 0
++-
++-struct itimerval {
++-	struct timeval it_value, it_interval;
++-};
++-#define ITIMER_REAL 0
++-
++-struct utsname {
++-	char sysname[16];
++-	char nodename[1];
++-	char release[16];
++-	char version[16];
++-	char machine[1];
++-};
++ 
++ /*
++  * sanitize preprocessor namespace polluted by Windows headers defining
++@@ -123,125 +89,23 @@
++  * trivial stubs
++  */
++ 
++-static inline int fchmod(int fildes, mode_t mode)
++-{ errno = ENOSYS; return -1; }
++-#ifndef __MINGW64_VERSION_MAJOR
++-static inline pid_t fork(void)
++-{ errno = ENOSYS; return -1; }
++-#endif
++-static inline unsigned int alarm(unsigned int seconds)
++-{ return 0; }
++-static inline int fsync(int fd)
++-{ return _commit(fd); }
++-static inline void sync(void)
++-{}
++-static inline uid_t getuid(void)
++-{ return 1; }
++-static inline struct passwd *getpwnam(const char *name)
++-{ return NULL; }
++-static inline int fcntl(int fd, int cmd, ...)
++-{
++-	if (cmd == F_GETFD || cmd == F_SETFD)
++-		return 0;
++-	errno = EINVAL;
++-	return -1;
++-}
++-/* bash cannot reliably detect negative return codes as failure */
++-#define exit(code) exit((code) & 0xff)
++-#define sigemptyset(x) (void)0
++-static inline int sigaddset(sigset_t *set, int signum)
++-{ return 0; }
++-#define SIG_BLOCK 0
++-#define SIG_UNBLOCK 0
++-static inline int sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
++-{ return 0; }
++-static inline pid_t getppid(void)
++-{ return 1; }
++-static inline pid_t getpgid(pid_t pid)
++-{ return pid == 0 ? getpid() : pid; }
++-static inline pid_t tcgetpgrp(int fd)
++-{ return getpid(); }
++-
++-/*
++- * simple adaptors
++- */
++-
++ int mingw_mkdir(const char *path, int mode);
++-#define mkdir mingw_mkdir
++-
++-#define WNOHANG 1
++-pid_t waitpid(pid_t pid, int *status, int options);
++-
++-#define kill mingw_kill
++-int mingw_kill(pid_t pid, int sig);
++-
++-#ifndef NO_OPENSSL
++-#include <openssl/ssl.h>
++-static inline int mingw_SSL_set_fd(SSL *ssl, int fd)
++-{
++-	return SSL_set_fd(ssl, _get_osfhandle(fd));
++-}
++-#define SSL_set_fd mingw_SSL_set_fd
++-
++-static inline int mingw_SSL_set_rfd(SSL *ssl, int fd)
++-{
++-	return SSL_set_rfd(ssl, _get_osfhandle(fd));
++-}
++-#define SSL_set_rfd mingw_SSL_set_rfd
++-
++-static inline int mingw_SSL_set_wfd(SSL *ssl, int fd)
++-{
++-	return SSL_set_wfd(ssl, _get_osfhandle(fd));
++-}
++-#define SSL_set_wfd mingw_SSL_set_wfd
++-#endif
++-
++-/*
++- * implementations of missing functions
++- */
++-
++-int pipe(int filedes[2]);
++-unsigned int sleep (unsigned int seconds);
++-int mkstemp(char *template);
++-int gettimeofday(struct timeval *tv, void *tz);
++-#ifndef __MINGW64_VERSION_MAJOR
++-struct tm *gmtime_r(const time_t *timep, struct tm *result);
++-struct tm *localtime_r(const time_t *timep, struct tm *result);
++-#endif
++-int getpagesize(void);	/* defined in MinGW's libgcc.a */
++-struct passwd *getpwuid(uid_t uid);
++-int setitimer(int type, struct itimerval *in, struct itimerval *out);
++-int sigaction(int sig, struct sigaction *in, struct sigaction *out);
++-int link(const char *oldpath, const char *newpath);
++-int uname(struct utsname *buf);
++-int symlink(const char *target, const char *link);
++-int readlink(const char *path, char *buf, size_t bufsiz);
+++//#define mkdir mingw_mkdir
++ 
++ /*
++  * replacements of existing functions
++  */
++ 
++-int mingw_unlink(const char *pathname);
++-#define unlink mingw_unlink
++ 
++ int mingw_rmdir(const char *path);
++-#define rmdir mingw_rmdir
+++//#define rmdir mingw_rmdir
++ 
++ int mingw_open (const char *filename, int oflags, ...);
++ #define open mingw_open
++ 
++-int mingw_fgetc(FILE *stream);
++-#define fgetc mingw_fgetc
++-
++ FILE *mingw_fopen (const char *filename, const char *otype);
++ #define fopen mingw_fopen
++ 
++-FILE *mingw_freopen (const char *filename, const char *otype, FILE *stream);
++-#define freopen mingw_freopen
++-
++-int mingw_fflush(FILE *stream);
++-#define fflush mingw_fflush
++-
++ ssize_t mingw_write(int fd, const void *buf, size_t len);
++ #define write mingw_write
++ 
++@@ -249,23 +113,12 @@
++ #undef access
++ #define access mingw_access
++ 
++-int mingw_chdir(const char *dirname);
++-#define chdir mingw_chdir
++-
++ int mingw_chmod(const char *filename, int mode);
++ #define chmod mingw_chmod
++ 
++-char *mingw_mktemp(char *template);
++-#define mktemp mingw_mktemp
++-
++ char *mingw_getcwd(char *pointer, int len);
++ #define getcwd mingw_getcwd
++ 
++-#ifdef NO_UNSETENV
++-#error "NO_UNSETENV is incompatible with the MinGW startup code!"
++-#endif
++-
++-#if defined(_MSC_VER)
++ /*
++  * We bind *env() routines (even the mingw_ ones) to private msc_ versions.
++  * These talk to the CRT using UNICODE/wchar_t, but maintain the original
++@@ -298,82 +151,6 @@
++ char *msc_getenv(const char *name);
++ int   msc_putenv(const char *name);
++ 
++-#ifndef NO_SETENV
++-#error "NO_SETENV is required for MSC startup code!"
++-#endif
++-
++-#else
++-
++-char *mingw_getenv(const char *name);
++-#define getenv mingw_getenv
++-int mingw_putenv(const char *namevalue);
++-#define putenv mingw_putenv
++-#define unsetenv mingw_putenv
++-
++-#endif
++-
++-int mingw_gethostname(char *host, int namelen);
++-#define gethostname mingw_gethostname
++-
++-struct hostent *mingw_gethostbyname(const char *host);
++-#define gethostbyname mingw_gethostbyname
++-
++-void mingw_freeaddrinfo(struct addrinfo *res);
++-#define freeaddrinfo mingw_freeaddrinfo
++-
++-int mingw_getaddrinfo(const char *node, const char *service,
++-		      const struct addrinfo *hints, struct addrinfo **res);
++-#define getaddrinfo mingw_getaddrinfo
++-
++-int mingw_getnameinfo(const struct sockaddr *sa, socklen_t salen,
++-		      char *host, DWORD hostlen, char *serv, DWORD servlen,
++-		      int flags);
++-#define getnameinfo mingw_getnameinfo
++-
++-int mingw_socket(int domain, int type, int protocol);
++-#define socket mingw_socket
++-
++-int mingw_connect(int sockfd, struct sockaddr *sa, size_t sz);
++-#define connect mingw_connect
++-
++-int mingw_bind(int sockfd, struct sockaddr *sa, size_t sz);
++-#define bind mingw_bind
++-
++-int mingw_setsockopt(int sockfd, int lvl, int optname, void *optval, int optlen);
++-#define setsockopt mingw_setsockopt
++-
++-int mingw_shutdown(int sockfd, int how);
++-#define shutdown mingw_shutdown
++-
++-int mingw_listen(int sockfd, int backlog);
++-#define listen mingw_listen
++-
++-int mingw_accept(int sockfd, struct sockaddr *sa, socklen_t *sz);
++-#define accept mingw_accept
++-
++-int mingw_rename(const char*, const char*);
++-#define rename mingw_rename
++-
++-#if defined(USE_WIN32_MMAP) || defined(_MSC_VER)
++-int mingw_getpagesize(void);
++-#define getpagesize mingw_getpagesize
++-#endif
++-
++-struct rlimit {
++-	unsigned int rlim_cur;
++-};
++-#define RLIMIT_NOFILE 0
++-
++-static inline int getrlimit(int resource, struct rlimit *rlp)
++-{
++-	if (resource != RLIMIT_NOFILE) {
++-		errno = EINVAL;
++-		return -1;
++-	}
++-
++-	rlp->rlim_cur = 2048;
++-	return 0;
++-}
++ 
++ /*
++  * The unit of FILETIME is 100-nanoseconds since January 1, 1601, UTC.
++@@ -450,34 +227,6 @@
++ 		   const char *format, const struct tm *tm);
++ #define strftime mingw_strftime
++ 
++-pid_t mingw_spawnvpe(const char *cmd, const char **argv, char **env,
++-		     const char *dir,
++-		     int fhin, int fhout, int fherr);
++-int mingw_execvp(const char *cmd, char *const *argv);
++-#define execvp mingw_execvp
++-int mingw_execv(const char *cmd, char *const *argv);
++-#define execv mingw_execv
++-
++-static inline unsigned int git_ntohl(unsigned int x)
++-{ return (unsigned int)ntohl(x); }
++-#define ntohl git_ntohl
++-
++-sig_handler_t mingw_signal(int sig, sig_handler_t handler);
++-#define signal mingw_signal
++-
++-int mingw_raise(int sig);
++-#define raise mingw_raise
++-
++-/*
++- * ANSI emulation wrappers
++- */
++-
++-int winansi_isatty(int fd);
++-#define isatty winansi_isatty
++-
++-void winansi_init(void);
++-HANDLE winansi_get_osfhandle(int fd);
++-
++ /*
++  * git specific compatibility
++  */
++@@ -506,10 +255,6 @@
++ int mingw_offset_1st_component(const char *path);
++ #define offset_1st_component mingw_offset_1st_component
++ #define PATH_SEP ';'
++-extern char *mingw_query_user_email(void);
++-#define query_user_email mingw_query_user_email
++-extern const char *program_data_config(void);
++-#define git_program_data_config program_data_config
++ #if !defined(__MINGW64_VERSION_MAJOR) && (!defined(_MSC_VER) || _MSC_VER < 1800)
++ #define PRIuMAX "I64u"
++ #define PRId64 "I64d"
++@@ -522,7 +267,7 @@
++  * by NTFS is 32,767 (* sizeof(wchar_t)), but we choose an arbitrary smaller
++  * value to limit required stack memory.
++  */
++-#define MAX_LONG_PATH 4096
+++#define MAX_LONG_PATH 2048
++ 
++ /**
++  * Handles paths that would exceed the MAX_PATH limit of Windows Unicode APIs.
++@@ -686,48 +431,6 @@
++ int xwcstoutf(char *utf, const wchar_t *wcs, size_t utflen);
++ 
++ /*
++- * A critical section used in the implementation of the spawn
++- * functions (mingw_spawnv[p]e()) and waitpid(). Intialised in
++- * the replacement main() macro below.
++- */
++-extern CRITICAL_SECTION pinfo_cs;
++-
++-/*
++- * A replacement of main() that adds win32 specific initialization.
++- *
++- * Note that the end of these macros are unterminated so that the
++- * brace group following the use of the macro is the body of the
++- * function.
++- */
++-#if defined(_MSC_VER)
++-
++-int msc_startup(int argc, wchar_t **w_argv, wchar_t **w_env);
++-extern int msc_main(int argc, const char **argv);
++-
++-#define main(c,v) dummy_decl_msc_main(void);				\
++-int wmain(int my_argc,									\
++-		  wchar_t **my_w_argv,							\
++-		  wchar_t **my_w_env)							\
++-{														\
++-	return msc_startup(my_argc, my_w_argv, my_w_env);	\
++-}														\
++-int msc_main(c, v)
++-
++-#else
++-
++-void mingw_startup(void);
++-#define main(c,v) dummy_decl_mingw_main(void); \
++-static int mingw_main(c,v); \
++-int main(int argc, const char **argv) \
++-{ \
++-	mingw_startup(); \
++-	return mingw_main(__argc, (void *)__argv); \
++-} \
++-static int mingw_main(c,v)
++-
++-#endif
++-
++-/*
++  * Used by Pthread API implementation for Windows
++  */
++ extern int err_win_to_posix(DWORD winerr);
++diff -ru git-9e46438a63c7991eb394fb752fa0ccf2eb63e248/compat/win32/dirent.c Windows/compat/win32/dirent.c
++--- git-9e46438a63c7991eb394fb752fa0ccf2eb63e248/compat/win32/dirent.c	2017-01-11 22:25:01.000000000 +0100
+++++ Windows/compat/win32/dirent.c	2017-01-26 20:48:31.667561001 +0100
++@@ -95,7 +95,7 @@
++ 	}
++ 
++ 	/* initialize DIR structure and copy first dir entry */
++-	dir = xmalloc(sizeof(dirent_DIR));
+++	dir = malloc(sizeof(dirent_DIR));
++ 	dir->base_dir.preaddir = (struct dirent *(*)(DIR *dir)) dirent_readdir;
++ 	dir->base_dir.pclosedir = (int (*)(DIR *dir)) dirent_closedir;
++ 	dir->dd_dir.d_name = dir->dd_name;
++diff -ru git-9e46438a63c7991eb394fb752fa0ccf2eb63e248/compat/win32.h Windows/compat/win32.h
++--- git-9e46438a63c7991eb394fb752fa0ccf2eb63e248/compat/win32.h	2017-01-11 22:25:01.000000000 +0100
+++++ Windows/compat/win32.h	2017-01-26 20:48:31.667561001 +0100
++@@ -6,7 +6,7 @@
++ #include <windows.h>
++ #endif
++ 
++-#include "compat/win32/lazyload.h"
+++#include "./win32/lazyload.h"
++ 
++ static inline int file_attr_to_st_mode (DWORD attr, DWORD tag)
++ {
++diff -ru git-9e46438a63c7991eb394fb752fa0ccf2eb63e248/git-compat-util.h Windows/git-compat-util.h
++--- git-9e46438a63c7991eb394fb752fa0ccf2eb63e248/git-compat-util.h	2017-01-11 22:25:01.000000000 +0100
+++++ Windows/git-compat-util.h	2017-01-26 22:50:41.041542001 +0100
++@@ -1,6 +1,7 @@
++ #ifndef GIT_COMPAT_UTIL_H
++ #define GIT_COMPAT_UTIL_H
++-
+++// FIXME? (substitution for die)
+++#define die(...) raise(SIGTERM)
++ #ifdef USE_MSVC_CRTDBG
++ /*
++  * For these to work they must appear very early in each
++@@ -205,12 +206,6 @@
++ #include <assert.h>
++ #include <regex.h>
++ #include <utime.h>
++-#include <syslog.h>
++-#ifndef NO_SYS_POLL_H
++-#include <sys/poll.h>
++-#else
++-#include <poll.h>
++-#endif
++ #ifdef HAVE_BSD_SYSCTL
++ #include <sys/sysctl.h>
++ #endif
++@@ -218,7 +213,6 @@
++ #if defined(__MINGW32__)
++ /* pull in Windows compatibility stuff */
++ #include "compat/mingw.h"
++-#include "compat/win32/fscache.h"
++ #elif defined(_MSC_VER)
++ #include "compat/msvc.h"
++ #include "compat/win32/fscache.h"
++@@ -475,9 +469,6 @@
++ #define LAST_ARG_MUST_BE_NULL
++ #endif
++ 
++-#include "compat/bswap.h"
++-
++-#include "wildmatch.h"
++ 
++ struct strbuf;
++ 
++@@ -485,7 +476,6 @@
++ extern void vreportf(const char *prefix, const char *err, va_list params);
++ extern NORETURN void usage(const char *err);
++ extern NORETURN void usagef(const char *err, ...) __attribute__((format (printf, 1, 2)));
++-extern NORETURN void die(const char *err, ...) __attribute__((format (printf, 1, 2)));
++ extern NORETURN void die_errno(const char *err, ...) __attribute__((format (printf, 1, 2)));
++ extern int error(const char *err, ...) __attribute__((format (printf, 1, 2)));
++ extern int error_errno(const char *err, ...) __attribute__((format (printf, 1, 2)));
++@@ -605,7 +595,7 @@
++ 	size_t len;
++ 	return strip_suffix(str, suffix, &len);
++ }
++-
+++#define NO_MMAP 1
++ #if defined(NO_MMAP) || defined(USE_WIN32_MMAP)
++ 
++ #ifndef PROT_READ
++@@ -870,15 +860,15 @@
++ extern int xdup(int fd);
++ extern FILE *xfopen(const char *path, const char *mode);
++ extern FILE *xfdopen(int fd, const char *mode);
++-extern int xmkstemp(char *template);
++-extern int xmkstemp_mode(char *template, int mode);
++-extern int odb_mkstemp(char *template, size_t limit, const char *pattern);
+++extern int xmkstemp(char *templat);
+++extern int xmkstemp_mode(char *templat, int mode);
+++extern int odb_mkstemp(char *templat, size_t limit, const char *pattern);
++ extern int odb_pack_keep(char *name, size_t namesz, const unsigned char *sha1);
++ extern char *xgetcwd(void);
++ extern FILE *fopen_for_writing(const char *path);
++ 
++-#define ALLOC_ARRAY(x, alloc) (x) = xmalloc(st_mult(sizeof(*(x)), (alloc)))
++-#define REALLOC_ARRAY(x, alloc) (x) = xrealloc((x), st_mult(sizeof(*(x)), (alloc)))
+++#define ALLOC_ARRAY(x, alloc) (x) =  (typeof(x)) malloc(st_mult(sizeof(*(x)), (alloc)))
+++#define REALLOC_ARRAY(x, alloc) (x) = (typeof(x)) realloc((x), st_mult(sizeof(*(x)), (alloc)))
++ 
++ #define COPY_ARRAY(dst, src, n) copy_array((dst), (src), (n), sizeof(*(dst)) + \
++ 	BUILD_ASSERT_OR_ZERO(sizeof(*(dst)) == sizeof(*(src))))
++@@ -1067,18 +1057,6 @@
++ 		qsort(base, nmemb, size, compar);
++ }
++ 
++-#ifndef REG_STARTEND
++-#error "Git requires REG_STARTEND support. Compile with NO_REGEX=NeedsStartEnd"
++-#endif
++-
++-static inline int regexec_buf(const regex_t *preg, const char *buf, size_t size,
++-			      size_t nmatch, regmatch_t pmatch[], int eflags)
++-{
++-	assert(nmatch > 0 && pmatch);
++-	pmatch[0].rm_so = 0;
++-	pmatch[0].rm_eo = size;
++-	return regexec(preg, buf, nmatch, pmatch, eflags | REG_STARTEND);
++-}
++ 
++ #ifndef DIR_HAS_BSD_GROUP_SEMANTICS
++ # define FORCE_DIR_SET_GID S_ISGID
++@@ -1198,3 +1176,17 @@
++ extern int cmd_main(int, const char **);
++ 
++ #endif
+++
+++//macros originally in cache.h
+++#define alloc_nr(x) (((x)+16)*3/2)
+++
+++#define ALLOC_GROW(x, nr, alloc) \
+++     do { \
+++         if ((nr) > alloc) { \
+++             if (alloc_nr(alloc) < (nr)) \
+++                 alloc = (nr); \
+++             else \
+++                 alloc = alloc_nr(alloc); \
+++             REALLOC_ARRAY(x, alloc); \
+++         } \
+++     } while (0)
+\ No newline at end of file
+diff --git a/src/Plugins/Windows/git-compat-util.h b/src/Plugins/Windows/git-compat-util.h
+new file mode 100644
+index 0000000..b43babc
+--- /dev/null
++++ b/src/Plugins/Windows/git-compat-util.h
+@@ -0,0 +1,1192 @@
++#ifndef GIT_COMPAT_UTIL_H
++#define GIT_COMPAT_UTIL_H
++// FIXME? (substitution for die)
++#define die(...) raise(SIGTERM)
++#ifdef USE_MSVC_CRTDBG
++/*
++ * For these to work they must appear very early in each
++ * file -- before most of the standard header files.
++ */
++#include <stdlib.h>
++#include <crtdbg.h>
++#endif
++
++#define _FILE_OFFSET_BITS 64
++
++
++/* Derived from Linux "Features Test Macro" header
++ * Convenience macros to test the versions of gcc (or
++ * a compatible compiler).
++ * Use them like this:
++ *  #if GIT_GNUC_PREREQ (2,8)
++ *   ... code requiring gcc 2.8 or later ...
++ *  #endif
++*/
++#if defined(__GNUC__) && defined(__GNUC_MINOR__)
++# define GIT_GNUC_PREREQ(maj, min) \
++	((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
++#else
++ #define GIT_GNUC_PREREQ(maj, min) 0
++#endif
++
++
++#ifndef FLEX_ARRAY
++/*
++ * See if our compiler is known to support flexible array members.
++ */
++#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) && (!defined(__SUNPRO_C) || (__SUNPRO_C > 0x580))
++# define FLEX_ARRAY /* empty */
++#elif defined(__GNUC__)
++# if (__GNUC__ >= 3)
++#  define FLEX_ARRAY /* empty */
++# else
++#  define FLEX_ARRAY 0 /* older GNU extension */
++# endif
++#endif
++
++/*
++ * Otherwise, default to safer but a bit wasteful traditional style
++ */
++#ifndef FLEX_ARRAY
++# define FLEX_ARRAY 1
++#endif
++#endif
++
++/*
++ * Under certain circumstances Git's source code is cleverer than the C
++ * compiler when the latter warns about some "uninitialized value", e.g. when
++ * a value is both initialized and used under the same condition.
++ *
++ * GCC can be fooled to not spit out this warning by using the construct:
++ * "int value = value;". Other C compilers are not that easily fooled and would
++ * require a #pragma (which is not portable, and would litter the source code).
++ *
++ * To keep things simple, we only fool GCC, and initialize such values instead
++ * when compiling with other C compilers.
++ */
++#ifdef __GNUC__
++#define FAKE_INIT(a, b, c) a b = b
++#else
++#define FAKE_INIT(a, b, c) a b = c
++#endif
++
++/*
++ * BUILD_ASSERT_OR_ZERO - assert a build-time dependency, as an expression.
++ * @cond: the compile-time condition which must be true.
++ *
++ * Your compile will fail if the condition isn't true, or can't be evaluated
++ * by the compiler.  This can be used in an expression: its value is "0".
++ *
++ * Example:
++ *	#define foo_to_char(foo)					\
++ *		 ((char *)(foo)						\
++ *		  + BUILD_ASSERT_OR_ZERO(offsetof(struct foo, string) == 0))
++ */
++#define BUILD_ASSERT_OR_ZERO(cond) \
++	(sizeof(char [1 - 2*!(cond)]) - 1)
++
++#if GIT_GNUC_PREREQ(3, 1)
++ /* &arr[0] degrades to a pointer: a different type from an array */
++# define BARF_UNLESS_AN_ARRAY(arr)						\
++	BUILD_ASSERT_OR_ZERO(!__builtin_types_compatible_p(__typeof__(arr), \
++							   __typeof__(&(arr)[0])))
++#else
++# define BARF_UNLESS_AN_ARRAY(arr) 0
++#endif
++/*
++ * ARRAY_SIZE - get the number of elements in a visible array
++ *  <at> x: the array whose size you want.
++ *
++ * This does not work on pointers, or arrays declared as [], or
++ * function parameters.  With correct compiler support, such usage
++ * will cause a build error (see the build_assert_or_zero macro).
++ */
++#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]) + BARF_UNLESS_AN_ARRAY(x))
++
++#define bitsizeof(x)  (CHAR_BIT * sizeof(x))
++
++#define maximum_signed_value_of_type(a) \
++    (INTMAX_MAX >> (bitsizeof(intmax_t) - bitsizeof(a)))
++
++#define maximum_unsigned_value_of_type(a) \
++    (UINTMAX_MAX >> (bitsizeof(uintmax_t) - bitsizeof(a)))
++
++/*
++ * Signed integer overflow is undefined in C, so here's a helper macro
++ * to detect if the sum of two integers will overflow.
++ *
++ * Requires: a >= 0, typeof(a) equals typeof(b)
++ */
++#define signed_add_overflows(a, b) \
++    ((b) > maximum_signed_value_of_type(a) - (a))
++
++#define unsigned_add_overflows(a, b) \
++    ((b) > maximum_unsigned_value_of_type(a) - (a))
++
++/*
++ * Returns true if the multiplication of "a" and "b" will
++ * overflow. The types of "a" and "b" must match and must be unsigned.
++ * Note that this macro evaluates "a" twice!
++ */
++#define unsigned_mult_overflows(a, b) \
++    ((a) && (b) > maximum_unsigned_value_of_type(a) / (a))
++
++#ifdef __GNUC__
++#define TYPEOF(x) (__typeof__(x))
++#else
++#define TYPEOF(x)
++#endif
++
++#define MSB(x, bits) ((x) & TYPEOF(x)(~0ULL << (bitsizeof(x) - (bits))))
++#define HAS_MULTI_BITS(i)  ((i) & ((i) - 1))  /* checks if an integer has more than 1 bit set */
++
++#define DIV_ROUND_UP(n,d) (((n) + (d) - 1) / (d))
++
++/* Approximation of the length of the decimal representation of this type. */
++#define decimal_length(x)	((int)(sizeof(x) * 2.56 + 0.5) + 1)
++
++#if defined(__sun__)
++ /*
++  * On Solaris, when _XOPEN_EXTENDED is set, its header file
++  * forces the programs to be XPG4v2, defeating any _XOPEN_SOURCE
++  * setting to say we are XPG5 or XPG6.  Also on Solaris,
++  * XPG6 programs must be compiled with a c99 compiler, while
++  * non XPG6 programs must be compiled with a pre-c99 compiler.
++  */
++# if __STDC_VERSION__ - 0 >= 199901L
++# define _XOPEN_SOURCE 600
++# else
++# define _XOPEN_SOURCE 500
++# endif
++#elif !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__USLC__) && \
++      !defined(_M_UNIX) && !defined(__sgi) && !defined(__DragonFly__) && \
++      !defined(__TANDEM) && !defined(__QNX__) && !defined(__MirBSD__) && \
++      !defined(__CYGWIN__)
++#define _XOPEN_SOURCE 600 /* glibc2 and AIX 5.3L need 500, OpenBSD needs 600 for S_ISLNK() */
++#define _XOPEN_SOURCE_EXTENDED 1 /* AIX 5.3L needs this */
++#endif
++#define _ALL_SOURCE 1
++#define _GNU_SOURCE 1
++#define _BSD_SOURCE 1
++#define _DEFAULT_SOURCE 1
++#define _NETBSD_SOURCE 1
++#define _SGI_SOURCE 1
++
++#if defined(WIN32) && !defined(__CYGWIN__) /* Both MinGW and MSVC */
++# if defined (_MSC_VER) && !defined(_WIN32_WINNT)
++#  define _WIN32_WINNT 0x0502
++# endif
++#define WIN32_LEAN_AND_MEAN  /* stops windows.h including winsock.h */
++#include <winsock2.h>
++#include <windows.h>
++#define GIT_WINDOWS_NATIVE
++#endif
++
++#include <unistd.h>
++#include <stdio.h>
++#include <sys/stat.h>
++#include <fcntl.h>
++#include <stddef.h>
++#include <stdlib.h>
++#include <stdarg.h>
++#include <string.h>
++#ifdef HAVE_STRINGS_H
++#include <strings.h> /* for strcasecmp() */
++#endif
++#include <errno.h>
++#include <limits.h>
++#ifdef NEEDS_SYS_PARAM_H
++#include <sys/param.h>
++#endif
++#include <sys/types.h>
++#include <dirent.h>
++#include <sys/time.h>
++#include <time.h>
++#include <signal.h>
++#include <assert.h>
++#include <regex.h>
++#include <utime.h>
++#ifdef HAVE_BSD_SYSCTL
++#include <sys/sysctl.h>
++#endif
++
++#if defined(__MINGW32__)
++/* pull in Windows compatibility stuff */
++#include "compat/mingw.h"
++#elif defined(_MSC_VER)
++#include "compat/msvc.h"
++#include "compat/win32/fscache.h"
++#else
++#include <sys/utsname.h>
++#include <sys/wait.h>
++#include <sys/resource.h>
++#include <sys/socket.h>
++#include <sys/ioctl.h>
++#include <termios.h>
++#ifndef NO_SYS_SELECT_H
++#include <sys/select.h>
++#endif
++#include <netinet/in.h>
++#include <netinet/tcp.h>
++#include <arpa/inet.h>
++#include <netdb.h>
++#include <pwd.h>
++#include <sys/un.h>
++#ifndef NO_INTTYPES_H
++#include <inttypes.h>
++#else
++#include <stdint.h>
++#endif
++#ifdef NO_INTPTR_T
++/*
++ * On I16LP32, ILP32 and LP64 "long" is the save bet, however
++ * on LLP86, IL33LLP64 and P64 it needs to be "long long",
++ * while on IP16 and IP16L32 it is "int" (resp. "short")
++ * Size needs to match (or exceed) 'sizeof(void *)'.
++ * We can't take "long long" here as not everybody has it.
++ */
++typedef long intptr_t;
++typedef unsigned long uintptr_t;
++#endif
++#undef _ALL_SOURCE /* AIX 5.3L defines a struct list with _ALL_SOURCE. */
++#include <grp.h>
++#define _ALL_SOURCE 1
++#endif
++
++/* used on Mac OS X */
++#ifdef PRECOMPOSE_UNICODE
++#include "compat/precompose_utf8.h"
++#else
++#define precompose_str(in,i_nfd2nfc)
++#define precompose_argv(c,v)
++#define probe_utf8_pathname_composition()
++#endif
++
++#ifdef MKDIR_WO_TRAILING_SLASH
++#define mkdir(a,b) compat_mkdir_wo_trailing_slash((a),(b))
++extern int compat_mkdir_wo_trailing_slash(const char*, mode_t);
++#endif
++
++#ifdef NO_STRUCT_ITIMERVAL
++struct itimerval {
++	struct timeval it_interval;
++	struct timeval it_value;
++};
++#endif
++
++#ifdef NO_SETITIMER
++#define setitimer(which,value,ovalue)
++#endif
++
++#ifndef NO_LIBGEN_H
++#include <libgen.h>
++#else
++#define basename gitbasename
++extern char *gitbasename(char *);
++#define dirname gitdirname
++extern char *gitdirname(char *);
++#endif
++
++#ifndef NO_ICONV
++#include <iconv.h>
++#ifdef _MSC_VER
++/*
++ * At least version 1.14.0.11 of the libiconv NuPkg at
++ * https://www.nuget.org/packages/libiconv/ does not set errno at all.
++ *
++ * Let's simulate it by testing whether we might have possibly run out of
++ * space.
++ */
++static inline size_t msvc_iconv(iconv_t conv,
++	const char **inpos, size_t *insize,
++	char **outpos, size_t *outsize)
++{
++	int saved_errno = errno;
++	size_t res;
++
++	errno = ENOENT;
++	res = iconv(conv, inpos, insize, outpos, outsize);
++	if (!res)
++		errno = saved_errno;
++	else if (errno == ENOENT)
++		errno = *outsize < 16 ? E2BIG : 0;
++
++	return res;
++}
++#undef iconv
++#define iconv msvc_iconv
++#endif
++#endif
++
++#ifndef NO_OPENSSL
++#ifdef __APPLE__
++#define __AVAILABILITY_MACROS_USES_AVAILABILITY 0
++#include <AvailabilityMacros.h>
++#undef DEPRECATED_ATTRIBUTE
++#define DEPRECATED_ATTRIBUTE
++#undef __AVAILABILITY_MACROS_USES_AVAILABILITY
++#endif
++#include <openssl/ssl.h>
++#include <openssl/err.h>
++#endif
++
++/* On most systems <netdb.h> would have given us this, but
++ * not on some systems (e.g. z/OS).
++ */
++#ifndef NI_MAXHOST
++#define NI_MAXHOST 1025
++#endif
++
++#ifndef NI_MAXSERV
++#define NI_MAXSERV 32
++#endif
++
++/* On most systems <limits.h> would have given us this, but
++ * not on some systems (e.g. GNU/Hurd).
++ */
++#ifndef PATH_MAX
++#define PATH_MAX 4096
++#endif
++
++#ifndef PRIuMAX
++#define PRIuMAX "llu"
++#endif
++
++#ifndef SCNuMAX
++#define SCNuMAX PRIuMAX
++#endif
++
++#ifndef PRIu32
++#define PRIu32 "u"
++#endif
++
++#ifndef PRIx32
++#define PRIx32 "x"
++#endif
++
++#ifndef PRIo32
++#define PRIo32 "o"
++#endif
++
++#ifndef PATH_SEP
++#define PATH_SEP ':'
++#endif
++
++#ifdef HAVE_PATHS_H
++#include <paths.h>
++#endif
++#ifndef _PATH_DEFPATH
++#define _PATH_DEFPATH "/usr/local/bin:/usr/bin:/bin"
++#endif
++
++#ifndef platform_core_config
++static inline int noop_core_config(const char *var, const char *value)
++{
++	return 0;
++}
++#define platform_core_config noop_core_config
++#endif
++
++#ifndef has_dos_drive_prefix
++static inline int git_has_dos_drive_prefix(const char *path)
++{
++	return 0;
++}
++#define has_dos_drive_prefix git_has_dos_drive_prefix
++#endif
++
++#ifndef skip_dos_drive_prefix
++static inline int git_skip_dos_drive_prefix(char **path)
++{
++	return 0;
++}
++#define skip_dos_drive_prefix git_skip_dos_drive_prefix
++#endif
++
++#ifndef has_unc_prefix
++static inline int git_has_unc_prefix(const char *path)
++{
++	return 0;
++}
++#define has_unc_prefix git_has_unc_prefix
++#endif
++
++#ifndef is_dir_sep
++static inline int git_is_dir_sep(int c)
++{
++	return c == '/';
++}
++#define is_dir_sep git_is_dir_sep
++#endif
++
++#ifndef offset_1st_component
++static inline int git_offset_1st_component(const char *path)
++{
++	return is_dir_sep(path[0]);
++}
++#define offset_1st_component git_offset_1st_component
++#endif
++
++#ifndef find_last_dir_sep
++static inline char *git_find_last_dir_sep(const char *path)
++{
++	return strrchr(path, '/');
++}
++#define find_last_dir_sep git_find_last_dir_sep
++#endif
++
++#ifndef query_user_email
++#define query_user_email() NULL
++#endif
++
++#ifndef git_program_data_config
++#define git_program_data_config() NULL
++#endif
++
++#if defined(__HP_cc) && (__HP_cc >= 61000)
++#define NORETURN __attribute__((noreturn))
++#define NORETURN_PTR
++#elif defined(__GNUC__) && !defined(NO_NORETURN)
++#define NORETURN __attribute__((__noreturn__))
++#define NORETURN_PTR __attribute__((__noreturn__))
++#elif defined(_MSC_VER)
++#define NORETURN __declspec(noreturn)
++#define NORETURN_PTR
++#else
++#define NORETURN
++#define NORETURN_PTR
++#ifndef __GNUC__
++#ifndef __attribute__
++#define __attribute__(x)
++#endif
++#endif
++#endif
++
++/* The sentinel attribute is valid from gcc version 4.0 */
++#if defined(__GNUC__) && (__GNUC__ >= 4)
++#define LAST_ARG_MUST_BE_NULL __attribute__((sentinel))
++#else
++#define LAST_ARG_MUST_BE_NULL
++#endif
++
++
++struct strbuf;
++
++/* General helper functions */
++extern void vreportf(const char *prefix, const char *err, va_list params);
++extern NORETURN void usage(const char *err);
++extern NORETURN void usagef(const char *err, ...) __attribute__((format (printf, 1, 2)));
++extern NORETURN void die_errno(const char *err, ...) __attribute__((format (printf, 1, 2)));
++extern int error(const char *err, ...) __attribute__((format (printf, 1, 2)));
++extern int error_errno(const char *err, ...) __attribute__((format (printf, 1, 2)));
++extern void warning(const char *err, ...) __attribute__((format (printf, 1, 2)));
++extern void warning_errno(const char *err, ...) __attribute__((format (printf, 1, 2)));
++
++#ifndef NO_OPENSSL
++#ifdef APPLE_COMMON_CRYPTO
++#include "compat/apple-common-crypto.h"
++#else
++#include <openssl/evp.h>
++#include <openssl/hmac.h>
++#endif /* APPLE_COMMON_CRYPTO */
++#include <openssl/x509v3.h>
++#endif /* NO_OPENSSL */
++
++/*
++ * Let callers be aware of the constant return value; this can help
++ * gcc with -Wuninitialized analysis. We restrict this trick to gcc, though,
++ * because some compilers may not support variadic macros. Since we're only
++ * trying to help gcc, anyway, it's OK; other compilers will fall back to
++ * using the function as usual.
++ */
++#if defined(__GNUC__)
++static inline int const_error(void)
++{
++	return -1;
++}
++#define error(...) (error(__VA_ARGS__), const_error())
++#define error_errno(...) (error_errno(__VA_ARGS__), const_error())
++#endif
++
++extern void set_die_routine(NORETURN_PTR void (*routine)(const char *err, va_list params));
++extern void set_error_routine(void (*routine)(const char *err, va_list params));
++extern void (*get_error_routine(void))(const char *err, va_list params);
++extern void set_warn_routine(void (*routine)(const char *warn, va_list params));
++extern void (*get_warn_routine(void))(const char *warn, va_list params);
++extern void set_die_is_recursing_routine(int (*routine)(void));
++extern void set_error_handle(FILE *);
++
++extern int starts_with(const char *str, const char *prefix);
++
++/*
++ * If the string "str" begins with the string found in "prefix", return 1.
++ * The "out" parameter is set to "str + strlen(prefix)" (i.e., to the point in
++ * the string right after the prefix).
++ *
++ * Otherwise, return 0 and leave "out" untouched.
++ *
++ * Examples:
++ *
++ *   [extract branch name, fail if not a branch]
++ *   if (!skip_prefix(ref, "refs/heads/", &branch)
++ *	return -1;
++ *
++ *   [skip prefix if present, otherwise use whole string]
++ *   skip_prefix(name, "refs/heads/", &name);
++ */
++static inline int skip_prefix(const char *str, const char *prefix,
++			      const char **out)
++{
++	do {
++		if (!*prefix) {
++			*out = str;
++			return 1;
++		}
++	} while (*str++ == *prefix++);
++	return 0;
++}
++
++/*
++ * Like skip_prefix, but promises never to read past "len" bytes of the input
++ * buffer, and returns the remaining number of bytes in "out" via "outlen".
++ */
++static inline int skip_prefix_mem(const char *buf, size_t len,
++				  const char *prefix,
++				  const char **out, size_t *outlen)
++{
++	size_t prefix_len = strlen(prefix);
++	if (prefix_len <= len && !memcmp(buf, prefix, prefix_len)) {
++		*out = buf + prefix_len;
++		*outlen = len - prefix_len;
++		return 1;
++	}
++	return 0;
++}
++
++/*
++ * If buf ends with suffix, return 1 and subtract the length of the suffix
++ * from *len. Otherwise, return 0 and leave *len untouched.
++ */
++static inline int strip_suffix_mem(const char *buf, size_t *len,
++				   const char *suffix)
++{
++	size_t suflen = strlen(suffix);
++	if (*len < suflen || memcmp(buf + (*len - suflen), suffix, suflen))
++		return 0;
++	*len -= suflen;
++	return 1;
++}
++
++/*
++ * If str ends with suffix, return 1 and set *len to the size of the string
++ * without the suffix. Otherwise, return 0 and set *len to the size of the
++ * string.
++ *
++ * Note that we do _not_ NUL-terminate str to the new length.
++ */
++static inline int strip_suffix(const char *str, const char *suffix, size_t *len)
++{
++	*len = strlen(str);
++	return strip_suffix_mem(str, len, suffix);
++}
++
++static inline int ends_with(const char *str, const char *suffix)
++{
++	size_t len;
++	return strip_suffix(str, suffix, &len);
++}
++#define NO_MMAP 1
++#if defined(NO_MMAP) || defined(USE_WIN32_MMAP)
++
++#ifndef PROT_READ
++#define PROT_READ 1
++#define PROT_WRITE 2
++#define MAP_PRIVATE 1
++#endif
++
++#define mmap git_mmap
++#define munmap git_munmap
++extern void *git_mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset);
++extern int git_munmap(void *start, size_t length);
++
++#else /* NO_MMAP || USE_WIN32_MMAP */
++
++#include <sys/mman.h>
++
++#endif /* NO_MMAP || USE_WIN32_MMAP */
++
++#ifdef NO_MMAP
++
++/* This value must be multiple of (pagesize * 2) */
++#define DEFAULT_PACKED_GIT_WINDOW_SIZE (1 * 1024 * 1024)
++
++#else /* NO_MMAP */
++
++/* This value must be multiple of (pagesize * 2) */
++#define DEFAULT_PACKED_GIT_WINDOW_SIZE \
++	(sizeof(void*) >= 8 \
++		?  1 * 1024 * 1024 * 1024 \
++		: 32 * 1024 * 1024)
++
++#endif /* NO_MMAP */
++
++#ifndef MAP_FAILED
++#define MAP_FAILED ((void *)-1)
++#endif
++
++#ifdef NO_ST_BLOCKS_IN_STRUCT_STAT
++#define on_disk_bytes(st) ((st).st_size)
++#else
++#define on_disk_bytes(st) ((st).st_blocks * 512)
++#endif
++
++#ifdef NEEDS_MODE_TRANSLATION
++#undef S_IFMT
++#undef S_IFREG
++#undef S_IFDIR
++#undef S_IFLNK
++#undef S_IFBLK
++#undef S_IFCHR
++#undef S_IFIFO
++#undef S_IFSOCK
++#define S_IFMT   0170000
++#define S_IFREG  0100000
++#define S_IFDIR  0040000
++#define S_IFLNK  0120000
++#define S_IFBLK  0060000
++#define S_IFCHR  0020000
++#define S_IFIFO  0010000
++#define S_IFSOCK 0140000
++#ifdef stat
++#undef stat
++#endif
++#define stat(path, buf) git_stat(path, buf)
++extern int git_stat(const char *, struct stat *);
++#ifdef fstat
++#undef fstat
++#endif
++#define fstat(fd, buf) git_fstat(fd, buf)
++extern int git_fstat(int, struct stat *);
++#ifdef lstat
++#undef lstat
++#endif
++#define lstat(path, buf) git_lstat(path, buf)
++extern int git_lstat(const char *, struct stat *);
++#endif
++
++#define DEFAULT_PACKED_GIT_LIMIT \
++	((1024L * 1024L) * (size_t)(sizeof(void*) >= 8 ? 8192 : 256))
++
++#ifdef NO_PREAD
++#define pread git_pread
++extern ssize_t git_pread(int fd, void *buf, size_t count, off_t offset);
++#endif
++/*
++ * Forward decl that will remind us if its twin in cache.h changes.
++ * This function is used in compat/pread.c.  But we can't include
++ * cache.h there.
++ */
++extern ssize_t read_in_full(int fd, void *buf, size_t count);
++
++#ifdef NO_SETENV
++#define setenv gitsetenv
++extern int gitsetenv(const char *, const char *, int);
++#endif
++
++#ifdef NO_MKDTEMP
++#define mkdtemp gitmkdtemp
++extern char *gitmkdtemp(char *);
++#endif
++
++#ifdef NO_MKSTEMPS
++#define mkstemps gitmkstemps
++extern int gitmkstemps(char *, int);
++#endif
++
++#ifdef NO_UNSETENV
++#define unsetenv gitunsetenv
++extern void gitunsetenv(const char *);
++#endif
++
++#ifdef NO_STRCASESTR
++#define strcasestr gitstrcasestr
++extern char *gitstrcasestr(const char *haystack, const char *needle);
++#endif
++
++#ifdef NO_STRLCPY
++#define strlcpy gitstrlcpy
++extern size_t gitstrlcpy(char *, const char *, size_t);
++#endif
++
++#ifdef NO_STRTOUMAX
++#define strtoumax gitstrtoumax
++extern uintmax_t gitstrtoumax(const char *, char **, int);
++#define strtoimax gitstrtoimax
++extern intmax_t gitstrtoimax(const char *, char **, int);
++#endif
++
++#ifdef NO_HSTRERROR
++#define hstrerror githstrerror
++extern const char *githstrerror(int herror);
++#endif
++
++#ifdef NO_MEMMEM
++#define memmem gitmemmem
++void *gitmemmem(const void *haystack, size_t haystacklen,
++                const void *needle, size_t needlelen);
++#endif
++
++#ifdef OVERRIDE_STRDUP
++#ifdef strdup
++#undef strdup
++#endif
++#define strdup gitstrdup
++char *gitstrdup(const char *s);
++#endif
++
++#ifdef NO_GETPAGESIZE
++#define getpagesize() sysconf(_SC_PAGESIZE)
++#endif
++
++#ifndef O_CLOEXEC
++#define O_CLOEXEC 0
++#endif
++
++#ifdef FREAD_READS_DIRECTORIES
++#ifdef fopen
++#undef fopen
++#endif
++#define fopen(a,b) git_fopen(a,b)
++extern FILE *git_fopen(const char*, const char*);
++#endif
++
++#ifdef SNPRINTF_RETURNS_BOGUS
++#ifdef snprintf
++#undef snprintf
++#endif
++#define snprintf git_snprintf
++extern int git_snprintf(char *str, size_t maxsize,
++			const char *format, ...);
++#ifdef vsnprintf
++#undef vsnprintf
++#endif
++#define vsnprintf git_vsnprintf
++extern int git_vsnprintf(char *str, size_t maxsize,
++			 const char *format, va_list ap);
++#endif
++
++#ifdef __GLIBC_PREREQ
++#if __GLIBC_PREREQ(2, 1)
++#define HAVE_STRCHRNUL
++#endif
++#endif
++
++#ifndef HAVE_STRCHRNUL
++#define strchrnul gitstrchrnul
++static inline char *gitstrchrnul(const char *s, int c)
++{
++	while (*s && *s != c)
++		s++;
++	return (char *)s;
++}
++#endif
++
++#ifdef NO_INET_PTON
++int inet_pton(int af, const char *src, void *dst);
++#endif
++
++#ifdef NO_INET_NTOP
++const char *inet_ntop(int af, const void *src, char *dst, size_t size);
++#endif
++
++#ifdef NO_PTHREADS
++#define atexit git_atexit
++extern int git_atexit(void (*handler)(void));
++#endif
++
++extern void release_pack_memory(size_t);
++
++typedef void (*try_to_free_t)(size_t);
++extern try_to_free_t set_try_to_free_routine(try_to_free_t);
++
++static inline size_t st_add(size_t a, size_t b)
++{
++	if (unsigned_add_overflows(a, b))
++		die("size_t overflow: %"PRIuMAX" + %"PRIuMAX,
++		    (uintmax_t)a, (uintmax_t)b);
++	return a + b;
++}
++#define st_add3(a,b,c)   st_add(st_add((a),(b)),(c))
++#define st_add4(a,b,c,d) st_add(st_add3((a),(b),(c)),(d))
++
++static inline size_t st_mult(size_t a, size_t b)
++{
++	if (unsigned_mult_overflows(a, b))
++		die("size_t overflow: %"PRIuMAX" * %"PRIuMAX,
++		    (uintmax_t)a, (uintmax_t)b);
++	return a * b;
++}
++
++static inline size_t st_sub(size_t a, size_t b)
++{
++	if (a < b)
++		die("size_t underflow: %"PRIuMAX" - %"PRIuMAX,
++		    (uintmax_t)a, (uintmax_t)b);
++	return a - b;
++}
++
++#ifdef HAVE_ALLOCA_H
++# include <alloca.h>
++# define xalloca(size)      (alloca(size))
++# define xalloca_free(p)    do {} while (0)
++#else
++# define xalloca(size)      (xmalloc(size))
++# define xalloca_free(p)    (free(p))
++#endif
++extern char *xstrdup(const char *str);
++extern void *xmalloc(size_t size);
++extern void *xmallocz(size_t size);
++extern void *xmallocz_gently(size_t size);
++extern void *xmemdupz(const void *data, size_t len);
++extern char *xstrndup(const char *str, size_t len);
++extern void *xrealloc(void *ptr, size_t size);
++extern void *xcalloc(size_t nmemb, size_t size);
++extern void *xmmap(void *start, size_t length, int prot, int flags, int fd, off_t offset);
++extern void *xmmap_gently(void *start, size_t length, int prot, int flags, int fd, off_t offset);
++extern int xopen(const char *path, int flags, ...);
++extern ssize_t xread(int fd, void *buf, size_t len);
++extern ssize_t xwrite(int fd, const void *buf, size_t len);
++extern ssize_t xpread(int fd, void *buf, size_t len, off_t offset);
++extern int xdup(int fd);
++extern FILE *xfopen(const char *path, const char *mode);
++extern FILE *xfdopen(int fd, const char *mode);
++extern int xmkstemp(char *templat);
++extern int xmkstemp_mode(char *templat, int mode);
++extern int odb_mkstemp(char *templat, size_t limit, const char *pattern);
++extern int odb_pack_keep(char *name, size_t namesz, const unsigned char *sha1);
++extern char *xgetcwd(void);
++extern FILE *fopen_for_writing(const char *path);
++
++#define ALLOC_ARRAY(x, alloc) (x) =  (typeof(x)) malloc(st_mult(sizeof(*(x)), (alloc)))
++#define REALLOC_ARRAY(x, alloc) (x) = (typeof(x)) realloc((x), st_mult(sizeof(*(x)), (alloc)))
++
++#define COPY_ARRAY(dst, src, n) copy_array((dst), (src), (n), sizeof(*(dst)) + \
++	BUILD_ASSERT_OR_ZERO(sizeof(*(dst)) == sizeof(*(src))))
++static inline void copy_array(void *dst, const void *src, size_t n, size_t size)
++{
++	if (n)
++		memcpy(dst, src, st_mult(size, n));
++}
++
++/*
++ * These functions help you allocate structs with flex arrays, and copy
++ * the data directly into the array. For example, if you had:
++ *
++ *   struct foo {
++ *     int bar;
++ *     char name[FLEX_ARRAY];
++ *   };
++ *
++ * you can do:
++ *
++ *   struct foo *f;
++ *   FLEX_ALLOC_MEM(f, name, src, len);
++ *
++ * to allocate a "foo" with the contents of "src" in the "name" field.
++ * The resulting struct is automatically zero'd, and the flex-array field
++ * is NUL-terminated (whether the incoming src buffer was or not).
++ *
++ * The FLEXPTR_* variants operate on structs that don't use flex-arrays,
++ * but do want to store a pointer to some extra data in the same allocated
++ * block. For example, if you have:
++ *
++ *   struct foo {
++ *     char *name;
++ *     int bar;
++ *   };
++ *
++ * you can do:
++ *
++ *   struct foo *f;
++ *   FLEXPTR_ALLOC_STR(f, name, src);
++ *
++ * and "name" will point to a block of memory after the struct, which will be
++ * freed along with the struct (but the pointer can be repointed anywhere).
++ *
++ * The *_STR variants accept a string parameter rather than a ptr/len
++ * combination.
++ *
++ * Note that these macros will evaluate the first parameter multiple
++ * times, and it must be assignable as an lvalue.
++ */
++#define FLEX_ALLOC_MEM(x, flexname, buf, len) do { \
++	size_t flex_array_len_ = (len); \
++	(x) = xcalloc(1, st_add3(sizeof(*(x)), flex_array_len_, 1)); \
++	memcpy((void *)(x)->flexname, (buf), flex_array_len_); \
++} while (0)
++#define FLEXPTR_ALLOC_MEM(x, ptrname, buf, len) do { \
++	size_t flex_array_len_ = (len); \
++	(x) = xcalloc(1, st_add3(sizeof(*(x)), flex_array_len_, 1)); \
++	memcpy((x) + 1, (buf), flex_array_len_); \
++	(x)->ptrname = (void *)((x)+1); \
++} while(0)
++#define FLEX_ALLOC_STR(x, flexname, str) \
++	FLEX_ALLOC_MEM((x), flexname, (str), strlen(str))
++#define FLEXPTR_ALLOC_STR(x, ptrname, str) \
++	FLEXPTR_ALLOC_MEM((x), ptrname, (str), strlen(str))
++
++static inline char *xstrdup_or_null(const char *str)
++{
++	return str ? xstrdup(str) : NULL;
++}
++
++static inline size_t xsize_t(off_t len)
++{
++	if (len > (size_t) len)
++		die("Cannot handle files this big");
++	return (size_t)len;
++}
++
++__attribute__((format (printf, 3, 4)))
++extern int xsnprintf(char *dst, size_t max, const char *fmt, ...);
++
++/* in ctype.c, for kwset users */
++extern const unsigned char tolower_trans_tbl[256];
++
++/* Sane ctype - no locale, and works with signed chars */
++#undef isascii
++#undef isspace
++#undef isdigit
++#undef isalpha
++#undef isalnum
++#undef isprint
++#undef islower
++#undef isupper
++#undef tolower
++#undef toupper
++#undef iscntrl
++#undef ispunct
++#undef isxdigit
++
++extern const unsigned char sane_ctype[256];
++#define GIT_SPACE 0x01
++#define GIT_DIGIT 0x02
++#define GIT_ALPHA 0x04
++#define GIT_GLOB_SPECIAL 0x08
++#define GIT_REGEX_SPECIAL 0x10
++#define GIT_PATHSPEC_MAGIC 0x20
++#define GIT_CNTRL 0x40
++#define GIT_PUNCT 0x80
++#define sane_istest(x,mask) ((sane_ctype[(unsigned char)(x)] & (mask)) != 0)
++#define isascii(x) (((x) & ~0x7f) == 0)
++#define isspace(x) sane_istest(x,GIT_SPACE)
++#define isdigit(x) sane_istest(x,GIT_DIGIT)
++#define isalpha(x) sane_istest(x,GIT_ALPHA)
++#define isalnum(x) sane_istest(x,GIT_ALPHA | GIT_DIGIT)
++#define isprint(x) ((x) >= 0x20 && (x) <= 0x7e)
++#define islower(x) sane_iscase(x, 1)
++#define isupper(x) sane_iscase(x, 0)
++#define is_glob_special(x) sane_istest(x,GIT_GLOB_SPECIAL)
++#define is_regex_special(x) sane_istest(x,GIT_GLOB_SPECIAL | GIT_REGEX_SPECIAL)
++#define iscntrl(x) (sane_istest(x,GIT_CNTRL))
++#define ispunct(x) sane_istest(x, GIT_PUNCT | GIT_REGEX_SPECIAL | \
++		GIT_GLOB_SPECIAL | GIT_PATHSPEC_MAGIC)
++#define isxdigit(x) (hexval_table[(unsigned char)(x)] != -1)
++#define tolower(x) sane_case((unsigned char)(x), 0x20)
++#define toupper(x) sane_case((unsigned char)(x), 0)
++#define is_pathspec_magic(x) sane_istest(x,GIT_PATHSPEC_MAGIC)
++
++static inline int sane_case(int x, int high)
++{
++	if (sane_istest(x, GIT_ALPHA))
++		x = (x & ~0x20) | high;
++	return x;
++}
++
++static inline int sane_iscase(int x, int is_lower)
++{
++	if (!sane_istest(x, GIT_ALPHA))
++		return 0;
++
++	if (is_lower)
++		return (x & 0x20) != 0;
++	else
++		return (x & 0x20) == 0;
++}
++
++static inline int strtoul_ui(char const *s, int base, unsigned int *result)
++{
++	unsigned long ul;
++	char *p;
++
++	errno = 0;
++	/* negative values would be accepted by strtoul */
++	if (strchr(s, '-'))
++		return -1;
++	ul = strtoul(s, &p, base);
++	if (errno || *p || p == s || (unsigned int) ul != ul)
++		return -1;
++	*result = ul;
++	return 0;
++}
++
++static inline int strtol_i(char const *s, int base, int *result)
++{
++	long ul;
++	char *p;
++
++	errno = 0;
++	ul = strtol(s, &p, base);
++	if (errno || *p || p == s || (int) ul != ul)
++		return -1;
++	*result = ul;
++	return 0;
++}
++
++#ifdef INTERNAL_QSORT
++void git_qsort(void *base, size_t nmemb, size_t size,
++	       int(*compar)(const void *, const void *));
++#define qsort git_qsort
++#endif
++
++#define QSORT(base, n, compar) sane_qsort((base), (n), sizeof(*(base)), compar)
++static inline void sane_qsort(void *base, size_t nmemb, size_t size,
++			      int(*compar)(const void *, const void *))
++{
++	if (nmemb > 1)
++		qsort(base, nmemb, size, compar);
++}
++
++
++#ifndef DIR_HAS_BSD_GROUP_SEMANTICS
++# define FORCE_DIR_SET_GID S_ISGID
++#else
++# define FORCE_DIR_SET_GID 0
++#endif
++
++#ifdef NO_NSEC
++#undef USE_NSEC
++#define ST_CTIME_NSEC(st) 0
++#define ST_MTIME_NSEC(st) 0
++#else
++#ifdef USE_ST_TIMESPEC
++#define ST_CTIME_NSEC(st) ((unsigned int)((st).st_ctimespec.tv_nsec))
++#define ST_MTIME_NSEC(st) ((unsigned int)((st).st_mtimespec.tv_nsec))
++#else
++#define ST_CTIME_NSEC(st) ((unsigned int)((st).st_ctim.tv_nsec))
++#define ST_MTIME_NSEC(st) ((unsigned int)((st).st_mtim.tv_nsec))
++#endif
++#endif
++
++#ifdef UNRELIABLE_FSTAT
++#define fstat_is_reliable() 0
++#else
++#define fstat_is_reliable() 1
++#endif
++
++#ifndef va_copy
++/*
++ * Since an obvious implementation of va_list would be to make it a
++ * pointer into the stack frame, a simple assignment will work on
++ * many systems.  But let's try to be more portable.
++ */
++#ifdef __va_copy
++#define va_copy(dst, src) __va_copy(dst, src)
++#else
++#define va_copy(dst, src) ((dst) = (src))
++#endif
++#endif
++
++#if defined(__GNUC__) || (_MSC_VER >= 1400) || defined(__C99_MACRO_WITH_VA_ARGS)
++#define HAVE_VARIADIC_MACROS 1
++#endif
++
++/*
++ * Preserves errno, prints a message, but gives no warning for ENOENT.
++ * Returns 0 on success, which includes trying to unlink an object that does
++ * not exist.
++ */
++int unlink_or_warn(const char *path);
++ /*
++  * Tries to unlink file.  Returns 0 if unlink succeeded
++  * or the file already didn't exist.  Returns -1 and
++  * appends a message to err suitable for
++  * 'error("%s", err->buf)' on error.
++  */
++int unlink_or_msg(const char *file, struct strbuf *err);
++/*
++ * Preserves errno, prints a message, but gives no warning for ENOENT.
++ * Returns 0 on success, which includes trying to remove a directory that does
++ * not exist.
++ */
++int rmdir_or_warn(const char *path);
++/*
++ * Calls the correct function out of {unlink,rmdir}_or_warn based on
++ * the supplied file mode.
++ */
++int remove_or_warn(unsigned int mode, const char *path);
++
++/*
++ * Call access(2), but warn for any error except "missing file"
++ * (ENOENT or ENOTDIR).
++ */
++#define ACCESS_EACCES_OK (1U << 0)
++int access_or_warn(const char *path, int mode, unsigned flag);
++int access_or_die(const char *path, int mode, unsigned flag);
++
++/* Warn on an inaccessible file that ought to be accessible */
++void warn_on_inaccessible(const char *path);
++
++#ifdef GMTIME_UNRELIABLE_ERRORS
++struct tm *git_gmtime(const time_t *);
++struct tm *git_gmtime_r(const time_t *, struct tm *);
++#define gmtime git_gmtime
++#define gmtime_r git_gmtime_r
++#endif
++
++#if !defined(USE_PARENS_AROUND_GETTEXT_N) && defined(__GNUC__)
++#define USE_PARENS_AROUND_GETTEXT_N 1
++#endif
++
++#ifndef SHELL_PATH
++# define SHELL_PATH "/bin/sh"
++#endif
++
++#ifndef _POSIX_THREAD_SAFE_FUNCTIONS
++#define flockfile(fh)
++#define funlockfile(fh)
++#define getc_unlocked(fh) getc(fh)
++#endif
++
++/*
++ * Enable/disable a read-only cache for file system data on platforms that
++ * support it.
++ *
++ * Implementing a live-cache is complicated and requires special platform
++ * support (inotify, ReadDirectoryChangesW...). enable_fscache shall be used
++ * to mark sections of git code that extensively read from the file system
++ * without modifying anything. Implementations can use this to cache e.g. stat
++ * data or even file content without the need to synchronize with the file
++ * system.
++ */
++#ifndef enable_fscache
++#define enable_fscache(x) /* noop */
++#endif
++
++extern int cmd_main(int, const char **);
++
++#endif
++
++//macros originally in cache.h
++#define alloc_nr(x) (((x)+16)*3/2)
++
++#define ALLOC_GROW(x, nr, alloc) \
++     do { \
++         if ((nr) > alloc) { \
++             if (alloc_nr(alloc) < (nr)) \
++                 alloc = (nr); \
++             else \
++                 alloc = alloc_nr(alloc); \
++             REALLOC_ARRAY(x, alloc); \
++         } \
++     } while (0)
+diff --git a/src/Plugins/Windows/git-compat-util.readme b/src/Plugins/Windows/git-compat-util.readme
+new file mode 100644
+index 0000000..c0eb0d5
+--- /dev/null
++++ b/src/Plugins/Windows/git-compat-util.readme
+@@ -0,0 +1,54 @@
++/******************************************************************************
++* MODULE     : git-compat-util.readme
++* DESCRIPTION: The windows version of TeXmacs makes use of
++*              utilities developped for porting Git to
++*              Windows, and in particular for accessing
++*              the Windows UTF-16 file API
++*******************************************************************************
++* As most application originating from the *nix world, TeXmacs
++* uses UTF-8 encoding for files names, file pathes and 
++* environment variables. Porting such applications to Windows
++* is complicated due to the fact that Windows API only accepts
++* UTF-16 for unicode.
++* 
++* The "Git for windows" project (https://github.com/git-for-windows/git)
++* has developped some code that addresses such issues and which 
++* essentially makes accessing the Windows Unicode API transparent.
++* 
++* Here we use a subset of their code in TeXmacs. The following files
++* were copied from the above GitHub repository in january 2017
++* (commit 9e46438a63c7991eb394fb752fa0ccf2eb63e248
++*  Date:   Wed Jan 11 22:06:35 2017 +0100)
++* Windows ¬
++*   git-compat-util.h
++*   ctype.c
++*   compat ¬
++*       mingw.c
++*       mingw.h
++*       win32.h
++*       win32 ¬
++*           dirent.c
++*           dirent.h
++*           fscache.h
++*           lazyload.h
++*
++* These files have:
++****************************************************************************** 
++* COPYRIGHT : The Git for Windows Project 
++* LICENCE   : This software is under the GNU general public license version 2.
++*             For details, see <http://www.gnu.org/licenses/gpl-2.0.html>.
++******************************************************************************
++* the directory structure and filenames were preserved, to facilitate
++* tracing to the original code and maintainance.
++*  
++* Some files were simplified and/or modified. As required by the licence, the 
++* modifications relative to the original files are decribed in the
++* file git-compat-util-TeXmacs.patch
++* 
++* Note that TeXmacs presently only uses a small fraction of the original 
++* functionalities. For instance the external command handling done
++* in mingw_sys_utils could be handled by the Git code too. 
++******************************************************************************
++
++
++
+diff --git a/src/System/Boot/init_texmacs.cpp b/src/System/Boot/init_texmacs.cpp
+index 9693613..b61e9bf 100644
+--- a/src/System/Boot/init_texmacs.cpp
++++ b/src/System/Boot/init_texmacs.cpp
+@@ -20,6 +20,7 @@
+ #include <unistd.h>
+ #ifdef __MINGW32__
+ #include <time.h>
++#include <direct.h>
+ #endif
+ 
+ tree texmacs_settings = tuple ();
+diff --git a/src/System/Files/file.cpp b/src/System/Files/file.cpp
+index 7821b55..7b32493 100644
+--- a/src/System/Files/file.cpp
++++ b/src/System/Files/file.cpp
+@@ -24,12 +24,26 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <errno.h>
+-#include <dirent.h>
+ #include <sys/stat.h>
+ #include <sys/file.h>
+ #include <unistd.h>
+ #include <sys/types.h>
+ #include <string.h>  // strerror
++#if defined (__MINGW__) || defined (__MINGW32__)
++// reusing code from "Git for windows" (https://github.com/git-for-windows/git)
++// for handling Unicode filenames and pathes.
++// It takes care of talking with the UTF-16 Windows API;
++// it also allows pathes that are longer than
++// Windows' default limit of ~250 bytes
++#define PATTERN WIN_PATTERN
++extern "C" 
++{
++    #include "Windows/git-compat-util.h"
++}
++#undef PATTERN
++#else
++#include <dirent.h>
++#endif
+ 
+ #ifdef MACOSX_EXTENSIONS
+ #include "MacOS/mac_images.h"
+@@ -357,8 +371,14 @@ is_of_type (url name, string filter) {
+ 
+   // Normal files
+ #if defined (OS_WIN32) || defined (__MINGW__) || defined (__MINGW32__)
+-  if ((filter == "x") && (suffix(name) != "exe") && (suffix(name) != "bat"))
+-    name = glue (name, ".exe");
++  string suf;
++  if (filter == "x") {
++    suf= suffix(name);
++    if ((suf != "exe") && (suf != "bat") && (suf != "com")) {
++      name = glue (name, ".exe");
++      suf = "exe";
++    }
++  }
+ #endif
+   bool preserve_links= false;
+   for (i=0; i<n; i++)
+@@ -375,38 +395,23 @@ is_of_type (url name, string filter) {
+       if (err || !S_ISDIR (buf.st_mode)) return false;
+       break;
+     case 'l':
+-#ifdef __MINGW32__
+-      return false;
+-#else
+       if (err || !S_ISLNK (buf.st_mode)) return false;
+-#endif
+       break;
+     case 'r':
+       if (err) return false;
+-#ifndef __MINGW32__
+       if ((buf.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) == 0) return false;
+-#else
+-      if ((buf.st_mode & 292) == 0) return false;
+-#endif
+       break;
+     case 'w':
+       if (err) return false;
+-#ifndef __MINGW32__
+       if ((buf.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH)) == 0) return false;
+-#else
+-      if ((buf.st_mode & 146) == 0) return false;
+-#endif
+       break;
+     case 'x':
+       if (err) return false;
+ #if defined (OS_WIN32) || defined (__MINGW__) || defined (__MINGW32__)
+-      if (suffix(name) == "bat") break;
++      if (((suf == "exe") || (suf == "com") || (suf == "bat")) && (buf.st_mode & S_IRUSR)) return true;
++      // with the git-compat-util, executables return (buf.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) == 0 
+ #endif
+-#ifndef __MINGW32__
+       if ((buf.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) == 0) return false;
+-#else
+-      if ((buf.st_mode & 73) == 0) return false;
+-#endif
+       break;
+     }
+   return true;
+@@ -605,13 +610,14 @@ rmdir (url u) {
+   remove_sub (expand (complete (u, "dr")));
+ }
+ 
++
+ void
+ mkdir (url u) {
+ #if defined (HAVE_SYS_TYPES_H) && defined (HAVE_SYS_STAT_H)
+   if (!exists (u)) {
+     c_string _u (concretize (u));
+ #if defined(__MINGW__) || defined(__MINGW32__)
+-    (void) ::mkdir (_u);
++    (void) ::mingw_mkdir (_u, S_IRWXU + S_IRGRP + S_IROTH);
+ #else
+     (void) ::mkdir (_u, S_IRWXU + S_IRGRP + S_IROTH);
+ #endif
+diff --git a/src/System/Misc/sys_utils.cpp b/src/System/Misc/sys_utils.cpp
+index c2fff4f..f9e3173 100644
+--- a/src/System/Misc/sys_utils.cpp
++++ b/src/System/Misc/sys_utils.cpp
+@@ -14,10 +14,22 @@
+ #include "tree.hpp"
+ 
+ #if defined (QTTEXMACS) && (defined (__MINGW__) || defined (__MINGW32__))
+-# include "Qt/qt_sys_utils.hpp"
++#include "Qt/qt_sys_utils.hpp"
+ #include "Windows/mingw_sys_utils.hpp"
+ #else
+-#  include "Unix/unix_sys_utils.hpp"
++#include "Unix/unix_sys_utils.hpp"
++#endif
++#if defined (__MINGW__) || defined (__MINGW32__)
++//reusing code from "Git for windows" (https://github.com/git-for-windows/git)
++//for handling Unicode environment variables:
++//variables are internally encoded UTF-8 
++//and exported to (or read from) windows in UTF-16 
++#define PATTERN WIN_PATTERN
++extern "C" 
++{
++    #include "Windows/git-compat-util.h"
++}
++#undef PATTERN
+ #endif
+ 
+ int script_status = 1;
+diff --git a/src/Typeset/Concat/concat_active.cpp b/src/Typeset/Concat/concat_active.cpp
+index 4f2f198..e4c5ac9 100644
+--- a/src/Typeset/Concat/concat_active.cpp
++++ b/src/Typeset/Concat/concat_active.cpp
+@@ -326,7 +326,7 @@ concater_rep::typeset_image (tree t, path ip) {
+   if (is_atomic (image_tree)) {
+     if (N (image_tree->label) == 0)
+       error_image (tree (WITH, "color", "red", "no image"));
+-    url im= cork_to_os8bits( image_tree->label);
++    url im= cork_to_utf8( image_tree->label);
+     image= resolve (relative (env->base_file_name, im));
+     if (is_none (image)) image= "$TEXMACS_PATH/misc/pixmaps/unknown.ps";
+   }
+diff --git a/src/makefile.in b/src/makefile.in
+index 0a0785a..98a9c7c 100644
+--- a/src/makefile.in
++++ b/src/makefile.in
+@@ -116,6 +116,15 @@ scheme_src   := $(call findsrc_in,Scheme,Scheme Guile)
+ pdf_src      := $(call findsrc_in,Plugins,@CONFIG_PDF@)
+ freetype_src := $(call findsrc_in,Plugins,Freetype)
+ 
++ifeq "@CONFIG_OS_COMPAT@" "Windows"
++wincompat_src:=  $(call findc_in,Plugins,Windows) 
++wincompat_src+=  $(call findc_in,Plugins/Windows,compat) 
++else
++wincompat_src:= 
++endif
++
++
++$(info wincompat_src is $(wincompat_src))
+ # Each makefile will have its own Deps directory. Okay that is a bit
+ # inefficient, but that is much simpler to maintain.
+ #
+@@ -135,10 +144,14 @@ texmacs_cpp_deps := $(call make_cpp_deps,$(system_src) $(kernel_src) $(data_src)
+  $(pdf_src) $(freetype_src))
+ texmacs_m_deps += $(call make_m_deps,$(cocoa_m_src))
+ texmacs_mm_deps += $(call make_mm_deps,$(cocoa_mm_src))
+-texmacs_c_deps := $(call make_c_deps, $(call findc_in,System,Misc))
++texmacs_c_deps := $(call make_c_deps, $(call findc_in,System,Misc) )
+ 
+ deps += $(texmacs_cpp_deps) $(texmacs_m_deps) $(texmacs_mm_deps)
+ 
++ifeq "@CONFIG_OS_COMPAT@" "Windows"
++deps += $(call make_c_deps, wincompat_src)
++endif
++
+ ###############################################################################
+ # Include files
+ ###############################################################################
+@@ -173,6 +186,9 @@ edit_incl     := $(scheme_incl) \
+ texmacs_incl  := $(scheme_incl)
+ pdf_incl      := $(system_incl)
+ freetype_incl := $(system_incl)
++wincompat_incl:= $(system_incl)
++
++
+ 
+ ###############################################################################
+ # MOC files
+@@ -285,6 +301,7 @@ typeset_obj  := $(call makeobj,$(typeset_src))
+ style_obj    := $(call makeobj,$(style_src))
+ pdf_obj      := $(call makeobj,$(pdf_src))
+ freetype_obj := $(call makeobj,$(freetype_src))
++wincompat_obj := $(call makeobj_c,$(wincompat_src))
+ 
+ # To enforce some degree of modularity, each object file must be
+ # compiled with only a specific set of include flags. To achieve that,
+@@ -350,6 +367,8 @@ $(freetype_obj): Objects/%.o: %.cpp
+ 	$(call cxx_incl,$(freetype_incl) $(CXXFREETYPE))
+ $(texmacs_c_deps):   Objects/%.o: %.c
+ 	$(call cc_flags, $(CFLAGS))
++$(wincompat_obj):   Objects/%.o: %.c
++	$(call cc_flags, $(CFLAGS))
+ 
+ ###############################################################################
+ # Make editor
+@@ -406,13 +425,14 @@ uses_scheme   := $(scheme_obj)
+ uses_texmacs  := $(texmacs_obj)
+ uses_pdf      := $(pdf_obj)
+ uses_freetype := $(freetype_obj)
++uses_wincompat := $(wincompat_obj)
+ #"uses_windowsres" is defined above
+ 
+ # Compilation rules
+ 
+ TEXMACS_objects := $(strip $(call uses,system kernel data graphics\
+  plugins x11 os qt gs cocoa style typeset edit scheme texmacs pdf\
+- freetype windowsres)) $(texmacs_c_deps)
++ freetype wincompat windowsres )) $(texmacs_c_deps)
+ 
+ link_options:=-L$(tmsrc)/lib $(LDRT) -lm $(LDPATH) $(LDGUI) $(LDICONV) \
+    $(LDAXEL) $(LDCAIRO) $(LDSQLITE3) \
