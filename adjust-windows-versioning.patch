@@ -1,0 +1,48 @@
+Date: Sat, 28 Jan 2017 12:41:52 +0100
+Subject: [PATCH] minor adjustements for windows versioning
+
+---
+ TeXmacs/progs/utils/misc/updater.scm | 2 +-
+ packages/windows/TeXmacs.iss.in      | 2 +-
+ packages/windows/resource.rc.in      | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/TeXmacs/progs/utils/misc/updater.scm b/TeXmacs/progs/utils/misc/updater.scm
+--- a/TeXmacs/progs/utils/misc/updater.scm
++++ b/TeXmacs/progs/utils/misc/updater.scm
+@@ -52,7 +52,7 @@
+         (else (noop))))
+ 
+ (define-preferences
+-  ("updater:appcast" "http://www.texmacs.org/Download/ftp/tmftp/appcast.xml"
++  ("updater:appcast" "https://raw.githubusercontent.com/slowphil/mingw-w64-texmacs/master/appcast.xml"
+                      updater-notify-pref)
+   ; dsa key ignored by Sparkle (set in Info.plist), unused by WinSparkle
+   ("updater:public-dsa-key" "texmacs_updates_dsa_pub.pem" updater-notify-pref)
+diff --git a/packages/windows/TeXmacs.iss.in b/packages/windows/TeXmacs.iss.in
+--- a/packages/windows/TeXmacs.iss.in
++++ b/packages/windows/TeXmacs.iss.in
+@@ -17,7 +17,7 @@ AppVersion=@DEVEL_VERSION@.@SVNREV@
+ 
+ UninstallDisplayIcon={app}\TeXmacs.ico
+ OutputDir=..\..\..\distr\windows
+-OutputBaseFilename=@tm_devel@.@SVNREV@-win-x86
++OutputBaseFilename=TeXmacs-@DEVEL_VERSION@.@SVNREV@-win-x86
+ ; SourceDir=../..
+ ChangesAssociations=yes
+ 
+diff --git a/packages/windows/resource.rc.in b/packages/windows/resource.rc.in
+--- a/packages/windows/resource.rc.in
++++ b/packages/windows/resource.rc.in
+@@ -31,7 +31,7 @@ BEGIN
+       VALUE "OriginalFilename", "texmacs.exe\0"
+       VALUE "LegalCopyright", "Licensed under GPLv3\0"
+       VALUE "ProductName", "TeXmacs\0"
+-      VALUE "ProductVersion", "@DEVEL_VERSION@\0"
++      VALUE "ProductVersion", "@DEVEL_VERSION@.@SVNREV@\0"
+     END
+   END
+ 
+-- 
+2.7.4
+
