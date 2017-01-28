@@ -2,16 +2,16 @@
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
     <channel>
         <title>TeXmacs on Windows</title>
-        <description>Most recent updates to TeXmacs on Windows : Test</description>
+        <description>Most recent releases for TeXmacs on Windows</description>
         <language>en</language>
         <item>
-            <title>Version 2.0</title>
+            <title>Latest : Version 1.99.5.svn10605+extras</title>
             <sparkle:releaseNotesLink>
-                https://github.com/slowphil/mingw-w64-texmacs/releases/latest
+                https://raw.githubusercontent.com/slowphil/mingw-w64-texmacs/master/changelog.html
             </sparkle:releaseNotesLink>
-            <pubDate>Fri, 06 Feb 2016 22:49:00 +0100</pubDate>
-            <enclosure url="https://github.com/slowphil/mingw-w64-texmacs/releases/download/svn10599%2Bextras/texmacs_installer-svn10599.extras.7z.exe"
-                       sparkle:version="2.0"
+            <pubDate>Sat, 28 Jan 2017 16:05:00 +0100</pubDate>
+            <enclosure url="https://github.com/slowphil/mingw-w64-texmacs/releases/download/svn10605%2Bextras/texmacs_installer-svn10605.extras.exe"
+                       sparkle:version="1.99.5.svn10605+extras"
                        length="0"
                        type="application/octet-stream" />
         </item>

@@ -7,7 +7,7 @@ _realname=texmacs
 pkgbase=mingw-w64-${_realname}
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
 _pkgname=texmacs
-pkgver=dernière.
+pkgver=r1
 pkgrel=1
 pkgdesc="Free scientific text editor, inspired by TeX and GNU Emacs. WYSIWYG editor and CAS-interface. (mingw-w64)"
 arch=('any')
@@ -40,12 +40,17 @@ options=('!emptydirs' '!ccache' 'strip')
 provides=('texmacs')
 conflicts=('texmacs')
 
-pkgver() {
-  cd "${srcdir}/../${_pkgname}"
-  svn info | awk '/Revision/{r=$2}/Date/{gsub(/-/,"");d=$4}END{print d"."r}'
-}
+# the function pkgver() does not seem to work. disabling. 
+#pkgver() {
+# cd "${srcdir}/../${_pkgname}"
+#  svn info | awk '/Revision/{r=$2}/Date/{gsub(/-/,"");d=$4}END{print d"."r}'
+#}
 
 prepare() {
+  cd "${srcdir}/../${_pkgname}"
+  pkgver="svn$(svnversion)+extras"
+  echo ${pkgver}
+  echo ${pkgver} > SNVREV
   if [ -d "${srcdir}/${_pkgname}-build" ]; then
     rm -rf "${srcdir}/${_pkgname}-build"
   fi 
@@ -57,9 +62,14 @@ prepare() {
   patch -i ../../qt_m4.patch -p2
   patch -i ../../raux_win.patch -p0
   patch -i ../../better-image-i-o.patch -p1
+  patch -i ../../win_unicode.patch -p1
+  patch -i ../../winsparkle.patch -p1
+  patch -i ../../adjust-windows-versioning.patch -p1
+  sed -i 's|^SVNREV=\${SVNREV/:/_}|SVNREV='${pkgver}'|' configure.in
   autoreconf
+
   
-  patch -i ../../configure.patch -p2
+#  patch -i ../../configure.patch -p2
 
   sed -i 's|#! /bin/sh|#! /bin/bash|' configure
 }
@@ -74,15 +84,16 @@ build() {
     --build=${MINGW_CHOST} \
     --host=${MINGW_CHOST} \
     --with-guile="/mingw32/bin/guile-config" \
-	--with-qt="/mingw32/bin/" \
-	#--enable-console --enable-debug
+    --with-qt="/mingw32/bin/" \
+    --with-sparkle="/build/winsparkle" \
+    #--enable-console --enable-debug
 
   make -j$(nproc)
 }
 
 package() {
 export TM_BUILD_DIR="${srcdir}/${_pkgname}-build"
-export BUNDLE_DIR="${srcdir}/TeXmacs-Windows"
+export BUNDLE_DIR="${srcdir}/distr/TeXmacs-Windows"
 
 ###############################################################################
 # Make a Windows installer
@@ -129,10 +140,11 @@ PROGS="$DEPS  $TM_BUILD_DIR/TeXmacs/bin/texmacs.bin"
 # lookup all the Mingw32 ddls needed by Texmacs + additional programs
 MINGW_DLLs_NEEDED=$(dlls_for_exes $PROGS)
 
-echo $MINGW_DLLs_NEEDED
+WINSPARKLE_DLL="WinSparkle.dll"
+WINSPARKLE_PATH="/build/winsparkle"
+MINGW_DLLs_NEEDED+=" "$WINSPARKLE_PATH/$WINSPARKLE_DLL
 
-#WINSPARKLE_DLL = 
-#WINSPARKLE_PATH = 
+echo $MINGW_DLLs_NEEDED
 
 # Qt plugins TeXmacs presently uses
 QT_NEEDED_PLUGINS_LIST="accessible imageformats"
@@ -214,10 +226,22 @@ for language in $lang_list ; do
 svn export "svn://svn.lyx.org/lyx/dictionaries/trunk/dicts/info/${language}" ./$language
 done
 
-#TARGET="$HOME"/texmacs-installer.7z.exe
+if test -f /build/inno/inno_setup/ISCC.exe ; then
+rm -rf ${srcdir}/distr/windows
+/build/inno/inno_setup/ISCC.exe $TM_BUILD_DIR/packages/windows/TeXmacs.iss
+TARGET="/texmacs_installer.exe"
+if test -f ${srcdir}/distr/windows/TeXmacs-*.exe ; then
+cp ${srcdir}/distr/windows/TeXmacs-*.exe ${srcdir}/distr/windows$TARGET 
+mv ${srcdir}/distr/windows$TARGET /
+echo "Success! You will find the new installer at \"$(cygpath -aw $TARGET)\"." &&
+echo "It is an InnoSetup installer."
+fi
+
+else
+
 OPTS7="-m0=lzma -mx=9 -md=64M"
 TMPPACK="${srcdir}/tmp.7z"
-TARGET="/texmacs_installer.7z.exe"
+TARGET="/texmacs_installer.exe"
 
 fileList="$(ls -dp -1 $BUNDLE_DIR/*)"
 
@@ -233,16 +257,14 @@ echo "Creating archive" &&
  echo 'ExtractTitle="Extracting..."' &&
  echo 'GUIFlags="8+32+64+256+4096"' &&
  echo 'GUIMode="1"' &&
- #echo 'InstallPath="C:\\git-sdk-'$BITNESS'"' &&
  echo 'InstallPath="%PROGRAMFILES%\\TeXmacs"' &&
  echo 'OverwriteMode="2"' &&
- #echo 'ExecuteFile="%%T\setup-git-sdk.bat"' &&
- #echo 'Delete="%%T\setup-git-sdk.bat"' &&
  echo ';!@InstallEnd@!' &&
  cat "$TMPPACK") > "$TARGET" &&
 echo "Success! You will find the new installer at \"$(cygpath -aw $TARGET)\"." &&
 echo "It is a self-extracting .7z archive." &&
 rm $TMPPACK
 
+fi
 }
 
