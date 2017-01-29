@@ -50,7 +50,7 @@ prepare() {
   cd "${srcdir}/../${_pkgname}"
   pkgver="svn$(svnversion)+extras"
   echo ${pkgver}
-  echo ${pkgver} > SNVREV
+  echo ${pkgver} > SVNREV
   if [ -d "${srcdir}/${_pkgname}-build" ]; then
     rm -rf "${srcdir}/${_pkgname}-build"
   fi 
