@@ -3,9 +3,9 @@ Subject: [PATCH] minor adjustements for windows versioning
 
 ---
  TeXmacs/progs/utils/misc/updater.scm | 2 +-
- packages/windows/TeXmacs.iss.in      | 2 +-
+ packages/windows/TeXmacs.iss.in      | 4 ++--
  packages/windows/resource.rc.in      | 2 +-
- 3 files changed, 3 insertions(+), 3 deletions(-)
+ 3 files changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/TeXmacs/progs/utils/misc/updater.scm b/TeXmacs/progs/utils/misc/updater.scm
 --- a/TeXmacs/progs/utils/misc/updater.scm
@@ -31,6 +31,15 @@ diff --git a/packages/windows/TeXmacs.iss.in b/packages/windows/TeXmacs.iss.in
  ; SourceDir=../..
  ChangesAssociations=yes
  
+@@ -34,7 +34,7 @@ Root: HKCR; Subkey: "tmfile\DefaultIcon"; ValueType: string; ValueName: ""; Valu
+ Root: HKCR; Subkey: "tmfile\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\bin\texmacs.exe"" ""%1""" 
+ 
+ [Files]
+-Source: ..\..\..\distr\TeXmacs-Windows\*; DestDir: {app}; Flags: recursesubdirs createallsubdirs
++Source: ..\..\..\distr\TeXmacs-Windows\*; DestDir: {app}; Flags: ignoreversion recursesubdirs createallsubdirs
+ Source: TeXmacs.ico; DestDir: {app}
+ 
+ [Icons]
 diff --git a/packages/windows/resource.rc.in b/packages/windows/resource.rc.in
 --- a/packages/windows/resource.rc.in
 +++ b/packages/windows/resource.rc.in
@@ -43,6 +52,4 @@ diff --git a/packages/windows/resource.rc.in b/packages/windows/resource.rc.in
      END
    END
  
--- 
-2.7.4
 
