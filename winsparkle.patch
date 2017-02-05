@@ -7,12 +7,12 @@ index 7f0a87f..c29478c 100644
  SVNREV=`svnversion -n . 2>/dev/null`
  SVNREV=${SVNREV/:/_}
 -if { test "$SVNREV" = "" || test "$SVNREV" = "exported" ; } ; then 
-+if case $SVNREV in *[[0-9]]*) false;; *) true;; esac;  #contains no digit -> invalid
-+then # maybe it was a git ?
-+  SVNREV=`git svn find-rev $(git rev-parse HEAD 2>/dev/null) 2>/dev/null`
++if test "$(echo $SVNREV | tr -cd [[:digit:]])" = "" ; 
++then #contains no digit -> invalid
++# maybe it was a git mirror repo? (needs git-svn)
++  SVNREV=`git svn log --oneline -1 2>/dev/null | cut -d '|' -f1`
 +fi
-+if case $SVNREV in *[[0-9]]*) false;; *) true;; esac;
-+then 
++if test "$(echo $SVNREV | tr -cd [[:digit:]])" = "" ; then
    SVNREV=`cat $srcdir/SVNREV`
    AC_MSG_RESULT($SVNREV, read from $srcdir/SVNREV)
  else 
