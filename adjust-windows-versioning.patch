@@ -1,12 +1,3 @@
-Date: Sat, 28 Jan 2017 12:41:52 +0100
-Subject: [PATCH] minor adjustements for windows versioning
-
----
- TeXmacs/progs/utils/misc/updater.scm | 2 +-
- packages/windows/TeXmacs.iss.in      | 4 ++--
- packages/windows/resource.rc.in      | 2 +-
- 3 files changed, 4 insertions(+), 4 deletions(-)
-
 diff --git a/TeXmacs/progs/utils/misc/updater.scm b/TeXmacs/progs/utils/misc/updater.scm
 --- a/TeXmacs/progs/utils/misc/updater.scm
 +++ b/TeXmacs/progs/utils/misc/updater.scm
@@ -52,4 +43,76 @@ diff --git a/packages/windows/resource.rc.in b/packages/windows/resource.rc.in
      END
    END
  
+diff --git a/TeXmacs/doc/about/about-summary.de.tm b/TeXmacs/doc/about/about-summary.de.tm
+--- a/TeXmacs/doc/about/about-summary.de.tm
++++ b/TeXmacs/doc/about/about-summary.de.tm
+@@ -7,7 +7,7 @@
+ 
+   <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
+   <TeXmacs>>|<cell|>>|<row|<cell|Installierte
+-  Version>|<cell|<TeXmacs-version>>>|<row|<cell|Unterstützte
++  Version>|<cell|<TeXmacs-version-release|devel-release>>>|<row|<cell|Unterstützte
+   Systeme>|<cell|Most GNU/<name|Linux> systems>>|<row|<cell|Copyright>|<cell|<copyright>
+   1998--2002 by Joris van der Hoeven >>|<row|<cell|Lizenz>|<cell|<hlink|GNU
+   General Public License|$TEXMACS_PATH/LICENSE>>>|<row|<cell|Webseiten>|<cell|<tabular|<tformat|<twith|table-valign|T>|<cwith|1|-1|1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-rsep|0spc>|<table|<row|<cell|<verbatim|http://www.texmacs.org>>>|<row|<cell|<verbatim|http://www.gnu.org/software/texmacs>>>>>>>>|<row|<cell|Kontakt>|<cell|<verbatim|contact@texmacs.org>>>|<row|<cell|Postansschrift>|<cell|<tabular|<tformat|<twith|table-valign|T>|<cwith|1|-1|1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-rsep|0spc>|<table|<row|<cell|<abbr|Dr.>
+diff --git a/TeXmacs/doc/about/about-summary.en.tm b/TeXmacs/doc/about/about-summary.en.tm
+--- a/TeXmacs/doc/about/about-summary.en.tm
++++ b/TeXmacs/doc/about/about-summary.en.tm
+@@ -7,7 +7,7 @@
+ 
+   <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
+   <TeXmacs>>|<cell|>>|<row|<cell|Installed
+-  version>|<cell|<TeXmacs-version>>>|<row|<cell|Supported systems>|<cell|Most
++  version>|<cell|<TeXmacs-version-release|devel-release>>>|<row|<cell|Supported systems>|<cell|Most
+   GNU/<name|Linux> systems>>|<row|<cell|Copyright>|<cell|<copyright>
+   1998--2002 by Joris van der Hoeven >>|<row|<cell|License>|<cell|<hlink|GNU
+   General Public License|$TEXMACS_PATH/LICENSE>>>|<row|<cell|Web
+diff --git a/TeXmacs/doc/about/about-summary.es.tm b/TeXmacs/doc/about/about-summary.es.tm
+--- a/TeXmacs/doc/about/about-summary.es.tm
++++ b/TeXmacs/doc/about/about-summary.es.tm
+@@ -6,7 +6,7 @@
+   <with|language|spanish|><tmdoc-title|Sumario>
+ 
+   <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
+-  <TeXmacs>>|<cell|>>|<row|<cell|Versión>|<cell|<TeXmacs-version>>>|<row|<cell|Sistemas
++  <TeXmacs>>|<cell|>>|<row|<cell|Versión>|<cell|<TeXmacs-version-release|devel-release>>>|<row|<cell|Sistemas
+   soportados>|<cell|La mayoría de los sistemas
+   GNU/<name|Linux>>>|<row|<cell|Copyright>|<cell|<copyright> 1998--2002 por
+   Joris van der Hoeven >>|<row|<cell|Licencia>|<cell|<hlink|Licencia Pública
+diff --git a/TeXmacs/doc/about/about-summary.fr.tm b/TeXmacs/doc/about/about-summary.fr.tm
+--- a/TeXmacs/doc/about/about-summary.fr.tm
++++ b/TeXmacs/doc/about/about-summary.fr.tm
+@@ -6,7 +6,7 @@
+   <tmdoc-title|Sommaire>
+ 
+   <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
+-  <TeXmacs>>|<cell|>>|<row|<cell|Version installée>|<cell|<TeXmacs-version>>>|<row|<cell|Systèmes
++  <TeXmacs>>|<cell|>>|<row|<cell|Version installée>|<cell|<TeXmacs-version-release|devel-release>>>|<row|<cell|Systèmes
+   reconnus>|<cell|la plupart des systèmes
+   GNU/<name|Linux>>>|<row|<cell|Droits d'auteur>|<cell|<copyright> 1998--2003
+   de Joris van der Hoeven >>|<row|<cell|Licence>|<cell|<hlink|GNU General
+diff --git a/TeXmacs/doc/about/about-summary.it.tm b/TeXmacs/doc/about/about-summary.it.tm
+--- a/TeXmacs/doc/about/about-summary.it.tm
++++ b/TeXmacs/doc/about/about-summary.it.tm
+@@ -6,7 +6,7 @@
+   <tmdoc-title|Sommario>
+ 
+   <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
+-  <TeXmacs>>|<cell|>>|<row|<cell|<localize|Version>>|<cell|<TeXmacs-version>>>|<row|<cell|Sistemi
++  <TeXmacs>>|<cell|>>|<row|<cell|<localize|Version>>|<cell|<TeXmacs-version-release|devel-release>>>|<row|<cell|Sistemi
+   supportati>|<cell|Principalmente sistemi
+   GNU/<name|Linux>>>|<row|<cell|Copyright>|<cell|<copyright> 1998--2002 by
+   Joris van der Hoeven >>|<row|<cell|Licenza>|<cell|<hlink|GNU General Public
+diff --git a/TeXmacs/doc/about/about-summary.zh.tm b/TeXmacs/doc/about/about-summary.zh.tm
+--- a/TeXmacs/doc/about/about-summary.zh.tm
++++ b/TeXmacs/doc/about/about-summary.zh.tm
+@@ -6,7 +6,7 @@
+   <tmdoc-title|\<#6982\>\<#8981\>>
+ 
+   <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
+-  <TeXmacs>>|<cell|>>|<row|<cell|\<#5F53\>\<#524D\>\<#7248\>\<#672C\>\<#53F7\>>|<cell|<TeXmacs-version>>>|<row|<cell|\<#652F\>\<#6301\>\<#7684\>\<#7CFB\>\<#7EDF\>>|<cell|\<#5927\>\<#90E8\>\<#5206\>GNU/<name|Linux>\<#7CFB\>\<#7EDF\>>>|<row|<cell|\<#7248\>\<#6743\>>|<cell|<copyright>
++  <TeXmacs>>|<cell|>>|<row|<cell|\<#5F53\>\<#524D\>\<#7248\>\<#672C\>\<#53F7\>>|<cell|<TeXmacs-version-release|devel-release>>>|<row|<cell|\<#652F\>\<#6301\>\<#7684\>\<#7CFB\>\<#7EDF\>>|<cell|\<#5927\>\<#90E8\>\<#5206\>GNU/<name|Linux>\<#7CFB\>\<#7EDF\>>>|<row|<cell|\<#7248\>\<#6743\>>|<cell|<copyright>
+   1998--2002 by Joris van der Hoeven >>|<row|<cell|\<#8BB8\>\<#53EF\>\<#8BC1\>>|<cell|<hlink|GNU
+   General Public License|$TEXMACS_PATH/LICENSE>>>|<row|<cell|\<#9879\>\<#76EE\>\<#4E3B\>\<#9875\>>|<cell|<tabular|<tformat|<twith|table-valign|T>|<cwith|1|-1|1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-rsep|0spc>|<table|<row|<cell|<verbatim|http://www.texmacs.org>>>|<row|<cell|<verbatim|http://www.gnu.org/software/texmacs>>>>>>>>|<row|<cell|\<#8054\>\<#7CFB\>\<#6211\>\<#4EEC\>>|<cell|<verbatim|contact@texmacs.org>>>|<row|<cell|\<#8054\>\<#7CFB\>\<#5730\>\<#5740\>>|<cell|<tabular|<tformat|<twith|table-valign|T>|<cwith|1|-1|1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-rsep|0spc>|<table|<row|<cell|<abbr|Dr.>
+   Joris van der Hoeven>>|<row|<cell|<abbr|Dépt.> de Mathématiques
 
