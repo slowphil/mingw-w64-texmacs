@@ -8,7 +8,7 @@ when running `makepkg`, this will build TeXmacs for Windows from latest svn and 
 - extra image utilities enabling to use TeXmacs as an equation editor for Inkscape.
 
 
-The easiest way to build TeXmacs is by using the [fully automated build environment](https://github.com/slowphil/texmacs-win-builder) ([direct download](https://github.com/slowphil/texmacs-win-builder/releases/download/v0.9/texmacs-win-sdk-installer-0.91.7z.exe))
+The easiest way to build TeXmacs is by using the [fully automated build environment](https://github.com/slowphil/texmacs-win-builder) ([direct download](https://github.com/slowphil/texmacs-win-builder/releases/download/0.91/texmacs-win-sdk-installer-0.91.7z.exe))
 
 
 # Ready-made resulting builds can be found in the [Releases](https://github.com/slowphil/mingw-w64-texmacs/releases)
