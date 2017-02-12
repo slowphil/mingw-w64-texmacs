@@ -18,9 +18,8 @@ makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
              p7zip
             )
 depends=(
-          #"${MINGW_PACKAGE_PREFIX}-aspell"
-		  "${MINGW_PACKAGE_PREFIX}-hunspell"
-		  "${MINGW_PACKAGE_PREFIX}-wget"
+          "${MINGW_PACKAGE_PREFIX}-hunspell"
+          "${MINGW_PACKAGE_PREFIX}-wget"
           "${MINGW_PACKAGE_PREFIX}-gc"
           "${MINGW_PACKAGE_PREFIX}-ghostscript"
           "${MINGW_PACKAGE_PREFIX}-imagemagick"
@@ -29,8 +28,7 @@ depends=(
           "${MINGW_PACKAGE_PREFIX}-iconv"
           "${MINGW_PACKAGE_PREFIX}-qt4"
           "${MINGW_PACKAGE_PREFIX}-guile1.8"
-		  "${MINGW_PACKAGE_PREFIX}-poppler-qt4"
-
+          "${MINGW_PACKAGE_PREFIX}-poppler-qt4"
         )
 source=("${_pkgname}::svn://svn.savannah.gnu.org/texmacs/trunk/src"
         )
@@ -68,9 +66,6 @@ prepare() {
   sed -i 's|^SVNREV=\${SVNREV/:/_}|SVNREV='${pkgver}'|' configure.in
   autoreconf
 
-  
-#  patch -i ../../configure.patch -p2
-
   sed -i 's|#! /bin/sh|#! /bin/bash|' configure
 }
 
@@ -79,14 +74,15 @@ build() {
 
   cd "${srcdir}/${_pkgname}-build"
 
-./configure \
+  ./configure \
     --prefix=${MINGW_PREFIX} \
     --build=${MINGW_CHOST} \
     --host=${MINGW_CHOST} \
     --with-guile="/mingw32/bin/guile-config" \
     --with-qt="/mingw32/bin/" \
     --with-sparkle="/build/winsparkle" \
-    #--enable-console --enable-debug
+    #--enable-console \
+    #--enable-debug  # must not strip in this case (line 37 and 159) !!
 
   make -j$(nproc)
 }
@@ -101,30 +97,30 @@ export BUNDLE_DIR="${srcdir}/distr/TeXmacs-Windows"
 ###############################################################################
 
 dlls_for_exes () {
-	# Add DLLs' transitive dependencies (taken from git for windows)
-	dlls=
-	todo="$* "
-	while test -n "$todo"
-	do
-		path=${todo%% *}
-		todo=${todo#* }
-		case "$path" in ''|' ') continue;; esac
-		for dll in $(objdump -p "$path" |
-			sed -n 's/^\tDLL Name: /mingw32\/bin\//p')
-		do
-           if test -f "/"$dll ; then 
-		   # since all the dependencies have been resolved for
-		   # building, if we do not find a dll in /mingw32/bin/
-		   # it must be a Windows-provided dll and then we ignore it
-		   # otherwise we add it to the dlls to scan
-			case "$dlls" in
-			*"$dll"*) ;; # already found
-			*) dlls="$dlls $dll"; todo="$todo /$dll ";;
-			esac
-		   fi
-		done
-	done
-	echo "$dlls"
+  # Add DLLs' transitive dependencies (taken from git for windows)
+  dlls=
+  todo="$* "
+  while test -n "$todo"
+  do
+    path=${todo%% *}
+    todo=${todo#* }
+    case "$path" in ''|' ') continue;; esac
+    for dll in $(objdump -p "$path" |
+      sed -n 's/^\tDLL Name: /mingw32\/bin\//p')
+    do
+      if test -f "/"$dll ; then 
+        # since all the dependencies have been resolved for
+        # building, if we do not find a dll in /mingw32/bin/
+        # it must be a Windows-provided dll and then we ignore it
+        # otherwise we add it to the dlls to scan
+        case "$dlls" in
+          *"$dll"*) ;; # already found
+          *) dlls="$dlls $dll"; todo="$todo /$dll ";;
+        esac
+      fi
+    done
+  done
+  echo "$dlls"
 }
 
 
@@ -133,24 +129,18 @@ dlls_for_exes () {
 DEPS="/mingw32/bin/pdftocairo.exe \
  /mingw32/bin/hunspell.exe \
  /mingw32/bin/gswin32c.exe \
- /mingw32/bin/wget.exe"
+ /mingw32/bin/wget.exe \
+ /build/winsparkle/WinSparkle.dll "
 
 PROGS="$DEPS  $TM_BUILD_DIR/TeXmacs/bin/texmacs.bin"
 
 # lookup all the Mingw32 ddls needed by Texmacs + additional programs
 MINGW_DLLs_NEEDED=$(dlls_for_exes $PROGS)
 
-WINSPARKLE_DLL="WinSparkle.dll"
-WINSPARKLE_PATH="/build/winsparkle"
-MINGW_DLLs_NEEDED+=" "$WINSPARKLE_PATH/$WINSPARKLE_DLL
-
 echo $MINGW_DLLs_NEEDED
 
 # Qt plugins TeXmacs presently uses
 QT_NEEDED_PLUGINS_LIST="accessible imageformats"
-
-GS_UTILS_PATH=/mingw32/share/ghostscript/9.19/lib/
-GS_UTILS=( ps2epsi.ps ps2epsi.bat cat.ps gssetgs.bat )
 
 rm -r -f $BUNDLE_DIR
 
@@ -168,22 +158,22 @@ cp -r -f  -u TeXmacs/* $BUNDLE_DIR/
 mv -f $BUNDLE_DIR/bin/texmacs.bin $BUNDLE_DIR/bin/texmacs.exe
 strip -s $BUNDLE_DIR/bin/texmacs.exe
 rm -f -r $BUNDLE_DIR/bin/texmacs
-cp -r -f misc/admin/texmacs_updates_dsa_pub.pem $BUNDLE_DIR/bin
+#cp -r -f misc/admin/texmacs_updates_dsa_pub.pem $BUNDLE_DIR/bin
 cp -r -f packages/windows/*.exe $BUNDLE_DIR/bin
 
 cd /
 
 for DLL in $MINGW_DLLs_NEEDED ; do
-cp -u $DLL $BUNDLE_DIR/bin
+  cp -u $DLL $BUNDLE_DIR/bin
 done
 
 for prog in "$DEPS" ; do
-cp -u $prog $BUNDLE_DIR/bin
+  cp -u $prog $BUNDLE_DIR/bin
 done
 
 for PLUGIN in $QT_NEEDED_PLUGINS_LIST ; do
-            cp -r -f -u /mingw32/share/qt4/plugins/$PLUGIN $BUNDLE_DIR/bin
-        done
+  cp -r -f -u /mingw32/share/qt4/plugins/$PLUGIN $BUNDLE_DIR/bin
+done
 
 # pick up ice-9 for guile
 export GUILE_LOAD_PATH="${MINGW_PREFIX}/share/guile/1.8"
@@ -211,9 +201,9 @@ cd $BUNDLE_DIR/share/hunspell
 
 lang_list=
 for dic in $dicts ; do
-lang_list="$lang_list $(locale -av | grep -A2 -m1 $dic | sed -n -e 's/^ language | //p' | tr '[A-Z]' '[a-z]')"
- svn export svn://svn.lyx.org/lyx/dictionaries/trunk/dicts/${dic}.dic ./
- svn export svn://svn.lyx.org/lyx/dictionaries/trunk/dicts/${dic}.aff ./
+  lang_list="$lang_list $(locale -av | grep -A2 -m1 $dic | sed -n -e 's/^ language | //p' | tr '[A-Z]' '[a-z]')"
+  svn export svn://svn.lyx.org/lyx/dictionaries/trunk/dicts/${dic}.dic ./
+  svn export svn://svn.lyx.org/lyx/dictionaries/trunk/dicts/${dic}.aff ./
 done
 
 lang_list=$(echo $lang_list | sed -n -e 's/english/american/p')
@@ -223,19 +213,19 @@ lang_list=$(echo $lang_list | sed -n -e 's/english/american/p')
 # then define the language list ($lang_list) manually (not much work anyway)
 
 for language in $lang_list ; do
-svn export "svn://svn.lyx.org/lyx/dictionaries/trunk/dicts/info/${language}" ./$language
+  svn export "svn://svn.lyx.org/lyx/dictionaries/trunk/dicts/info/${language}" ./$language
 done
 
 if test -f /build/inno/inno_setup/ISCC.exe ; then
-rm -rf ${srcdir}/distr/windows
-/build/inno/inno_setup/ISCC.exe $TM_BUILD_DIR/packages/windows/TeXmacs.iss
-TARGET="/texmacs_installer.exe"
-if test -f ${srcdir}/distr/windows/TeXmacs-*.exe ; then
-cp ${srcdir}/distr/windows/TeXmacs-*.exe ${srcdir}/distr/windows$TARGET 
-mv ${srcdir}/distr/windows$TARGET /
-echo "Success! You will find the new installer at \"$(cygpath -aw $TARGET)\"." &&
-echo "It is an InnoSetup installer."
-fi
+  rm -rf ${srcdir}/distr/windows
+  /build/inno/inno_setup/ISCC.exe $TM_BUILD_DIR/packages/windows/TeXmacs.iss
+  TARGET="/texmacs_installer.exe"
+  if test -f ${srcdir}/distr/windows/TeXmacs-*.exe ; then
+    cp ${srcdir}/distr/windows/TeXmacs-*.exe ${srcdir}/distr/windows$TARGET 
+    mv ${srcdir}/distr/windows$TARGET /
+    echo "Success! You will find the new installer at \"$(cygpath -aw $TARGET)\"." &&
+    echo "It is an InnoSetup installer."
+  fi
 
 else
 
