@@ -1,3 +1,136 @@
+diff --git a/TeXmacs/progs/doc/tmweb.scm b/TeXmacs/progs/doc/tmweb.scm
+index fa70411..b7e6a54 100644
+--- a/TeXmacs/progs/doc/tmweb.scm
++++ b/TeXmacs/progs/doc/tmweb.scm
+@@ -47,7 +47,7 @@
+ 	       (!= dir-name "prop-base") (!= dir-name "text-base"))
+       (tmweb-make-dir dir (url-expand html-dir))
+       (when (needs-update? file u3 update?)
+-        (system-wait "Converting" (url->system u1))
++        (system-wait "Converting" (utf8->cork (url->system u1)))
+         (display* "TeXmacs] Converting " (url->system u1) "\n")
+         (tmweb-convert-file file u3)))))
+ 
+@@ -63,7 +63,7 @@
+                (not (string-ends? name "#")))
+       (tmweb-make-dir dir (url-expand html-dir))
+       (when (needs-update? file u2 update?)
+-        (system-wait "Copying" (url->system u1))
++        (system-wait "Copying" (utf8->cork(url->system u1)))
+         (display* "TeXmacs] Copying " (url->system u1) "\n")
+         (system-copy file u2)))))
+ 
+diff --git a/TeXmacs/progs/link/link-navigate.scm b/TeXmacs/progs/link/link-navigate.scm
+index d43e65a..03bd2fc 100644
+--- a/TeXmacs/progs/link/link-navigate.scm
++++ b/TeXmacs/progs/link/link-navigate.scm
+@@ -402,7 +402,7 @@
+ (define (default-root-disambiguator u)
+  (with l (list-filter (url->list u) default-filter-url)
+     (cond ((null? l) 
+-           (set-message `(verbatim ,(url->system u)) "Not found"))
++           (set-message `(verbatim ,(utf8->cork(url->system u))) "Not found"))
+           ((== 1 (length l)) (load-browse-buffer (car l)))
+           (else (build-disambiguation-page l)))))
+ 
+diff --git a/TeXmacs/progs/texmacs/menus/file-menu.scm b/TeXmacs/progs/texmacs/menus/file-menu.scm
+index f2b7580..1a631c9 100644
+--- a/TeXmacs/progs/texmacs/menus/file-menu.scm
++++ b/TeXmacs/progs/texmacs/menus/file-menu.scm
+@@ -27,8 +27,8 @@
+     (let* ((abbr (buffer-get-title name))
+            (abbr* (if (== abbr "") (url->system (url-tail name)) abbr))
+            (mod? (buffer-modified? name))
+-           (short-name `(verbatim ,(string-append abbr* (if mod? " *" ""))))
+-           (long-name `(verbatim ,(url->system name))))
++           (short-name `(verbatim ,(utf8->cork(string-append abbr* (if mod? " *" "")))))
++           (long-name `(verbatim ,(utf8->cork(url->system name)))))
+       ((check (balloon (eval short-name) (eval long-name)) "v"
+               (== (current-buffer) name))
+        (switch-to-buffer name)))))
+diff --git a/TeXmacs/progs/texmacs/texmacs/tm-files.scm b/TeXmacs/progs/texmacs/texmacs/tm-files.scm
+index a878ead..0c77b80 100644
+--- a/TeXmacs/progs/texmacs/texmacs/tm-files.scm
++++ b/TeXmacs/progs/texmacs/texmacs/tm-files.scm
+@@ -140,7 +140,7 @@
+ 
+ (define (save-buffer-save name opts)
+   ;;(display* "save-buffer-save " name "\n")
+-  (with vname `(verbatim ,(url->system name))
++  (with vname `(verbatim ,(utf8->cork (url->system name)))
+     (if (buffer-save name)
+         (begin
+           (buffer-pretend-modified name)
+@@ -162,7 +162,7 @@
+             (save-buffer-save name opts))))))
+ 
+ (define (cannot-write? name action)
+-  (with vname `(verbatim ,(url->system name))
++  (with vname `(verbatim ,(utf8->cork (url->system name)))
+     (cond ((and (not (url-test? name "f")) (not (url-test? name "c")))
+            (with msg `(concat "The file " ,vname " cannot be created")
+              (set-message msg action))
+@@ -176,7 +176,7 @@
+ (define (save-buffer-check-permissions name opts)
+   ;;(display* "save-buffer-check-permissions " name "\n")
+   (set! current-save-target name)
+-  (with vname `(verbatim ,(url->system name))
++  (with vname `(verbatim ,(utf8->cork(url->system name)))
+     (cond ((url-scratch? name)
+            (choose-file
+              (lambda (x) (apply save-buffer-as-main (cons x opts)))
+@@ -268,7 +268,7 @@
+ 
+ (define (export-buffer-export name to fm opts)
+   ;;(display* "export-buffer-export " name ", " to ", " fm "\n")
+-  (with vto `(verbatim ,(url->system to))
++  (with vto `(verbatim ,(utf8->cork(url->system to)))
+     (if (buffer-export name to fm)
+         (set-message `(concat "Could not save " ,vto) "Export file")
+         (set-message `(concat "Exported to " ,vto) "Export file"))))
+@@ -339,7 +339,7 @@
+              (url-autosave name "~"))
+     ;;(display* "Autosave " name "\n")
+     ;; FIXME: incorrectly autosaves after cursor movements only
+-    (let* ((vname `(verbatim ,(url->system name)))
++    (let* ((vname `(verbatim ,(utf8->cork(url->system name))))
+            (suffix (if (rescue-mode?) "#" "~"))
+            (aname (url-autosave name suffix))
+            (fm (url-format name)))
+@@ -403,7 +403,7 @@
+ 
+ (define (load-buffer-load name opts)
+   ;;(display* "load-buffer-load " name ", " opts "\n")
+-  (with vname `(verbatim ,(url->system name))
++  (with vname `(verbatim ,(utf8->cork(url->system name)))
+     (cond ((buffer-exists? name)
+            (load-buffer-open name opts))
+           ((url-exists? name)
+@@ -422,7 +422,7 @@
+ 
+ (define (load-buffer-check-permissions name opts)
+   ;;(display* "load-buffer-check-permissions " name ", " opts "\n")
+-  (with vname `(verbatim ,(url->system name))
++  (with vname `(verbatim ,(utf8->cork(url->system name)))
+     (cond ((and (not (url-test? name "f")) (not (url-test? name "c")))
+            (with msg `(concat "The file " ,vname
+                               " cannot be loaded or created")
+@@ -511,7 +511,7 @@
+ 
+ (define (import-buffer-check-permissions name fm opts)
+   ;;(display* "import-buffer-check-permissions " name ", " fm "\n")
+-  (with vname `(verbatim ,(url->system name))
++  (with vname `(verbatim ,(utf8->cork(url->system name)))
+     (cond ((not (url-test? name "f"))
+            (with msg `(concat "The file " ,vname " does not exist")
+              (set-message msg "Import file")))
+@@ -624,4 +624,4 @@
+ 
+ (tm-define (kill-buffer)
+   (deprecated-function "kill-buffer" "buffer-close")
+-  (buffer-close (current-buffer)))
++  (buffer-close (current-buffer)))
+\ No newline at end of file
 diff --git a/src/Data/String/converter.cpp b/src/Data/String/converter.cpp
 index 5c55adf..43db989 100644
 --- a/src/Data/String/converter.cpp
@@ -31,7 +164,7 @@ index 772753d..2c91d71 100644
  string convert_using_iconv (string input, string from, string to); 
  
 diff --git a/src/Plugins/Pdf/pdf_hummus_renderer.cpp b/src/Plugins/Pdf/pdf_hummus_renderer.cpp
-index b115acb..b3a5bdb 100644
+index 11fb5e9..36f6da8 100644
 --- a/src/Plugins/Pdf/pdf_hummus_renderer.cpp
 +++ b/src/Plugins/Pdf/pdf_hummus_renderer.cpp
 @@ -303,13 +303,7 @@ pdf_hummus_renderer_rep::pdf_hummus_renderer_rep (
@@ -131,7 +264,7 @@ index e9f41ec..4887a52 100644
        else {
        string imname    = from_qstring_utf8 (fileNames.first());
 diff --git a/src/Plugins/Qt/qt_picture.cpp b/src/Plugins/Qt/qt_picture.cpp
-index d2c7c1a..73bfeab 100644
+index 875ac8b..0ea95be 100644
 --- a/src/Plugins/Qt/qt_picture.cpp
 +++ b/src/Plugins/Qt/qt_picture.cpp
 @@ -156,11 +156,11 @@ QImage*
@@ -149,13 +282,13 @@ index d2c7c1a..73bfeab 100644
    }
    if (pm == NULL || pm->isNull ()) {
 diff --git a/src/Plugins/Qt/qt_sys_utils.cpp b/src/Plugins/Qt/qt_sys_utils.cpp
-index 5411221..cb60750 100644
+index a2c544f..08a0e64 100644
 --- a/src/Plugins/Qt/qt_sys_utils.cpp
 +++ b/src/Plugins/Qt/qt_sys_utils.cpp
-@@ -29,7 +29,7 @@ qt_system (string cmd, string& result) {
-   proc.setProcessChannelMode (QProcess::MergedChannels);
+@@ -31,7 +31,7 @@ static int
+ qt_system (QProcess& proc, string& cmd, string& cmdout, string& cmderr) {
    c_string _cmd (cmd);
- #if defined (__MINGW__) || defined (__MINGW32__)
+ #ifdef OS_MINGW
 -  QString qcmd = QString::fromLocal8Bit (_cmd);
 +  QString qcmd = QString::fromUtf8 (_cmd);
  #else
@@ -6253,10 +6386,10 @@ index 0000000..b43babc
 +     } while (0)
 diff --git a/src/Plugins/Windows/git-compat-util.readme b/src/Plugins/Windows/git-compat-util.readme
 new file mode 100644
-index 0000000..c0eb0d5
+index 0000000..b2e71b0
 --- /dev/null
 +++ b/src/Plugins/Windows/git-compat-util.readme
-@@ -0,0 +1,54 @@
+@@ -0,0 +1,53 @@
 +/******************************************************************************
 +* MODULE     : git-compat-util.readme
 +* DESCRIPTION: The windows version of TeXmacs makes use of
@@ -6288,7 +6421,6 @@ index 0000000..c0eb0d5
 +*       win32 ¬
 +*           dirent.c
 +*           dirent.h
-+*           fscache.h
 +*           lazyload.h
 +*
 +* These files have:
@@ -6312,19 +6444,19 @@ index 0000000..c0eb0d5
 +
 +
 diff --git a/src/System/Boot/init_texmacs.cpp b/src/System/Boot/init_texmacs.cpp
-index 9693613..b61e9bf 100644
+index 8863851..b80fdd5 100644
 --- a/src/System/Boot/init_texmacs.cpp
 +++ b/src/System/Boot/init_texmacs.cpp
 @@ -20,6 +20,7 @@
  #include <unistd.h>
- #ifdef __MINGW32__
+ #ifdef OS_MINGW
  #include <time.h>
 +#include <direct.h>
  #endif
  
  tree texmacs_settings = tuple ();
 diff --git a/src/System/Files/file.cpp b/src/System/Files/file.cpp
-index 7821b55..7b32493 100644
+index 1ad42ef..21a792a 100644
 --- a/src/System/Files/file.cpp
 +++ b/src/System/Files/file.cpp
 @@ -24,12 +24,26 @@
@@ -6358,7 +6490,7 @@ index 7821b55..7b32493 100644
 @@ -357,8 +371,14 @@ is_of_type (url name, string filter) {
  
    // Normal files
- #if defined (OS_WIN32) || defined (__MINGW__) || defined (__MINGW32__)
+ #ifdef OS_MINGW
 -  if ((filter == "x") && (suffix(name) != "exe") && (suffix(name) != "bat"))
 -    name = glue (name, ".exe");
 +  string suf;
@@ -6376,7 +6508,7 @@ index 7821b55..7b32493 100644
        if (err || !S_ISDIR (buf.st_mode)) return false;
        break;
      case 'l':
--#ifdef __MINGW32__
+-#ifdef OS_MINGW
 -      return false;
 -#else
        if (err || !S_ISLNK (buf.st_mode)) return false;
@@ -6384,7 +6516,7 @@ index 7821b55..7b32493 100644
        break;
      case 'r':
        if (err) return false;
--#ifndef __MINGW32__
+-#ifndef OS_MINGW
        if ((buf.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) == 0) return false;
 -#else
 -      if ((buf.st_mode & 292) == 0) return false;
@@ -6392,7 +6524,7 @@ index 7821b55..7b32493 100644
        break;
      case 'w':
        if (err) return false;
--#ifndef __MINGW32__
+-#ifndef OS_MINGW
        if ((buf.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH)) == 0) return false;
 -#else
 -      if ((buf.st_mode & 146) == 0) return false;
@@ -6400,12 +6532,12 @@ index 7821b55..7b32493 100644
        break;
      case 'x':
        if (err) return false;
- #if defined (OS_WIN32) || defined (__MINGW__) || defined (__MINGW32__)
+ #ifdef OS_MINGW
 -      if (suffix(name) == "bat") break;
 +      if (((suf == "exe") || (suf == "com") || (suf == "bat")) && (buf.st_mode & S_IRUSR)) return true;
 +      // with the git-compat-util, executables return (buf.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) == 0 
  #endif
--#ifndef __MINGW32__
+-#ifndef OS_MINGW
        if ((buf.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) == 0) return false;
 -#else
 -      if ((buf.st_mode & 73) == 0) return false;
@@ -6413,38 +6545,23 @@ index 7821b55..7b32493 100644
        break;
      }
    return true;
-@@ -605,13 +610,14 @@ rmdir (url u) {
-   remove_sub (expand (complete (u, "dr")));
- }
- 
-+
- void
- mkdir (url u) {
- #if defined (HAVE_SYS_TYPES_H) && defined (HAVE_SYS_STAT_H)
+@@ -611,7 +616,7 @@ mkdir (url u) {
    if (!exists (u)) {
      c_string _u (concretize (u));
- #if defined(__MINGW__) || defined(__MINGW32__)
+ #ifdef OS_MINGW
 -    (void) ::mkdir (_u);
 +    (void) ::mingw_mkdir (_u, S_IRWXU + S_IRGRP + S_IROTH);
  #else
      (void) ::mkdir (_u, S_IRWXU + S_IRGRP + S_IROTH);
  #endif
 diff --git a/src/System/Misc/sys_utils.cpp b/src/System/Misc/sys_utils.cpp
-index c2fff4f..f9e3173 100644
+index b26d56c..7995fb2 100644
 --- a/src/System/Misc/sys_utils.cpp
 +++ b/src/System/Misc/sys_utils.cpp
-@@ -14,10 +14,22 @@
- #include "tree.hpp"
- 
- #if defined (QTTEXMACS) && (defined (__MINGW__) || defined (__MINGW32__))
--# include "Qt/qt_sys_utils.hpp"
-+#include "Qt/qt_sys_utils.hpp"
+@@ -18,6 +18,16 @@
+ #endif
+ #ifdef OS_MINGW
  #include "Windows/mingw_sys_utils.hpp"
- #else
--#  include "Unix/unix_sys_utils.hpp"
-+#include "Unix/unix_sys_utils.hpp"
-+#endif
-+#if defined (__MINGW__) || defined (__MINGW32__)
 +//reusing code from "Git for windows" (https://github.com/git-for-windows/git)
 +//for handling Unicode environment variables:
 +//variables are internally encoded UTF-8 
@@ -6455,9 +6572,9 @@ index c2fff4f..f9e3173 100644
 +    #include "Windows/git-compat-util.h"
 +}
 +#undef PATTERN
+ #else
+ #include "Unix/unix_sys_utils.hpp"
  #endif
- 
- int script_status = 1;
 diff --git a/src/Typeset/Concat/concat_active.cpp b/src/Typeset/Concat/concat_active.cpp
 index 4f2f198..e4c5ac9 100644
 --- a/src/Typeset/Concat/concat_active.cpp
@@ -6472,10 +6589,10 @@ index 4f2f198..e4c5ac9 100644
      if (is_none (image)) image= "$TEXMACS_PATH/misc/pixmaps/unknown.ps";
    }
 diff --git a/src/makefile.in b/src/makefile.in
-index 0a0785a..98a9c7c 100644
+index 0a0785a..6eeecdc 100644
 --- a/src/makefile.in
 +++ b/src/makefile.in
-@@ -116,6 +116,15 @@ scheme_src   := $(call findsrc_in,Scheme,Scheme Guile)
+@@ -116,6 +116,13 @@ scheme_src   := $(call findsrc_in,Scheme,Scheme Guile)
  pdf_src      := $(call findsrc_in,Plugins,@CONFIG_PDF@)
  freetype_src := $(call findsrc_in,Plugins,Freetype)
  
@@ -6486,12 +6603,10 @@ index 0a0785a..98a9c7c 100644
 +wincompat_src:= 
 +endif
 +
-+
-+$(info wincompat_src is $(wincompat_src))
  # Each makefile will have its own Deps directory. Okay that is a bit
  # inefficient, but that is much simpler to maintain.
  #
-@@ -135,10 +144,14 @@ texmacs_cpp_deps := $(call make_cpp_deps,$(system_src) $(kernel_src) $(data_src)
+@@ -135,10 +142,14 @@ texmacs_cpp_deps := $(call make_cpp_deps,$(system_src) $(kernel_src) $(data_src)
   $(pdf_src) $(freetype_src))
  texmacs_m_deps += $(call make_m_deps,$(cocoa_m_src))
  texmacs_mm_deps += $(call make_mm_deps,$(cocoa_mm_src))
@@ -6507,7 +6622,7 @@ index 0a0785a..98a9c7c 100644
  ###############################################################################
  # Include files
  ###############################################################################
-@@ -173,6 +186,9 @@ edit_incl     := $(scheme_incl) \
+@@ -173,6 +184,9 @@ edit_incl     := $(scheme_incl) \
  texmacs_incl  := $(scheme_incl)
  pdf_incl      := $(system_incl)
  freetype_incl := $(system_incl)
@@ -6517,7 +6632,7 @@ index 0a0785a..98a9c7c 100644
  
  ###############################################################################
  # MOC files
-@@ -285,6 +301,7 @@ typeset_obj  := $(call makeobj,$(typeset_src))
+@@ -285,6 +299,7 @@ typeset_obj  := $(call makeobj,$(typeset_src))
  style_obj    := $(call makeobj,$(style_src))
  pdf_obj      := $(call makeobj,$(pdf_src))
  freetype_obj := $(call makeobj,$(freetype_src))
@@ -6525,7 +6640,7 @@ index 0a0785a..98a9c7c 100644
  
  # To enforce some degree of modularity, each object file must be
  # compiled with only a specific set of include flags. To achieve that,
-@@ -350,6 +367,8 @@ $(freetype_obj): Objects/%.o: %.cpp
+@@ -350,6 +365,8 @@ $(freetype_obj): Objects/%.o: %.cpp
  	$(call cxx_incl,$(freetype_incl) $(CXXFREETYPE))
  $(texmacs_c_deps):   Objects/%.o: %.c
  	$(call cc_flags, $(CFLAGS))
@@ -6534,7 +6649,7 @@ index 0a0785a..98a9c7c 100644
  
  ###############################################################################
  # Make editor
-@@ -406,13 +425,14 @@ uses_scheme   := $(scheme_obj)
+@@ -406,13 +423,14 @@ uses_scheme   := $(scheme_obj)
  uses_texmacs  := $(texmacs_obj)
  uses_pdf      := $(pdf_obj)
  uses_freetype := $(freetype_obj)

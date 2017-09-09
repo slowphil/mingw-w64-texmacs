@@ -1,7 +1,7 @@
-Index: TeXmacs/doc/about/about-summary.de.tm
-===================================================================
---- a/TeXmacs/doc/about/about-summary.de.tm	(r√©vision 10606)
-+++ b/TeXmacs/doc/about/about-summary.de.tm	(copie de travail)
+diff --git a/TeXmacs/doc/about/about-summary.de.tm b/TeXmacs/doc/about/about-summary.de.tm
+index 5a623ae..3efbc7f 100644
+--- a/TeXmacs/doc/about/about-summary.de.tm
++++ b/TeXmacs/doc/about/about-summary.de.tm
 @@ -7,7 +7,7 @@
  
    <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
@@ -11,17 +11,10 @@ Index: TeXmacs/doc/about/about-summary.de.tm
    Systeme>|<cell|Most GNU/<name|Linux> systems>>|<row|<cell|Copyright>|<cell|<copyright>
    1998--2002 by Joris van der Hoeven >>|<row|<cell|Lizenz>|<cell|<hlink|GNU
    General Public License|$TEXMACS_PATH/LICENSE>>>|<row|<cell|Webseiten>|<cell|<tabular|<tformat|<twith|table-valign|T>|<cwith|1|-1|1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-rsep|0spc>|<table|<row|<cell|<verbatim|http://www.texmacs.org>>>|<row|<cell|<verbatim|http://www.gnu.org/software/texmacs>>>>>>>>|<row|<cell|Kontakt>|<cell|<verbatim|contact@texmacs.org>>>|<row|<cell|Postansschrift>|<cell|<tabular|<tformat|<twith|table-valign|T>|<cwith|1|-1|1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-rsep|0spc>|<table|<row|<cell|<abbr|Dr.>
-@@ -30,4 +30,4 @@
-   <\collection>
-     <associate|language|german>
-   </collection>
--</initial>
-\ No newline at end of file
-+</initial>
-Index: TeXmacs/doc/about/about-summary.en.tm
-===================================================================
---- a/TeXmacs/doc/about/about-summary.en.tm	(r√©vision 10606)
-+++ b/TeXmacs/doc/about/about-summary.en.tm	(copie de travail)
+diff --git a/TeXmacs/doc/about/about-summary.en.tm b/TeXmacs/doc/about/about-summary.en.tm
+index 09240c1..6e2f2a9 100644
+--- a/TeXmacs/doc/about/about-summary.en.tm
++++ b/TeXmacs/doc/about/about-summary.en.tm
 @@ -7,7 +7,7 @@
  
    <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
@@ -31,10 +24,10 @@ Index: TeXmacs/doc/about/about-summary.en.tm
    GNU/<name|Linux> systems>>|<row|<cell|Copyright>|<cell|<copyright>
    1998--2002 by Joris van der Hoeven >>|<row|<cell|License>|<cell|<hlink|GNU
    General Public License|$TEXMACS_PATH/LICENSE>>>|<row|<cell|Web
-Index: TeXmacs/doc/about/about-summary.es.tm
-===================================================================
---- a/TeXmacs/doc/about/about-summary.es.tm	(r√©vision 10606)
-+++ b/TeXmacs/doc/about/about-summary.es.tm	(copie de travail)
+diff --git a/TeXmacs/doc/about/about-summary.es.tm b/TeXmacs/doc/about/about-summary.es.tm
+index 4feed8b..525982c 100644
+--- a/TeXmacs/doc/about/about-summary.es.tm
++++ b/TeXmacs/doc/about/about-summary.es.tm
 @@ -6,7 +6,7 @@
    <with|language|spanish|><tmdoc-title|Sumario>
  
@@ -44,17 +37,10 @@ Index: TeXmacs/doc/about/about-summary.es.tm
    soportados>|<cell|La mayorÌa de los sistemas
    GNU/<name|Linux>>>|<row|<cell|Copyright>|<cell|<copyright> 1998--2002 por
    Joris van der Hoeven >>|<row|<cell|Licencia>|<cell|<hlink|Licencia P˙blica
-@@ -42,4 +42,4 @@
-   <\collection>
-     <associate|language|spanish>
-   </collection>
--</initial>
-\ No newline at end of file
-+</initial>
-Index: TeXmacs/doc/about/about-summary.fr.tm
-===================================================================
---- a/TeXmacs/doc/about/about-summary.fr.tm	(r√©vision 10606)
-+++ b/TeXmacs/doc/about/about-summary.fr.tm	(copie de travail)
+diff --git a/TeXmacs/doc/about/about-summary.fr.tm b/TeXmacs/doc/about/about-summary.fr.tm
+index 7bef7be..ffcfba7 100644
+--- a/TeXmacs/doc/about/about-summary.fr.tm
++++ b/TeXmacs/doc/about/about-summary.fr.tm
 @@ -6,7 +6,7 @@
    <tmdoc-title|Sommaire>
  
@@ -64,17 +50,10 @@ Index: TeXmacs/doc/about/about-summary.fr.tm
    reconnus>|<cell|la plupart des systËmes
    GNU/<name|Linux>>>|<row|<cell|Droits d'auteur>|<cell|<copyright> 1998--2003
    de Joris van der Hoeven >>|<row|<cell|Licence>|<cell|<hlink|GNU General
-@@ -33,4 +33,4 @@
-     <associate|language|french>
-     <associate|preamble|false>
-   </collection>
--</initial>
-\ No newline at end of file
-+</initial>
-Index: TeXmacs/doc/about/about-summary.it.tm
-===================================================================
---- a/TeXmacs/doc/about/about-summary.it.tm	(r√©vision 10606)
-+++ b/TeXmacs/doc/about/about-summary.it.tm	(copie de travail)
+diff --git a/TeXmacs/doc/about/about-summary.it.tm b/TeXmacs/doc/about/about-summary.it.tm
+index 3be3d46..ae1e802 100644
+--- a/TeXmacs/doc/about/about-summary.it.tm
++++ b/TeXmacs/doc/about/about-summary.it.tm
 @@ -6,7 +6,7 @@
    <tmdoc-title|Sommario>
  
@@ -84,10 +63,10 @@ Index: TeXmacs/doc/about/about-summary.it.tm
    supportati>|<cell|Principalmente sistemi
    GNU/<name|Linux>>>|<row|<cell|Copyright>|<cell|<copyright> 1998--2002 by
    Joris van der Hoeven >>|<row|<cell|Licenza>|<cell|<hlink|GNU General Public
-Index: TeXmacs/doc/about/about-summary.zh.tm
-===================================================================
---- a/TeXmacs/doc/about/about-summary.zh.tm	(r√©vision 10606)
-+++ b/TeXmacs/doc/about/about-summary.zh.tm	(copie de travail)
+diff --git a/TeXmacs/doc/about/about-summary.zh.tm b/TeXmacs/doc/about/about-summary.zh.tm
+index 65e0107..f5d8e0c 100644
+--- a/TeXmacs/doc/about/about-summary.zh.tm
++++ b/TeXmacs/doc/about/about-summary.zh.tm
 @@ -6,7 +6,7 @@
    <tmdoc-title|\<#6982\>\<#8981\>>
  
@@ -97,10 +76,10 @@ Index: TeXmacs/doc/about/about-summary.zh.tm
    1998--2002 by Joris van der Hoeven >>|<row|<cell|\<#8BB8\>\<#53EF\>\<#8BC1\>>|<cell|<hlink|GNU
    General Public License|$TEXMACS_PATH/LICENSE>>>|<row|<cell|\<#9879\>\<#76EE\>\<#4E3B\>\<#9875\>>|<cell|<tabular|<tformat|<twith|table-valign|T>|<cwith|1|-1|1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-rsep|0spc>|<table|<row|<cell|<verbatim|http://www.texmacs.org>>>|<row|<cell|<verbatim|http://www.gnu.org/software/texmacs>>>>>>>>|<row|<cell|\<#8054\>\<#7CFB\>\<#6211\>\<#4EEC\>>|<cell|<verbatim|contact@texmacs.org>>>|<row|<cell|\<#8054\>\<#7CFB\>\<#5730\>\<#5740\>>|<cell|<tabular|<tformat|<twith|table-valign|T>|<cwith|1|-1|1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-rsep|0spc>|<table|<row|<cell|<abbr|Dr.>
    Joris van der Hoeven>>|<row|<cell|<abbr|DÈpt.> de MathÈmatiques
-Index: TeXmacs/progs/utils/misc/updater.scm
-===================================================================
---- a/TeXmacs/progs/utils/misc/updater.scm	(r√©vision 10606)
-+++ b/TeXmacs/progs/utils/misc/updater.scm	(copie de travail)
+diff --git a/TeXmacs/progs/utils/misc/updater.scm b/TeXmacs/progs/utils/misc/updater.scm
+index 99a8f3f..ced24fb 100644
+--- a/TeXmacs/progs/utils/misc/updater.scm
++++ b/TeXmacs/progs/utils/misc/updater.scm
 @@ -52,7 +52,7 @@
          (else (noop))))
  
@@ -110,11 +89,50 @@ Index: TeXmacs/progs/utils/misc/updater.scm
                       updater-notify-pref)
    ; dsa key ignored by Sparkle (set in Info.plist), unused by WinSparkle
    ("updater:public-dsa-key" "texmacs_updates_dsa_pub.pem" updater-notify-pref)
-Index: packages/windows/TeXmacs.iss.in
-===================================================================
---- a/packages/windows/TeXmacs.iss.in	(r√©vision 10606)
-+++ b/packages/windows/TeXmacs.iss.in	(copie de travail)
-@@ -17,7 +17,7 @@ AppVersion=@DEVEL_VERSION@.@SVNREV@
+diff --git a/configure.in b/configure.in
+index 5282fa5..ef87fab 100644
+--- a/configure.in
++++ b/configure.in
+@@ -24,7 +24,7 @@ TM_SUBVERSION
+ PACKAGE="TeXmacs"
+ DEBIAN_NAME="texmacs"
+ DEVEL_VERSION="1.99.5"
+-DEVEL_RELEASE="1"         # I think we should use SVNREV here
++DEVEL_RELEASE=$SVNREV         # actually using SVNREV here
+ STABLE_VERSION="1.99.5"
+ STABLE_RELEASE="1"
+ 
+diff --git a/misc/m4/tm_subversion.m4 b/misc/m4/tm_subversion.m4
+index e9a94db..e5a3ef0 100644
+--- a/misc/m4/tm_subversion.m4
++++ b/misc/m4/tm_subversion.m4
+@@ -11,11 +11,20 @@
+ #
+ #--------------------------------------------------------------------
+ 
++#--------------------------------------------------------------------
++# Retrieve SVN revision number from working dir or fallback file
++#--------------------------------------------------------------------
++
+ AC_DEFUN([TM_SUBVERSION],[
+   AC_MSG_CHECKING(current Subversion revision number)
+   SVNREV=`svnversion -n . 2>/dev/null`
+   SVNREV=${SVNREV/:/_}
+-  if { test "$SVNREV" = "" || test "$SVNREV" = "exported" ; } ; then 
++  if test "$(echo $SVNREV | tr -cd [[:digit:]])" = "" ; 
++  then #contains no digit -> invalid
++  # maybe it was a git mirror repo? (needs git-svn)
++    SVNREV=`git svn log --oneline -1 2>/dev/null | cut -d '|' -f1`
++  fi
++  if test "$(echo $SVNREV | tr -cd [[:digit:]])" = "" ; then
+     SVNREV=`cat $srcdir/SVNREV`
+     AC_MSG_RESULT($SVNREV, read from $srcdir/SVNREV)
+   else 
+diff --git a/packages/windows/TeXmacs.iss.in b/packages/windows/TeXmacs.iss.in
+index c4d9cc7..5705f24 100644
+--- a/packages/windows/TeXmacs.iss.in
++++ b/packages/windows/TeXmacs.iss.in
+@@ -17,7 +17,7 @@
  
  UninstallDisplayIcon={app}\TeXmacs.ico
  OutputDir=..\..\..\distr\windows
@@ -123,7 +141,7 @@ Index: packages/windows/TeXmacs.iss.in
  ; SourceDir=../..
  ChangesAssociations=yes
  
-@@ -34,7 +34,7 @@ Root: HKCR; Subkey: "tmfile\DefaultIcon"; ValueType: string; ValueName: ""; Valu
+@@ -34,7 +34,7 @@
  Root: HKCR; Subkey: "tmfile\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\bin\texmacs.exe"" ""%1""" 
  
  [Files]
@@ -132,11 +150,11 @@ Index: packages/windows/TeXmacs.iss.in
  Source: TeXmacs.ico; DestDir: {app}
  
  [Icons]
-Index: packages/windows/resource.rc.in
-===================================================================
---- a/packages/windows/resource.rc.in	(r√©vision 10606)
-+++ b/packages/windows/resource.rc.in	(copie de travail)
-@@ -31,7 +31,7 @@
+diff --git a/packages/windows/resource.rc.in b/packages/windows/resource.rc.in
+index bcee342..2cf508d 100644
+--- a/packages/windows/resource.rc.in
++++ b/packages/windows/resource.rc.in
+@@ -31,7 +31,7 @@ BEGIN
        VALUE "OriginalFilename", "texmacs.exe\0"
        VALUE "LegalCopyright", "Licensed under GPLv3\0"
        VALUE "ProductName", "TeXmacs\0"

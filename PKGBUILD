@@ -57,12 +57,9 @@ prepare() {
 
   cd "${srcdir}/${_pkgname}-build"
 
-  patch -i ../../qt_m4.patch -p2
-  patch -i ../../raux_win.patch -p0
-  patch -i ../../better-image-i-o.patch -p1
-  patch -i ../../win_unicode.patch -p1
-  patch -i ../../winsparkle.patch -p1
-  patch -i ../../adjust-windows-versioning.patch -p1
+  patch -i ../../winsparkle_config.patch -p1
+  patch -i ../../equation-editor-plugin.patch -p1
+  patch -i ../../windows_unicode_filenames.patch -p1
   sed -i 's|^SVNREV=\${SVNREV/:/_}|SVNREV='${pkgver}'|' configure.in
   autoreconf
 

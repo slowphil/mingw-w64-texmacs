@@ -254,9 +254,7 @@ index 0000000..768d4ba
 +  \;
 +</body>
 diff --git a/TeXmacs/misc/inkscape_extension/texmacs_reedit.py b/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
-old mode 100644
-new mode 100755
-index 55cede1..bb66c99
+index 55cede1..bb66c99 100755
 --- a/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
 +++ b/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
 @@ -2,7 +2,7 @@
@@ -670,7 +668,7 @@ index 55cede1..bb66c99
  
      def remove_temp_files(self):
 diff --git a/TeXmacs/progs/convert/images/tmimage.scm b/TeXmacs/progs/convert/images/tmimage.scm
-index a5dce94..66f715a 100644
+index c749bbc..b808b25 100644
 --- a/TeXmacs/progs/convert/images/tmimage.scm
 +++ b/TeXmacs/progs/convert/images/tmimage.scm
 @@ -3,13 +3,19 @@
@@ -837,14 +835,14 @@ index a5dce94..66f715a 100644
  
 -;; temporary files with extensions
 +(define (baseline-relpos t)
-+;; compute relative position of baseline  
++;; compute relative position of baseline
 +  (number->string (exact->inexact
 +    (/ 
 +      (- 
-+;        (string->number(cadr (box-info (stree->tree `(with "text-at-valign" "bottom" ,t)) "B")))
-+ ;       (string->number(cadr (box-info (stree->tree `(with "text-at-valign" "base" ,t)) "B"))))
-+        (string->number(cadr (box-info (stree->tree `(with "doc-at-valign" "bottom" ,t)) "B")))
-+        (string->number(cadr (box-info (stree->tree `(with "doc-at-valign" "base" ,t)) "B"))))
++        (string->number(cadr (box-info (stree->tree `(with "text-at-valign" "bottom" ,t)) "B")))
++        (string->number(cadr (box-info (stree->tree `(with "text-at-valign" "base" ,t)) "B"))))
++ ;       (string->number(cadr (box-info (stree->tree `(with "doc-at-valign" "bottom" ,t)) "B")))
++  ;      (string->number(cadr (box-info (stree->tree `(with "doc-at-valign" "base" ,t)) "B"))))
 +      (string->number(cadr (box-info t "H")))))))
  
  (define (url-temp-ext ext)
@@ -870,11 +868,20 @@ index a5dce94..66f715a 100644
      (do ((i lastindex (- i 1))) ((= i firstindex))
        (copy-node! (tree-ref node i) parent pos))
      (remove-node! node)
-@@ -76,47 +207,106 @@
-   ;; replace a node's content by a new string.
+@@ -77,46 +208,116 @@
    ;; Makes the node a leaf if it wasn't one
    (tree-assign! leaf (string->tree newtext)))
--
+ 
++(define (selection-trim-ending)
++ 	  	   (if (selection-active-any?)
++	  	     (with st (selection-tree)
++ 	  	       (if (and (not  (tree-atomic? st ))
++	  	                (tree-empty? (tree-ref st :last)))
++	  	         (begin
++	  	           (selection-set
++ 	  	             (selection-get-start)
++ 	  	             (path-previous (root-tree) (selection-get-end)))
++	  	           (selection-trim-ending))))))
 +  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 -;; 2 functions for remapping cross-referenced items (glyphs)
@@ -1010,7 +1017,7 @@ index a5dce94..66f715a 100644
  (define (latex-encode tm-fragment-tree)
    ;; for the latex representation we mimick what is done when
    ;; "copy to latex" is performed
-@@ -129,87 +319,75 @@
+@@ -129,87 +330,80 @@
  (define (tm-encode tm-fragment-tree)
    (escape-to-ascii (serialize-texmacs tm-fragment-tree)))
  
@@ -1121,7 +1128,9 @@ index a5dce94..66f715a 100644
 +      (defs (car (select svgroot '(defs))))
 +      ;; the defs, containing the glyph vector outlines,
 +      ;; hyperlinked from the drawing (a.k.a cloned)
-+      
++      (bgframe (select maingroup '(:* path @ style :%1)))
++      (bgframe (if (null? bgframe) #f (car bgframe)))
++      ;; the solid background we introduced  
 +      ;; 3: the new data we want to insert in the tree
 +      (latex-code (latex-encode tm-fragment))
 +      (tm-code (tm-encode tm-fragment))
@@ -1138,6 +1147,9 @@ index a5dce94..66f715a 100644
 +    )
 +
 +    ;; 4: modify tree
++    ;; 4.0 set the background fully transparent
++    (if (and bgframe (== (tree->string bgframe) " stroke:none;fill-rule:nonzero;fill:rgb(100%,100%,100%);fill-opacity:0.007;")) 
++        (tree-set! bgframe " stroke:none;fill-rule:nonzero;fill:rgb(100%,100%,100%);fill-opacity:0.00"))
 +    ;; 4.1, (optional) simplify svg tree, removing unecessary clips and structures
 +    ;; we don't even try simplifiying if the selection contains an image
 +    ;; as it may have an arbitrarily complex svg structure
@@ -1162,7 +1174,26 @@ index a5dce94..66f715a 100644
      (let* (;; convert back to stree, recreate the *TOP* node,
             ;; and restore *PI* xml
             ;; (instead of *PI* "xml" given by tree->stree -
-@@ -251,59 +429,93 @@
+@@ -238,72 +432,134 @@
+     (set-message "Qt GUI only, sorry. Use \"Export selection...\"" "")
+     (if (not (selection-active-any?))
+       (set-message "no selection!" "")
+-      (let* ((format (get-preference "texmacs->image:format"))
++      (begin (selection-trim-ending)
++        (let* ((format (get-preference "texmacs->image:format"))
+              (tmpurl (url-temp-ext format)))
+-        (export-selection-as-graphics tmpurl)
++          (export-selection-as-graphics tmpurl)
+ 	;; first generate an image file
+-        (graphics-file-to-clipboard tmpurl)
++          (graphics-file-to-clipboard tmpurl)
+ 	;; place that image on the clipboard
+-        (system-remove tmpurl)
+-	))))
++          (system-remove tmpurl)
++	)))))
+ 
+ (tm-define (export-selection-as-graphics myurl)
    (:synopsis "Generates graphics format of the current selection")
    (:argument myurl "A full file url with extension")
    (:returns "nothing")
@@ -1197,47 +1228,74 @@ index a5dce94..66f715a 100644
 +                 (display "in math \n")
 +	             (stree->tree `(math (document ,(selection-tree)))))))
 +          (else (display "other \n")(selection-tree))))
-+
 +;; is selection wider than 1par (and needs linebreaks and or hyphenation)?
 +      (maxwidth (length-decode "1par"))
 +      (partmpt (string-append (number->string maxwidth) "tmpt"))
 +      (parcm (length-add  "0cm" partmpt))
-+      (pagewcm (length-add  "0cm" (string-append (number->string (* (+ 0 (get-page-width #t)) 10)) "tmpt")))
++      (pagewcm (length-add  "0cm" (string-append (number->string (+ 1 (*  (get-page-width #t) 10))) "tmpt")))
 +      ;; get-page-width return dimension in the cpp "SI" unit which seems to be == "10tmpt"
 +;; output scale of image?
 +      (str-scale  (get-preference "texmacs->image:scale"))
 +      (scale (string->number str-scale))
 +
-+;; use math-at/text-at so as to be able to determine the baseline offset
-+;; also if selection wider than par
-+;; we preserve on-screen rendering by encapsulating
-+;; it in a fixed-width table
-+;; FIXME : in some cases output may differ from on-screen rendering (WYSWIGness is not perfect)
++;; We compute the baseline position only if it's a single-line content
++;; This excludes selections begining with 'document
++;; If the selection is a 'concat we need to check if it does not exceed the page width
++;; If the selection is eqnarray(*) compute it only if it has a single line
++;;  (table-nr-rows) works for this!
++      (iseqnarray (match? (tree->stree tm-fragment) '(:or (eqnarray :*) (eqnarray* :*) (:* align* :*))))
++      (simpleeqnarray (and iseqnarray (== 1 (table-nr-rows)))) 
++      (needbaseline 
++        (if (match? (tree->stree tm-fragment) '(document :*)) 
++          #f   
++         (or
++          simpleeqnarray
++          (< (string->number (cadr (box-info tm-fragment "W"))) (length-decode "1par")))))
++;; the baseline calculation is relative to the size of the background
++;; if not fully transparent the background is included in the svg image (otherwise no)
++;; (during svg postprocessing  we'll set the opacity of the background to 0)  
++      (fillcolor (if needbaseline "#ffffff02" "#ffffff00")) ; either slightly opaque or fully transparent white
++
++
++;; if needbaseline use text-at 
++;; otherwise (multiline selection) use doc-at to get proper pagewidth
++      (tm-fragment-formated 
++         (if iseqnarray 
++           `(document (tformat (twith table-hmode min) ,tm-fragment)) ;reduce table width to min, to avoid wide empty frame
++           tm-fragment))
 +      (tm-fragment-formated
++        (if needbaseline
++          (stree->tree `(with "magnify" ,str-scale "page-width" 
++            ,(length-mult scale pagewcm)
++            (text-at 
++             (tabular (tformat 
++                (twith "table-width" ,(length-mult scale parcm))
++                (twith "table-hmode" "min")
++                (twith "table-valign" "B") ;;(=top baseline)
++                (cwith "1" "-1" "1" "-1" "cell-background" ,fillcolor)
++                (cwith "1" "1" "1" "1" "cell-hyphen" "t")
++                (cwith "1" "-1" "1" "-1" "cell-lsep" "0spc")
++                (cwith "1" "-1" "1" "-1" "cell-tsep" "0sep")
++                (cwith "1" "-1" "1" "-1" "cell-rsep" "0spc")
++                (cwith "1" "-1" "1" "-1" "cell-bsep" "0sep")
++                (table (row (cell (document ,tm-fragment))))))
++              (point "0par" "0"))))
 +        (stree->tree `(with "magnify" ,str-scale "page-width" 
-+          ,(length-mult scale pagewcm)
-+           "doc-at-width" ,(length-mult scale parcm) "doc-at-hmode" "min" "doc-at-padding" "0spc";"doc-at-ppsep" "" 
-+             (document-at (document ,tm-fragment) (point "0par" "0")))))
-+;            (text-at 
-+ ;             (tabular (tformat 
-+  ;              (twith "table-width" ,(length-mult scale parcm))
-+   ;             (twith "table-hmode" "min")
-+    ;            (twith "table-valign" "T") ;;(=top baseline)
-+     ;           (cwith "1" "1" "1" "1" "cell-hyphen" "t")
-+      ;          (cwith "1" "-1" "1" "-1" "cell-lsep" "0spc")
-+       ;         (cwith "1" "-1" "1" "-1" "cell-tsep" "0sep")
-+        ;        (cwith "1" "-1" "1" "-1" "cell-rsep" "0spc")
-+         ;       (cwith "1" "-1" "1" "-1" "cell-bsep" "0sep")
-+          ;      (table (row (cell (document ,tm-fragment))))))
-+           ;   (point "0par" "0")))))
-+              
++          ,(length-mult scale pagewcm) 
++          "doc-at-width" ,(length-mult scale parcm) "doc-at-hmode" "min" "doc-at-padding" "0spc";"doc-at-ppsep" "" 
++             (document-at (document ,tm-fragment-formated ) (point "0par" "0"))))))
++
 +;; compute relative position of baseline  
-+    (relbaseline (baseline-relpos tm-fragment-formated))
++      (relbaseline (if needbaseline (baseline-relpos tm-fragment-formated) "0.0"))
++      (tm-fragment-formated
++        (if needbaseline 
++           `(with "text-at-valign" "base" ,tm-fragment-formated)
++           tm-fragment-formated))
 +
 +    (temp1 (url-temp-ext "pdf"))
 +    (suffix (url-suffix myurl)))
 +
-+    (print-snippet temp1 (stree->tree `(with "doc-at-valign" "base" ,tm-fragment-formated)) )
++    (print-snippet temp1 (stree->tree tm-fragment-formated) #t)
  
 -  (if (not (selection-active-any?))
 -      (set-message "no selection!" "")
@@ -1269,7 +1327,7 @@ index a5dce94..66f715a 100644
 -	;;not depend on the printer dpi
 -	;;We need to set this weird dpi value so that the size of the svg
 -	;;produced is about twice that of direct pdf or ps output. Why??
--	(print-snippet temp0 tm-fragment-enforce-pagewidth)
+-	(print-snippet temp0 tm-fragment-enforce-pagewidth #t)
 -	;;typeset fragment to ps as starting point
 -	(set-printer-dpi dpi-pref)
 -	;; revert to preference dpi
@@ -1300,7 +1358,7 @@ index a5dce94..66f715a 100644
 -	  (system-remove temp0) ;; temp pdf file not needed anymore
 -	)))
 diff --git a/TeXmacs/progs/init-texmacs.scm b/TeXmacs/progs/init-texmacs.scm
-index e856e35..e344a4c 100644
+index ba41ec5..a860330 100644
 --- a/TeXmacs/progs/init-texmacs.scm
 +++ b/TeXmacs/progs/init-texmacs.scm
 @@ -328,7 +328,7 @@
@@ -1312,23 +1370,8 @@ index e856e35..e344a4c 100644
               export-selection-as-graphics clipboard-copy-image)
  (lazy-define (convert rewrite init-rewrite) texmacs->code texmacs->verbatim)
  (lazy-define (convert html tmhtml-expand) tmhtml-env-patch)
-diff --git a/TeXmacs/progs/kernel/library/content.scm b/TeXmacs/progs/kernel/library/content.scm
-index b7849d3..b028924 100644
---- a/TeXmacs/progs/kernel/library/content.scm
-+++ b/TeXmacs/progs/kernel/library/content.scm
-@@ -51,7 +51,9 @@
-   (if (string? x) x (tree->string x)))
- 
- (define-public (tm->list x)
--  (if (list? x) x (tree->list x)))
-+  (cond ((list? x) x) 
-+        ((tm-atomic? x) (list x)) ;;we need that case (otherwise tree->list throws "wrong type argument")
-+   (else (tree->list x))))
- 
- (define-public (tm->stree t)
-   (tree->stree (tm->tree t)))
 diff --git a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
-index 6c68efc..8abd465 100644
+index bd6da5e..8f72a37 100644
 --- a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
 +++ b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
 @@ -472,31 +472,7 @@
@@ -1385,10 +1428,10 @@ index 6c68efc..8abd465 100644
            (dynamic (verbatim-preferences-widget))))
 diff --git a/plugins/equation-editor/progs/init-equation-editor.scm b/plugins/equation-editor/progs/init-equation-editor.scm
 new file mode 100644
-index 0000000..99bd03f
+index 0000000..0604b7e
 --- /dev/null
 +++ b/plugins/equation-editor/progs/init-equation-editor.scm
-@@ -0,0 +1,129 @@
+@@ -0,0 +1,134 @@
 +;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 +;;
 +;; MODULE      : init-equation-editor.scm
@@ -1514,12 +1557,17 @@ index 0000000..99bd03f
 +     
 +    (menu-bind texmacs-extra-icons 
 +       ((balloon "Done" "update equation in Inkscape") (equ-edit-done ) )
-+       ((balloon "Cancel" "abandon modifying equation") (equ-edit-cancel )))
++       ((balloon "Cancel" "abandon modifying equation") (equ-edit-cancel ))
++       ((check (balloon "sansSerif" "") "v" (font-sserif?)) (toggle-sserif)))
 +    (show-icon-bar 3 #t)))
++
++(define (font-sserif?) (== (get-init "font-family") "ss"))
++(define (toggle-sserif) 
++  (if (== (get-init "font-family") "ss") (init-default "font-family") (init-env "font-family" "ss")))
 +
 +
 diff --git a/src/System/Boot/init_texmacs.cpp b/src/System/Boot/init_texmacs.cpp
-index 9693613..b2b10b6 100644
+index 8863851..9d2c4d6 100644
 --- a/src/System/Boot/init_texmacs.cpp
 +++ b/src/System/Boot/init_texmacs.cpp
 @@ -365,30 +365,6 @@ init_misc () {
@@ -1529,7 +1577,7 @@ index 9693613..b2b10b6 100644
 -static void
 -setup_inkscape_extension () {
 -debug_boot << "attempt install of inkscape extension \n ";
--#if defined(__MINGW__) || defined(__MINGW32__) || defined (OS_WIN32)
+-#ifdef OS_MINGW
 -  url ink_ext = url ("$APPDATA/inkscape/extensions");
 -#else
 -  url ink_ext = "~/.config/inkscape/extensions/";
