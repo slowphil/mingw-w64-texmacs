@@ -185,9 +185,11 @@ mkdir $BUNDLE_DIR/share/hunspell
 # Add as many as you want
 
 local_lang=$(echo $LANG | cut -d'.' -f1)
-
-dicts="en_US $local_lang"
- 
+if [ "$local_lang" = "en_US" ]; then
+  dicts="en_US"
+else
+  dicts="en_US $local_lang"
+fi 
 echo $dicts
 
 # now fetch dictionaries.
