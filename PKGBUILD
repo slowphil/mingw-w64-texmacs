@@ -200,19 +200,23 @@ cd $BUNDLE_DIR/share/hunspell
 
 lang_list=
 for dic in $dicts ; do
-  lang_list="$lang_list $(locale -av | grep -A2 -m1 $dic | sed -n -e 's/^ language | //p' | tr '[A-Z]' '[a-z]')"
-  svn export svn://svn.lyx.org/lyx/dictionaries/trunk/dicts/${dic}.dic ./
-  svn export svn://svn.lyx.org/lyx/dictionaries/trunk/dicts/${dic}.aff ./
+  if test "$(svn export --force svn://svn.lyx.org/lyx/dictionaries/trunk/dicts/${dic}.dic ./ )"; then
+    lang_list="$lang_list $(locale -av | grep -A2 -m1 $dic | sed -n -e 's/^ language | //p' | tr '[A-Z]' '[a-z]')"
+    svn export --force  svn://svn.lyx.org/lyx/dictionaries/trunk/dicts/${dic}.aff ./
+  else
+    echo "Cannot download dictionary $dic , sorry"
+  fi
 done
-
 lang_list=$(echo $lang_list | sed -n -e 's/english/american/p')
 
 # now fetch dictionaries' licences and doc.
 # if the dictionary documentation & licence is not included properly
 # then define the language list ($lang_list) manually (not much work anyway)
 
+echo "$lang_list"
+
 for language in $lang_list ; do
-  svn export "svn://svn.lyx.org/lyx/dictionaries/trunk/dicts/info/${language}" ./$language
+  svn export --force "svn://svn.lyx.org/lyx/dictionaries/trunk/dicts/info/${language}" ./$language
 done
 
 if test -f /build/inno/inno_setup/ISCC.exe ; then
