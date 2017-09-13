@@ -181,14 +181,14 @@ mkdir $BUNDLE_DIR/share
 mkdir $BUNDLE_DIR/share/hunspell
 
 # list of dictionaries languages that will be packaged 
-# (the last one is that of the language of the current session)
-# Add as many as you want
+# Add as many as you want separated by spaces : dicts="en_US fr_FR en_GB"
+# (the language of the current session is automatically added to the list)
 
+
+dicts="en_Us" 
 local_lang=$(echo $LANG | cut -d'.' -f1)
-if [ "$local_lang" = "en_US" ]; then
-  dicts="en_US"
-else
-  dicts="en_US $local_lang"
+if [[ $dicts != *"$local_lang"* ]]; then
+  dicts="$dicts $local_lang"
 fi 
 echo $dicts
 
