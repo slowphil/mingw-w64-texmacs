@@ -1,11 +1,8 @@
---- a/misc/m4/poppler.m4  (révision 10813)
+--- a/misc/m4/poppler.m4  (révision 10815)
 +++ b/misc/m4/poppler.m4  (copie de travail)
-@@ -11,9 +11,11 @@
- #
- #--------------------------------------------------------------------
+@@ -13,7 +13,9 @@
 
--m4_define([PopplerLibs],[-lpoppler-qt4 -lpoppler -lQtXml])
-+m4_define([PopplerLibs],[-lpoppler-qt4 -lpoppler -lQtXml4])
+ m4_define([PopplerLibs],[-lpoppler-qt4 -lpoppler])
  AC_DEFUN([LM_POPPLER],[
 -  AC_LANG_PROGRAM([[#include "poppler/qt4/poppler-qt4.h"]],[[
 +  AC_LANG_PROGRAM([[#include "poppler/qt4/poppler-qt4.h"
