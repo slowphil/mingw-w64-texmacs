@@ -57,6 +57,7 @@ prepare() {
 
   cd "${srcdir}/${_pkgname}-build"
 
+  patch -i ../../temp.patch -p1
   patch -i ../../winsparkle_config.patch -p1
   patch -i ../../equation-editor-plugin.patch -p1
   patch -i ../../windows_unicode_filenames.patch -p1
