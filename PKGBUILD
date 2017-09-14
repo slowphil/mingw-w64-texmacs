@@ -186,7 +186,7 @@ mkdir $BUNDLE_DIR/share/hunspell
 # (the language of the current session is automatically added to the list)
 
 
-dicts="en_Us" 
+dicts="en_US" 
 local_lang=$(echo $LANG | cut -d'.' -f1)
 if [[ $dicts != *"$local_lang"* ]]; then
   dicts="$dicts $local_lang"
