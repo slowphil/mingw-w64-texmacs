@@ -668,7 +668,7 @@ index 55cede1..bb66c99 100755
  
      def remove_temp_files(self):
 diff --git a/TeXmacs/progs/convert/images/tmimage.scm b/TeXmacs/progs/convert/images/tmimage.scm
-index c749bbc..b808b25 100644
+index c749bbc..ffd5cce 100644
 --- a/TeXmacs/progs/convert/images/tmimage.scm
 +++ b/TeXmacs/progs/convert/images/tmimage.scm
 @@ -3,13 +3,19 @@
@@ -780,20 +780,20 @@ index c749bbc..b808b25 100644
 +  (refreshable "svg-configutation"
 +    (aligned
 +      (item (text "Bitmap resolution (dpi):")
-+        (enum (set-pretty-preference "texmacs->image:raster-resolution" answer)
-+            '("600" "300" "150" "")
-+            (get-pretty-preference "texmacs->image:raster-resolution")
-+            "5em")) 
++        (enum (set-preference "texmacs->image:raster-resolution" answer)
++	      '("1200" "600" "300" "150" "")
++	      (get-preference "texmacs->image:raster-resolution")
++	      "5em"))
 +      (item (text "Clipboard image format:")
 +        (enum (set-pretty-preference "texmacs->image:format" answer)
-+            (pretty-format-list)
-+            (get-pretty-preference "texmacs->image:format")
-+            "5em"))
++	      (pretty-format-list)
++	      (get-pretty-preference "texmacs->image:format")
++          "5em"))
 +	  (item (text "Output scale factor:")
 +        (enum (set-pretty-preference "texmacs->image:scale" answer)
-+            '("1" "1.5" "2" "")
-+            (get-pretty-preference "texmacs->image:scale")
-+            "5em"))) 
++          '("1" "1.5" "2" "")
++          (get-pretty-preference "texmacs->image:scale")
++          "5em"))) 
 +    
 +    ======
 +  (bold (text "Configure TeXmacs as equation editor external programs"))
@@ -1371,7 +1371,7 @@ index ba41ec5..a860330 100644
  (lazy-define (convert rewrite init-rewrite) texmacs->code texmacs->verbatim)
  (lazy-define (convert html tmhtml-expand) tmhtml-env-patch)
 diff --git a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
-index bd6da5e..8f72a37 100644
+index 97e4791..8f72a37 100644
 --- a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
 +++ b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
 @@ -472,31 +472,7 @@
@@ -1394,15 +1394,15 @@ index bd6da5e..8f72a37 100644
 -  ===
 -  (aligned
 -      (item (text "Bitmap resolution (dpi):")
--        (enum (set-pretty-preference "texmacs->image:raster-resolution" answer)
--            '("600" "300" "150" "")
--            (get-pretty-preference "texmacs->image:raster-resolution")
--            "5em")) 
+-        (enum (set-preference "texmacs->image:raster-resolution" answer)
+-	      '("1200" "600" "300" "150" "")
+-	      (get-preference "texmacs->image:raster-resolution")
+-	      "5em"))
 -      (item (text "Clipboard image format:")
 -        (enum (set-pretty-preference "texmacs->image:format" answer)
--            (pretty-format-list)
--            (get-pretty-preference "texmacs->image:format")
--            "5em"))))
+-	      (pretty-format-list)
+-	      (get-pretty-preference "texmacs->image:format")
+-	      "5em"))))
 +;; see module convert images tmimage.scm
  
  ;; All converters ----------

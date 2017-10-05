@@ -11,3 +11,17 @@
      Poppler::Document::load("Dummy");
    ]])
  ])
+--- a/misc/m4/tm_windows.m4
++++ b/misc/m4/tm_windows.m4
+@@ -17,8 +17,10 @@ AC_DEFUN([TM_WINDOWS],[
+       AS_HELP_STRING([--enable-console], [enable windows console]))
+     if test "$enableval" = yes
+     then  AC_MSG_RESULT([enabling Windows console])
++#for png needed since update to Hummus 3.9
++          LC_SCATTER_FLAGS([-lpng])
+     else  AC_MSG_RESULT([disabling Windows console])
+-          LC_SCATTER_FLAGS([-mwindows])
++          LC_SCATTER_FLAGS([-mwindows -lpng])
+     fi
+   fi
+ ])
