@@ -65,6 +65,9 @@ prepare() {
   autoreconf
 
   sed -i 's|#! /bin/sh|#! /bin/bash|' configure
+  # get exes that are no longer in current svn but still needed
+  wget "https://svn.savannah.gnu.org/viewvc/*checkout*/texmacs/trunk/src/packages/windows/FullName.exe?revision=10851&pathrev=10851" -O packages/windows/FullName.exe
+  wget "https://svn.savannah.gnu.org/viewvc/*checkout*/texmacs/trunk/src/packages/windows/winwallet.exe?revision=10851&pathrev=10851" -O packages/windows/winwallet.exe
 }
 
 build() {
