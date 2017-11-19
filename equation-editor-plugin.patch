@@ -685,7 +685,7 @@ index 55cede1..7e28fdf 100755
  
      def remove_temp_files(self):
 diff --git a/TeXmacs/progs/convert/images/tmimage.scm b/TeXmacs/progs/convert/images/tmimage.scm
-index c749bbc..ac18bb5 100644
+index c749bbc..8f27cc5 100644
 --- a/TeXmacs/progs/convert/images/tmimage.scm
 +++ b/TeXmacs/progs/convert/images/tmimage.scm
 @@ -3,13 +3,19 @@
@@ -730,11 +730,11 @@ index c749bbc..ac18bb5 100644
 +
 +(define (pretty-format-list)
 +  (let* ((desired-image-format-list '(("svg" "Svg")  ("eps" "Eps")
-+           ("png" "Png")("tif" "Tiff") ("jpg" "Jpeg")))
++           ("png" "Png")("tif" "Tiff") ("jpg" "Jpeg") ("pdf" "Pdf")))
 +         (valid-image-format-list 
-+           (filter (lambda (x) (file-converter-exists? "x.pdf" (string-append "y." (car x)) ))
++           (filter (lambda (x) (file-converter-exists? "x.pdf" (string-append "x." (car x))))
 +             desired-image-format-list)))
-+   (eval `(define-preference-names "texmacs->image:format" ,@ valid-image-format-list))
++   (eval `(define-preference-names "texmacs->image:format" ,@valid-image-format-list))
 +   (cadr (apply map list valid-image-format-list))))
 +
 +(define (svg-converter-available)
@@ -1389,7 +1389,7 @@ index ba41ec5..a860330 100644
  (lazy-define (convert rewrite init-rewrite) texmacs->code texmacs->verbatim)
  (lazy-define (convert html tmhtml-expand) tmhtml-env-patch)
 diff --git a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
-index bd6da5e..8f72a37 100644
+index 4591497..8f72a37 100644
 --- a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
 +++ b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
 @@ -472,31 +472,7 @@
@@ -1399,11 +1399,11 @@ index bd6da5e..8f72a37 100644
 -
 -(define (pretty-format-list)
 -  (let* ((desired-image-format-list '(("svg" "Svg")  ("eps" "Eps")
--           ("png" "Png")("tif" "Tiff") ("jpg" "Jpeg")))
+-           ("png" "Png")("tif" "Tiff") ("jpg" "Jpeg") ("pdf" "Pdf")))
 -         (valid-image-format-list 
--           (filter (lambda (x) (file-converter-exists? "x.pdf" (string-append "y." (car x)) ))
+-           (filter (lambda (x) (file-converter-exists? "x.pdf" (string-append "x." (car x))))
 -             desired-image-format-list)))
--   (eval `(define-preference-names "texmacs->image:format" ,@ valid-image-format-list))
+-   (eval `(define-preference-names "texmacs->image:format" ,@valid-image-format-list))
 -   (cadr (apply map list valid-image-format-list))))
 -
 -(tm-widget (image-preferences-widget)

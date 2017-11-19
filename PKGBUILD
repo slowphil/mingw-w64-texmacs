@@ -57,7 +57,7 @@ prepare() {
 
   cd "${srcdir}/${_pkgname}-build"
 
-  patch -i ../../temp.patch -p1
+  #patch -i ../../temp.patch -p1
   patch -i ../../winsparkle_config.patch -p1
   patch -i ../../equation-editor-plugin.patch -p1
   patch -i ../../windows_unicode_filenames.patch -p1
@@ -66,8 +66,8 @@ prepare() {
 
   sed -i 's|#! /bin/sh|#! /bin/bash|' configure
   # get exes that are no longer in current svn but still needed
-  wget "https://svn.savannah.gnu.org/viewvc/*checkout*/texmacs/trunk/src/packages/windows/FullName.exe?revision=10851&pathrev=10851" -O packages/windows/FullName.exe
-  wget "https://svn.savannah.gnu.org/viewvc/*checkout*/texmacs/trunk/src/packages/windows/winwallet.exe?revision=10851&pathrev=10851" -O packages/windows/winwallet.exe
+  wget "https://svn.savannah.gnu.org/viewvc/*checkout*/texmacs/trunk/src/packages/windows/FullName.exe?revision=10795&pathrev=10795" -O packages/windows/FullName.exe
+  wget "https://svn.savannah.gnu.org/viewvc/*checkout*/texmacs/trunk/src/packages/windows/winwallet.exe?revision=10795&pathrev=10795" -O packages/windows/winwallet.exe
 }
 
 build() {
@@ -82,10 +82,11 @@ build() {
     --with-guile="/mingw32/bin/guile-config" \
     --with-qt="/mingw32/bin/" \
     --with-sparkle="/build/winsparkle" \
-    #--enable-console \
+    --enable-console \
     #--enable-debug  # must not strip in this case (line 37 and 159) !!
 
   make -j$(nproc)
+
 }
 
 package() {
@@ -131,7 +132,8 @@ DEPS="/mingw32/bin/pdftocairo.exe \
  /mingw32/bin/hunspell.exe \
  /mingw32/bin/gswin32c.exe \
  /mingw32/bin/wget.exe \
- /build/winsparkle/WinSparkle.dll "
+ /build/winsparkle/WinSparkle.dll
+ /build/SumatraPDF/SumatraPDF.exe  "
 
 PROGS="$DEPS  $TM_BUILD_DIR/TeXmacs/bin/texmacs.bin"
 
