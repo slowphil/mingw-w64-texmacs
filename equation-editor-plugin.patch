@@ -685,7 +685,7 @@ index 55cede1..7e28fdf 100755
  
      def remove_temp_files(self):
 diff --git a/TeXmacs/progs/convert/images/tmimage.scm b/TeXmacs/progs/convert/images/tmimage.scm
-index c749bbc..8f27cc5 100644
+index 57a6188..679c1ca 100644
 --- a/TeXmacs/progs/convert/images/tmimage.scm
 +++ b/TeXmacs/progs/convert/images/tmimage.scm
 @@ -3,13 +3,19 @@
@@ -709,7 +709,7 @@ index c749bbc..8f27cc5 100644
  
  (texmacs-module (convert images tmimage)
    (:use (convert tmml tmmlout)
-@@ -18,29 +24,153 @@
+@@ -18,28 +24,153 @@
  ;; (display "Texmacs] Loading module tmimage\n")
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -722,19 +722,19 @@ index c749bbc..8f27cc5 100644
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  (define-preferences
+-  ("texmacs->image:format" "svg" noop))
 +  ("texmacs->image:format" "svg" noop)
 +  ("texmacs->image:scale" "2.0" noop)
-   ("texmacs->image:raster-resolution" "300" noop)
--  ("texmacs->image:format" "svg" noop))
++  ("texmacs->image:raster-resolution" "300" noop)
 +  ("equation-editor-server" "off" noop))
 +
 +(define (pretty-format-list)
 +  (let* ((desired-image-format-list '(("svg" "Svg")  ("eps" "Eps")
-+           ("png" "Png")("tif" "Tiff") ("jpg" "Jpeg") ("pdf" "Pdf")))
++           ("png" "Png")("tif" "Tiff") ("jpg" "Jpeg")))
 +         (valid-image-format-list 
-+           (filter (lambda (x) (file-converter-exists? "x.pdf" (string-append "x." (car x))))
++           (filter (lambda (x) (file-converter-exists? "x.pdf" (string-append "y." (car x)) ))
 +             desired-image-format-list)))
-+   (eval `(define-preference-names "texmacs->image:format" ,@valid-image-format-list))
++   (eval `(define-preference-names "texmacs->image:format" ,@ valid-image-format-list))
 +   (cadr (apply map list valid-image-format-list))))
 +
 +(define (svg-converter-available)
@@ -873,7 +873,7 @@ index c749bbc..8f27cc5 100644
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;; commodity functions for tree manipulations
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@@ -65,8 +195,9 @@
+@@ -64,8 +195,9 @@
    ;; similar to "remove tag" operation in the editor
    (let* ((parent (tree-ref node :up))
           (pos (+ (tree-index node) 1))
@@ -885,7 +885,7 @@ index c749bbc..8f27cc5 100644
      (do ((i lastindex (- i 1))) ((= i firstindex))
        (copy-node! (tree-ref node i) parent pos))
      (remove-node! node)
-@@ -77,46 +208,117 @@
+@@ -76,46 +208,117 @@
    ;; Makes the node a leaf if it wasn't one
    (tree-assign! leaf (string->tree newtext)))
  
@@ -1035,7 +1035,7 @@ index c749bbc..8f27cc5 100644
  (define (latex-encode tm-fragment-tree)
    ;; for the latex representation we mimick what is done when
    ;; "copy to latex" is performed
-@@ -129,87 +331,80 @@
+@@ -128,87 +331,80 @@
  (define (tm-encode tm-fragment-tree)
    (escape-to-ascii (serialize-texmacs tm-fragment-tree)))
  
@@ -1192,7 +1192,7 @@ index c749bbc..8f27cc5 100644
      (let* (;; convert back to stree, recreate the *TOP* node,
             ;; and restore *PI* xml
             ;; (instead of *PI* "xml" given by tree->stree -
-@@ -238,72 +433,134 @@
+@@ -237,72 +433,134 @@
      (set-message "Qt GUI only, sorry. Use \"Export selection...\"" "")
      (if (not (selection-active-any?))
        (set-message "no selection!" "")
@@ -1376,10 +1376,10 @@ index c749bbc..8f27cc5 100644
 -	  (system-remove temp0) ;; temp pdf file not needed anymore
 -	)))
 diff --git a/TeXmacs/progs/init-texmacs.scm b/TeXmacs/progs/init-texmacs.scm
-index ba41ec5..a860330 100644
+index d13a6b2..85baee9 100644
 --- a/TeXmacs/progs/init-texmacs.scm
 +++ b/TeXmacs/progs/init-texmacs.scm
-@@ -328,7 +328,7 @@
+@@ -329,7 +329,7 @@
  (lazy-format (convert bibtex init-bibtex) bibtex)
  (lazy-format (convert images init-images)
               postscript pdf xfig xmgrace svg xpm jpeg ppm gif png pnm)
@@ -1389,11 +1389,11 @@ index ba41ec5..a860330 100644
  (lazy-define (convert rewrite init-rewrite) texmacs->code texmacs->verbatim)
  (lazy-define (convert html tmhtml-expand) tmhtml-env-patch)
 diff --git a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
-index 4591497..8f72a37 100644
+index 58383ff..8091fd7 100644
 --- a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
 +++ b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
-@@ -472,31 +472,7 @@
-               (get-boolean-preference "texmacs->pdf:check")))))
+@@ -475,31 +475,7 @@
+ 		(get-boolean-preference "texmacs->pdf:check"))))))
  
  ;; Images ----------
 -
@@ -1425,7 +1425,7 @@ index 4591497..8f72a37 100644
  
  ;; All converters ----------
  
-@@ -504,15 +480,15 @@
+@@ -507,15 +483,15 @@
    ===
    (padded
      (tabs
