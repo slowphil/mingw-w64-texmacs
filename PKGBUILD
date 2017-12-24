@@ -57,7 +57,7 @@ prepare() {
 
   cd "${srcdir}/${_pkgname}-build"
 
-  patch -i ../../temp2.patch -p1
+  #patch -i ../../temp2.patch -p1
   patch -i ../../winsparkle_config.patch -p1
   patch -i ../../equation-editor-plugin.patch -p1
   patch -i ../../windows_unicode_filenames.patch -p1
@@ -82,9 +82,10 @@ build() {
     --with-guile="/mingw32/bin/guile-config" \
     --with-qt="/mingw32/bin/" \
     --with-sparkle="/build/winsparkle" \
-    --enable-console \
+    #--enable-console \
     #--enable-debug  # must not strip in this case (line 37 and 159) !!
-
+    
+  echo "#define GS_EXE \"bin/gswin32c.exe\"" >> src/System/tm_configure.hpp
   make -j$(nproc)
 
 }
