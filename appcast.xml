@@ -5,7 +5,19 @@
         <description>Most recent releases for TeXmacs on Windows</description>
         <language>en</language>
         <item>
-            <title>Latest : Version 1.99.5.svn10605+extras</title>
+            <title>Latest : Version 1.99.6.svn10980+extras</title>
+            <sparkle:releaseNotesLink>
+                https://raw.githubusercontent.com/slowphil/mingw-w64-texmacs/master/changelog.html
+            </sparkle:releaseNotesLink>
+            <pubDate>Sun, 24 Dec 2017 13:05:00 +0100</pubDate>
+            <enclosure url="https://github.com/slowphil/mingw-w64-texmacs/releases/download/svn10980%2Bextras/TeXmacs_installer-1.99.6.svn10980.extras.exe"
+                       sparkle:version="1.99.6.svn10980+extras"
+                       length="0"
+                       type="application/octet-stream" />
+        </item>
+
+        <item>
+            <title>Version 1.99.5.svn10605+extras</title>
             <sparkle:releaseNotesLink>
                 https://raw.githubusercontent.com/slowphil/mingw-w64-texmacs/master/changelog.html
             </sparkle:releaseNotesLink>
