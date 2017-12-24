@@ -1,0 +1,11 @@
+--- a/src/Plugins/Ghostscript/gs_utilities.cpp
++++ b/src/Plugins/Ghostscript/gs_utilities.cpp
+@@ -11,7 +11,7 @@
+ 
+ #include "tm_configure.hpp"
+ #ifdef USE_GS
+-
++#define GS_EXE "bin\\gswin32c.exe"
+ #include "gs_utilities.hpp"
+ #include "analyze.hpp"
+ #include "file.hpp"
