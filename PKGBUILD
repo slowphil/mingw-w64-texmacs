@@ -2,6 +2,7 @@
 # archlinux Maintainer: Ronald van Haren <ronald.archlinux.org>
 # Contributor: Damir Perisa <damir.perisa@bluewin.ch> # Contributor: Christopher Reimer <c.reimer1993@gmail.com>
 # Contributor: wangjiezhe <wangjiezhe AT yandex DOT com>
+# Contributor: Karl Hegbloom <karl.hegbloom@gmail.com>
 
 _realname=texmacs
 pkgbase=mingw-w64-${_realname}
@@ -179,9 +180,20 @@ for PLUGIN in $QT_NEEDED_PLUGINS_LIST ; do
   cp -r -f -u /mingw32/share/qt4/plugins/$PLUGIN $BUNDLE_DIR/bin
 done
 
-# pick up ice-9 for guile
+# pick up libraries for guile-1.8
 export GUILE_LOAD_PATH="${MINGW_PREFIX}/share/guile/1.8"
-find `guile-config info pkgdatadir` -type d -name ice-9 -exec cp -r -f {} $BUNDLE_DIR/progs/ \;
+find $GUILE_LOAD_PATH -maxdepth 1 -mindepth 1 -type d \
+     ! -name scripts \
+     -exec cp -r -f {} $BUNDLE_DIR/progs/ \;
+find ${MINGW_PREFIX}/bin -maxdepth 1 -mindepth 1 -type f \
+     \( -name 'libguilereadline-*.dll' -o \
+        -name 'libguile-srfi-srfi-1-*.dll' -o \
+        -name 'libguile-srfi-srfi-4-*.dll' -o \
+	      -name 'libguile-srfi-srfi-13-14-*.dll' -o \
+        -name 'libguile-srfi-srfi-60-*.dll' -o \
+        -name 'libguile-[0-9][0-9].dll' \
+     \) -exec cp -p {} $BUNDLE_DIR/bin/ \;
+
 
 # create dir where hunspell looks for dictionaries
 mkdir $BUNDLE_DIR/share
