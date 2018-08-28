@@ -34,7 +34,7 @@ index d43e65a..03bd2fc 100644
            (else (build-disambiguation-page l)))))
  
 diff --git a/TeXmacs/progs/texmacs/menus/file-menu.scm b/TeXmacs/progs/texmacs/menus/file-menu.scm
-index bd37912..f3093ed 100644
+index fdcafaf..6153645 100644
 --- a/TeXmacs/progs/texmacs/menus/file-menu.scm
 +++ b/TeXmacs/progs/texmacs/menus/file-menu.scm
 @@ -27,8 +27,8 @@
@@ -49,18 +49,9 @@ index bd37912..f3093ed 100644
                (== (current-buffer) name))
         (switch-to-buffer name)))))
 diff --git a/TeXmacs/progs/texmacs/texmacs/tm-files.scm b/TeXmacs/progs/texmacs/texmacs/tm-files.scm
-index a878ead..0c77b80 100644
+index 573bcd1..c0b46bd 100644
 --- a/TeXmacs/progs/texmacs/texmacs/tm-files.scm
 +++ b/TeXmacs/progs/texmacs/texmacs/tm-files.scm
-@@ -140,7 +140,7 @@
- 
- (define (save-buffer-save name opts)
-   ;;(display* "save-buffer-save " name "\n")
--  (with vname `(verbatim ,(url->system name))
-+  (with vname `(verbatim ,(utf8->cork (url->system name)))
-     (if (buffer-save name)
-         (begin
-           (buffer-pretend-modified name)
 @@ -162,7 +162,7 @@
              (save-buffer-save name opts))))))
  
@@ -124,7 +115,7 @@ index a878ead..0c77b80 100644
      (cond ((not (url-test? name "f"))
             (with msg `(concat "The file " ,vname " does not exist")
               (set-message msg "Import file")))
-@@ -624,4 +624,4 @@
+@@ -631,4 +631,4 @@
  
  (tm-define (kill-buffer)
    (deprecated-function "kill-buffer" "buffer-close")
@@ -183,24 +174,24 @@ index 669f900..84acf62 100644
      if (s == "") {
        set_message (concat ("File '", vim, "' not found"), "make image");
 diff --git a/src/Plugins/Pdf/pdf_hummus_renderer.cpp b/src/Plugins/Pdf/pdf_hummus_renderer.cpp
-index 0007fc2..98dcfb8 100644
+index 141b63e..6353406 100644
 --- a/src/Plugins/Pdf/pdf_hummus_renderer.cpp
 +++ b/src/Plugins/Pdf/pdf_hummus_renderer.cpp
-@@ -303,13 +303,7 @@ pdf_hummus_renderer_rep::pdf_hummus_renderer_rep (
-   // setup library
- 
-   EStatusCode status;
+@@ -312,13 +312,7 @@ pdf_hummus_renderer_rep::pdf_hummus_renderer_rep (
+   if (version == "1.7") ePDFVersion= ePDFVersion17;
+   LogConfiguration log= LogConfiguration::DefaultLogConfiguration();
+   PDFCreationSettings settings (true, true); //, EncryptionOptions("user", 4, "owner"));
 -#if (defined (__MINGW__) || defined (__MINGW32__))
 -    // WIN is using 8bit encodings, but pdfwriter expects UTF8
 -    // if path or file contains non-ascii characters we need an extra conversion step. 
--    status = pdfWriter.StartPDF(as_charp(western_to_utf8(concretize (pdf_file_name))), ePDFVersion14 ); // PDF 1.4 for alpha
+-    status = pdfWriter.StartPDF(as_charp(western_to_utf8(concretize (pdf_file_name))), ePDFVersion, log, settings);
 -#else
- 	status = pdfWriter.StartPDF(as_charp(concretize (pdf_file_name)), ePDFVersion14 ); // PDF 1.4 for alpha
+     status = pdfWriter.StartPDF(as_charp(concretize (pdf_file_name)), ePDFVersion, log, settings);
 -#endif  
- 	//   , LogConfiguration(true, true, "/Users/mgubi/Desktop/pdfwriter-x.log")
- 	//   , PDFCreationSettings(false) ); // true = compression on
  	if (status != PDFHummus::eSuccess) {
-@@ -1195,13 +1189,7 @@ pdf_hummus_renderer_rep::make_pdf_font (string fontname)
+ 		convert_error << "failed to start PDF\n";
+ 		started=false;
+@@ -1202,13 +1196,7 @@ pdf_hummus_renderer_rep::make_pdf_font (string fontname)
      PDFUsedFont* font;
      {
        //debug_convert << "GetFontForFile "  << u  << LF;
@@ -214,19 +205,19 @@ index 0007fc2..98dcfb8 100644
        font = pdfWriter.GetFontForFile((char*)_u);
        //tm_delete_array(_rname);
      }
-@@ -1545,11 +1533,7 @@ pdf_image_rep::flush (PDFWriter& pdfw)
+@@ -1567,11 +1555,7 @@ pdf_image_rep::flush (PDFWriter& pdfw)
    EStatusCode status = PDFHummus::eFailure;
    DocumentContext& dc = pdfw.GetDocumentContext();
-   
--#if (defined (__MINGW__) || defined (__MINGW32__))
--  PDFDocumentCopyingContext *copyingContext = pdfw.CreatePDFCopyingContext(as_charp(western_to_utf8(concretize(temp))));
+ 
+-#if (defined (__MINGW__) || defined (__MINGW32__))  
+-  char* _temp= as_charp(western_to_utf8(concretize(temp)));
 -#else
-   PDFDocumentCopyingContext *copyingContext = pdfw.CreatePDFCopyingContext(as_charp(concretize(temp)));
--#endif  
+   char* _temp= as_charp(concretize(temp));
+-#endif
+   PDFDocumentCopyingContext *copyingContext = pdfw.CreatePDFCopyingContext(_temp);
    if(copyingContext) {
- 	  PDFPageInput pageInput(copyingContext->GetSourceDocumentParser(),
-                                        copyingContext->GetSourceDocumentParser()->ParsePage(0));
-@@ -1574,11 +1558,7 @@ void
+     PDFPageInput pageInput(copyingContext->GetSourceDocumentParser(),
+@@ -1601,11 +1585,7 @@ void
  hummus_pdf_image_size (url image, int& w, int& h) {
    InputFile pdfFile;
    PDFParser* parser= new PDFParser();
@@ -291,15 +282,15 @@ index e9f41ec..cb244fd 100644
          file = "(list " * file * imgdialog->getParamsAsString () * ")"; //set image size from preview
  #else //MacOs only now
 diff --git a/src/Plugins/Qt/qt_picture.cpp b/src/Plugins/Qt/qt_picture.cpp
-index 875ac8b..0ea95be 100644
+index f53f565..6bf423f 100644
 --- a/src/Plugins/Qt/qt_picture.cpp
 +++ b/src/Plugins/Qt/qt_picture.cpp
-@@ -156,11 +156,11 @@ QImage*
+@@ -157,11 +157,11 @@ QImage*
  get_image (url u, int w, int h) {
    QImage *pm = NULL;
    if (qt_supports (u))
--    pm= new QImage (os8bits_to_qstring (concretize (u))); 
-+    pm= new QImage (utf8_to_qstring (concretize (u))); 
+-    pm= new QImage (os8bits_to_qstring (concretize (u)));
++    pm= new QImage (utf8_to_qstring (concretize (u)));
    else {
      url temp= url_temp (".png");
      image_to_png (u, temp, w, h);
@@ -308,6 +299,13 @@ index 875ac8b..0ea95be 100644
      remove (temp);
    }
    if (pm == NULL || pm->isNull ()) {
+@@ -215,5 +215,5 @@ qt_apply_effect (tree eff, array<url> src, url dest, int w, int h) {
+   picture t= e->apply (a, PIXEL);
+   picture q= as_qt_picture (t);
+   qt_picture_rep* pict= (qt_picture_rep*) q->get_handle ();
+-  pict->pict.save (os8bits_to_qstring (concretize (dest)));
++  pict->pict.save (utf8_to_qstring (concretize (dest)));
+ }
 diff --git a/src/Plugins/Qt/qt_sys_utils.cpp b/src/Plugins/Qt/qt_sys_utils.cpp
 index a2c544f..08a0e64 100644
 --- a/src/Plugins/Qt/qt_sys_utils.cpp
@@ -322,7 +320,7 @@ index a2c544f..08a0e64 100644
    QString qcmd = "sh -c \"";
    qcmd += _cmd;
 diff --git a/src/Plugins/Qt/qt_utilities.cpp b/src/Plugins/Qt/qt_utilities.cpp
-index a3e97c2..4c65724 100644
+index c155d6a..d912ed7 100644
 --- a/src/Plugins/Qt/qt_utilities.cpp
 +++ b/src/Plugins/Qt/qt_utilities.cpp
 @@ -318,31 +318,6 @@ from_qstring_utf8 (const QString &s) {
@@ -394,7 +392,7 @@ index a3e97c2..4c65724 100644
    if (im.isNull ()) {
      convert_error << "Cannot read image file '" << image << "'"
      << " in qt_image_to_pdf" << LF;
-@@ -731,6 +706,9 @@ qt_translate (const string& s) {
+@@ -716,6 +691,9 @@ qt_translate (const string& s) {
  string
  qt_application_directory () {
    return string (QCoreApplication::applicationDirPath().toLatin1().constData());
@@ -3817,7 +3815,7 @@ index 0000000..0e69e25
 +#endif
 + #define putenv nowide::putenv
 diff --git a/src/System/Boot/init_texmacs.cpp b/src/System/Boot/init_texmacs.cpp
-index 9d2c4d6..518b167 100644
+index 4f35e81..b5dea7a 100644
 --- a/src/System/Boot/init_texmacs.cpp
 +++ b/src/System/Boot/init_texmacs.cpp
 @@ -20,6 +20,7 @@
@@ -3996,7 +3994,7 @@ index 3741fd2..87894ef 100644
  #else
  #ifdef OS_MINGW
 diff --git a/src/System/Files/tm_ostream.cpp b/src/System/Files/tm_ostream.cpp
-index 91847b2..8d18056 100644
+index ce87c94..42b588d 100644
 --- a/src/System/Files/tm_ostream.cpp
 +++ b/src/System/Files/tm_ostream.cpp
 @@ -11,7 +11,13 @@
@@ -4053,7 +4051,7 @@ index 91847b2..8d18056 100644
  
  void
 diff --git a/src/System/Misc/sys_utils.cpp b/src/System/Misc/sys_utils.cpp
-index 54b95ca..a44c1bd 100644
+index 13f8fb6..fcd829d 100644
 --- a/src/System/Misc/sys_utils.cpp
 +++ b/src/System/Misc/sys_utils.cpp
 @@ -17,6 +17,7 @@
@@ -4074,10 +4072,10 @@ index 54b95ca..a44c1bd 100644
      if (var == "PWD") return get_env ("HOME");
      return "";
 diff --git a/src/Texmacs/Texmacs/texmacs.cpp b/src/Texmacs/Texmacs/texmacs.cpp
-index 36480f7..82f41a1 100644
+index 61d155b..7134e28 100644
 --- a/src/Texmacs/Texmacs/texmacs.cpp
 +++ b/src/Texmacs/Texmacs/texmacs.cpp
-@@ -35,6 +35,10 @@ void mac_fix_paths ();
+@@ -36,6 +36,10 @@ void mac_fix_paths ();
  #include <QDir>
  #endif
  
@@ -4088,7 +4086,7 @@ index 36480f7..82f41a1 100644
  #ifdef MACOSX_EXTENSIONS
  #include "MacOS/mac_utilities.h"
  #endif
-@@ -502,9 +506,11 @@ void
+@@ -519,9 +523,11 @@ void
  immediate_options (int argc, char** argv) {
    if (get_env ("TEXMACS_HOME_PATH") == "")
  #ifdef OS_MINGW
@@ -4100,7 +4098,7 @@ index 36480f7..82f41a1 100644
  #else
      set_env ("TEXMACS_HOME_PATH", get_env ("HOME") * "/.TeXmacs");
  #endif
-@@ -580,6 +586,10 @@ main (int argc, char** argv) {
+@@ -597,6 +603,10 @@ main (int argc, char** argv) {
    } else cerr << "Cannot get stack value\n";
  #endif
  
@@ -4112,15 +4110,15 @@ index 36480f7..82f41a1 100644
    original_path= get_env ("PATH");
    boot_hacks ();
 diff --git a/src/Typeset/Concat/concat_active.cpp b/src/Typeset/Concat/concat_active.cpp
-index 4f2f198..e4c5ac9 100644
+index cdd1f2c..2331213 100644
 --- a/src/Typeset/Concat/concat_active.cpp
 +++ b/src/Typeset/Concat/concat_active.cpp
 @@ -326,7 +326,7 @@ concater_rep::typeset_image (tree t, path ip) {
    if (is_atomic (image_tree)) {
      if (N (image_tree->label) == 0)
        error_image (tree (WITH, "color", "red", "no image"));
--    url im= cork_to_os8bits( image_tree->label);
+-    url im= cork_to_os8bits (image_tree->label);
 +    url im= cork_to_utf8( image_tree->label);
      image= resolve (relative (env->base_file_name, im));
-     if (is_none (image)) image= "$TEXMACS_PATH/misc/pixmaps/unknown.ps";
-   }
+     if (is_none (image) && suffix (im) == "")
+       image= resolve (relative (env->base_file_name, ::glue (im, ".eps")));
