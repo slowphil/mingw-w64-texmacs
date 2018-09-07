@@ -416,8 +416,8 @@ index 3bacc95..b388ccb 100644
  /*! Returns a QString with the translation of the argument to the current
   language.
 diff --git a/src/Plugins/Windows/iostream.cpp b/src/Plugins/Windows/iostream.cpp
-new file mode 100644
-index 0000000..d5bd627
+new file mode 100755
+index 0000000..e3874ac
 --- /dev/null
 +++ b/src/Plugins/Windows/iostream.cpp
 @@ -0,0 +1,263 @@
@@ -429,8 +429,8 @@ index 0000000..d5bd627
 +//  http://www.boost.org/LICENSE_1_0.txt)
 +//
 +#define NOWIDE_SOURCE
-+#include "nowide/iostream.hpp"
-+#include "nowide/convert.hpp"
++#include <nowide/iostream.hpp>
++#include <nowide/convert.hpp>
 +#include <stdio.h>
 +#include <vector>
 +
@@ -685,8 +685,8 @@ index 0000000..d5bd627
 +///
 +// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 diff --git a/src/Plugins/Windows/nowide/args.hpp b/src/Plugins/Windows/nowide/args.hpp
-new file mode 100644
-index 0000000..626f827
+new file mode 100755
+index 0000000..d1e9b44
 --- /dev/null
 +++ b/src/Plugins/Windows/nowide/args.hpp
 @@ -0,0 +1,167 @@
@@ -700,11 +700,11 @@ index 0000000..626f827
 +#ifndef NOWIDE_ARGS_HPP_INCLUDED
 +#define NOWIDE_ARGS_HPP_INCLUDED
 +
-+#include "config.hpp"
-+#include "stackstring.hpp"
++#include <nowide/config.hpp>
++#include <nowide/stackstring.hpp>
 +#include <vector>
 +#ifdef NOWIDE_WINDOWS
-+#include "windows.hpp"
++#include <nowide/windows.hpp>
 +#endif
 +
 +
@@ -858,8 +858,8 @@ index 0000000..626f827
 +///
 +// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 diff --git a/src/Plugins/Windows/nowide/cenv.hpp b/src/Plugins/Windows/nowide/cenv.hpp
-new file mode 100644
-index 0000000..0301b16
+new file mode 100755
+index 0000000..a6351cd
 --- /dev/null
 +++ b/src/Plugins/Windows/nowide/cenv.hpp
 @@ -0,0 +1,139 @@
@@ -876,12 +876,12 @@ index 0000000..0301b16
 +#include <string>
 +#include <stdexcept>
 +#include <stdlib.h>
-+#include "config.hpp"
-+#include "stackstring.hpp"
++#include <nowide/config.hpp>
++#include <nowide/stackstring.hpp>
 +#include <vector>
 +
 +#ifdef NOWIDE_WINDOWS
-+#include "windows.hpp"
++#include <nowide/windows.hpp>
 +#endif
 +
 +
@@ -1046,8 +1046,8 @@ index 0000000..89c1f51
 +///
 +// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 diff --git a/src/Plugins/Windows/nowide/convert.hpp b/src/Plugins/Windows/nowide/convert.hpp
-new file mode 100644
-index 0000000..ba071d2
+new file mode 100755
+index 0000000..39cd158
 --- /dev/null
 +++ b/src/Plugins/Windows/nowide/convert.hpp
 @@ -0,0 +1,154 @@
@@ -1062,7 +1062,7 @@ index 0000000..ba071d2
 +#define NOWIDE_CONVERT_H_INCLUDED
 +
 +#include <string>
-+#include "encoding_utf.hpp"
++#include <nowide/encoding_utf.hpp>
 +
 +
 +namespace nowide {
@@ -1206,8 +1206,8 @@ index 0000000..ba071d2
 +///
 +// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 diff --git a/src/Plugins/Windows/nowide/cstdio.hpp b/src/Plugins/Windows/nowide/cstdio.hpp
-new file mode 100644
-index 0000000..91cf691
+new file mode 100755
+index 0000000..9115e86
 --- /dev/null
 +++ b/src/Plugins/Windows/nowide/cstdio.hpp
 @@ -0,0 +1,176 @@
@@ -1227,9 +1227,9 @@ index 0000000..91cf691
 +
 +#include <cstdio>
 +#include <stdio.h>
-+#include "config.hpp"
-+#include "convert.hpp"
-+#include "stackstring.hpp"
++#include <nowide/config.hpp>
++#include <nowide/convert.hpp>
++#include <nowide/stackstring.hpp>
 +#include <errno.h>
 +
 +#ifdef NOWIDE_MSVC
@@ -1388,8 +1388,8 @@ index 0000000..91cf691
 +///
 +// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 diff --git a/src/Plugins/Windows/nowide/cstdlib.hpp b/src/Plugins/Windows/nowide/cstdlib.hpp
-new file mode 100644
-index 0000000..12ff8f4
+new file mode 100755
+index 0000000..0a7cf69
 --- /dev/null
 +++ b/src/Plugins/Windows/nowide/cstdlib.hpp
 @@ -0,0 +1,16 @@
@@ -1403,15 +1403,15 @@ index 0000000..12ff8f4
 +#ifndef NOWIDE_CSTDLIB_HPP_INCLUDED
 +#define NOWIDE_CSTDLIB_HPP_INCLUDED
 +
-+#include "cenv.hpp"
-+#include "system.hpp"
++#include <nowide/cenv.hpp>
++#include <nowide/system.hpp>
 +
 +#endif
 +///
 +// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 diff --git a/src/Plugins/Windows/nowide/encoding_errors.hpp b/src/Plugins/Windows/nowide/encoding_errors.hpp
-new file mode 100644
-index 0000000..f3764c4
+new file mode 100755
+index 0000000..a7a4058
 --- /dev/null
 +++ b/src/Plugins/Windows/nowide/encoding_errors.hpp
 @@ -0,0 +1,58 @@
@@ -1425,7 +1425,7 @@ index 0000000..f3764c4
 +#ifndef NOWIDE_ENCODING_ERRORS_HPP_INCLUDED
 +#define NOWIDE_ENCODING_ERRORS_HPP_INCLUDED
 +
-+#include "config.hpp"
++#include <nowide/config.hpp>
 +#ifdef NOWIDE_MSVC
 +#  pragma warning(push)
 +#  pragma warning(disable : 4275 4251 4231 4660)
@@ -1474,8 +1474,8 @@ index 0000000..f3764c4
 +// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 +
 diff --git a/src/Plugins/Windows/nowide/encoding_utf.hpp b/src/Plugins/Windows/nowide/encoding_utf.hpp
-new file mode 100644
-index 0000000..a93a7dd
+new file mode 100755
+index 0000000..439c126
 --- /dev/null
 +++ b/src/Plugins/Windows/nowide/encoding_utf.hpp
 @@ -0,0 +1,84 @@
@@ -1489,8 +1489,8 @@ index 0000000..a93a7dd
 +#ifndef NOWIDE_ENCODING_UTF_HPP_INCLUDED
 +#define NOWIDE_ENCODING_UTF_HPP_INCLUDED
 +
-+#include "utf.hpp"
-+#include "encoding_errors.hpp"
++#include <nowide/utf.hpp>
++#include <nowide/encoding_errors.hpp>
 +#include <string>
 +#include <iterator>
 +#ifdef NOWIDE_MSVC
@@ -1564,8 +1564,8 @@ index 0000000..a93a7dd
 +// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 +
 diff --git a/src/Plugins/Windows/nowide/filebuf.hpp b/src/Plugins/Windows/nowide/filebuf.hpp
-new file mode 100644
-index 0000000..59519c3
+new file mode 100755
+index 0000000..1ea9adc
 --- /dev/null
 +++ b/src/Plugins/Windows/nowide/filebuf.hpp
 @@ -0,0 +1,415 @@
@@ -1580,8 +1580,8 @@ index 0000000..59519c3
 +#define NOWIDE_FILEBUF_HPP
 +
 +#include <iosfwd>
-+#include "config.hpp"
-+#include "stackstring.hpp"
++#include <nowide/config.hpp>
++#include <nowide/stackstring.hpp>
 +#include <fstream>
 +#include <streambuf>
 +#include <stdio.h>
@@ -1985,8 +1985,8 @@ index 0000000..59519c3
 +
 +// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 diff --git a/src/Plugins/Windows/nowide/fstream.hpp b/src/Plugins/Windows/nowide/fstream.hpp
-new file mode 100644
-index 0000000..0d1c61e
+new file mode 100755
+index 0000000..852d087
 --- /dev/null
 +++ b/src/Plugins/Windows/nowide/fstream.hpp
 @@ -0,0 +1,283 @@
@@ -2001,12 +2001,12 @@ index 0000000..0d1c61e
 +#define NOWIDE_FSTREAM_INCLUDED_HPP
 +
 +#include <iosfwd>
-+#include "config.hpp"
-+#include "convert.hpp"
-+#include "scoped_ptr.hpp"
++#include <nowide/config.hpp>
++#include <nowide/convert.hpp>
++#include <nowide/scoped_ptr.hpp>
 +#include <fstream>
 +#include <memory>
-+#include "filebuf.hpp"
++#include <nowide/filebuf.hpp>
 +
 +
 +///
@@ -2274,8 +2274,8 @@ index 0000000..0d1c61e
 +#endif
 +// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 diff --git a/src/Plugins/Windows/nowide/iostream.hpp b/src/Plugins/Windows/nowide/iostream.hpp
-new file mode 100644
-index 0000000..3583cf4
+new file mode 100755
+index 0000000..b08c477
 --- /dev/null
 +++ b/src/Plugins/Windows/nowide/iostream.hpp
 @@ -0,0 +1,99 @@
@@ -2289,8 +2289,8 @@ index 0000000..3583cf4
 +#ifndef NOWIDE_IOSTREAM_HPP_INCLUDED
 +#define NOWIDE_IOSTREAM_HPP_INCLUDED
 +
-+#include "config.hpp"
-+#include "scoped_ptr.hpp"
++#include <nowide/config.hpp>
++#include <nowide/scoped_ptr.hpp>
 +#include <iostream>
 +#include <ostream>
 +#include <istream>
@@ -2478,8 +2478,8 @@ index 0000000..92410e2
 +// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 +
 diff --git a/src/Plugins/Windows/nowide/stackstring.hpp b/src/Plugins/Windows/nowide/stackstring.hpp
-new file mode 100644
-index 0000000..b539ed6
+new file mode 100755
+index 0000000..c93f983
 --- /dev/null
 +++ b/src/Plugins/Windows/nowide/stackstring.hpp
 @@ -0,0 +1,154 @@
@@ -2492,7 +2492,7 @@ index 0000000..b539ed6
 +//
 +#ifndef NOWIDE_DETAILS_WIDESTR_H_INCLUDED
 +#define NOWIDE_DETAILS_WIDESTR_H_INCLUDED
-+#include "convert.hpp"
++#include <nowide/convert.hpp>
 +#include <string.h>
 +#include <algorithm>
 +
@@ -2638,8 +2638,8 @@ index 0000000..b539ed6
 +///
 +// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 diff --git a/src/Plugins/Windows/nowide/system.hpp b/src/Plugins/Windows/nowide/system.hpp
-new file mode 100644
-index 0000000..3d68f37
+new file mode 100755
+index 0000000..8083bfc
 --- /dev/null
 +++ b/src/Plugins/Windows/nowide/system.hpp
 @@ -0,0 +1,46 @@
@@ -2655,7 +2655,7 @@ index 0000000..3d68f37
 +
 +#include <stdlib.h>
 +#include <errno.h>
-+#include "stackstring.hpp"
++#include <nowide/stackstring.hpp>
 +
 +namespace nowide {
 +
@@ -2689,9 +2689,159 @@ index 0000000..3d68f37
 +#endif
 +///
 +// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
-diff --git a/src/Plugins/Windows/nowide/utf.hpp b/src/Plugins/Windows/nowide/utf.hpp
+diff --git a/src/Plugins/Windows/nowide/texmacs_modifications.patch b/src/Plugins/Windows/nowide/texmacs_modifications.patch
 new file mode 100644
-index 0000000..8c4664f
+index 0000000..cbe97bd
+--- /dev/null
++++ b/src/Plugins/Windows/nowide/texmacs_modifications.patch
+@@ -0,0 +1,144 @@
++--- /tmp/nowide_standalone/nowide/cenv.hpp
+++++ /tmp/TeXmacs/src/Plugins/Windows/nowide/cenv.hpp
++@@ -78,6 +78,15 @@
++         wstackstring wval;
++         if(!wval.convert(value))
++             return -1;
+++// TeXmacs specific 2017: if Guile is not compiled with nowide we need to set the env variables with (w)putenv too 
+++        char * s =  (char*) malloc(strlen(key) + strlen(value) + 2);
+++        strcpy(s, key);
+++        strcat(s, "=");
+++        strcat(s, value);
+++        wstackstring ws;
+++        ws.convert(s);
+++        _wputenv(ws.c_str());
+++//end Texmacs specific
++         if(SetEnvironmentVariableW(name.c_str(),wval.c_str()))
++             return 0;
++         return -1;
++@@ -101,7 +110,7 @@
++     {
++         char const *key = string;
++         char const *key_end = string;
++-        while(*key_end!='=' && key_end!='\0')
+++        while(*key_end!='=' && *key_end!='\0')
++             key_end++;
++         if(*key_end == '\0')
++             return -1;
++@@ -112,7 +121,11 @@
++         wstackstring wvalue;
++         if(!wvalue.convert(key_end+1))
++             return -1;
++-
+++// TeXmacs specific 2017: if Guile is not compiled with nowide we need to set the env variables with (w)putenv too 
+++        wstackstring wstring;
+++        wstring.convert(string);
+++        _wputenv(wstring.c_str());
+++//end Texmacs specific
++         if(SetEnvironmentVariableW(wkey.c_str(),wvalue.c_str()))
++             return 0;
++         return -1;
++--- /tmp/nowide_standalone/nowide/cstdio.hpp
+++++ /tmp/TeXmacs/src/Plugins/Windows/nowide/cstdio.hpp
++@@ -7,6 +7,10 @@
++ //
++ #ifndef NOWIDE_CSTDIO_H_INCLUDED
++ #define NOWIDE_CSTDIO_H_INCLUDED
+++#include <stdio.h>
+++#include <stdlib.h>
+++#include <string.h>
+++#include <dirent.h>
++ 
++ #include <cstdio>
++ #include <stdio.h>
++@@ -75,7 +79,7 @@
++     return _wrename(wold.c_str(),wnew.c_str());
++ }
++ ///
++-/// \brief Same as rename but name is UTF-8 string
+++/// \brief Same as remove but name is UTF-8 string
++ ///
++ /// If invalid UTF-8 given, -1 is returned and errno is set to EINVAL
++ ///
++@@ -86,8 +90,79 @@
++         errno = EINVAL;
++         return -1;
++     }
++-    return _wremove(wname.c_str());
+++    int retval;
+++    retval = _wremove(wname.c_str());
+++    return (retval == -1)? _wrmdir (wname.c_str()) : retval;
++ }
+++///
+++/// \brief Same as chmod but file_name and mode are UTF-8 strings
+++///
+++/// If invalid UTF-8 given, -1 is returned and errno is set to EINVAL
+++///
+++inline int chmod(char const *name, int const mode)
+++{
+++    wstackstring wname;
+++    if(!wname.convert(name) ) {
+++        errno = EINVAL;
+++        return -1;
+++    }
+++    return _wchmod (wname.c_str(), mode);
+++}
+++	
+++///
+++/// \brief Same as mkdir but file_name and mode are UTF-8 strings
+++///
+++/// If invalid UTF-8 given, -1 is returned and errno is set to EINVAL
+++///
+++inline int mkdir(char const *name, int const mode)
+++{
+++    wstackstring wname;
+++    if(!wname.convert(name) ) {
+++        errno = EINVAL;
+++        return -1;
+++    }
+++    return _wmkdir (wname.c_str());
+++}
+++#include <sys/stat.h>
+++inline int stat(char const *name, struct_stat *buf)
+++{
+++    wstackstring wname;
+++    if(!wname.convert(name)) {
+++        errno = EINVAL;
+++        return -1;
+++    }
+++    return _wstat32(wname.c_str(), buf);
+++}
+++typedef _WDIR DIR;
+++inline DIR* opendir(char const *name)
+++{
+++    wstackstring wname;
+++    if(!wname.convert(name) ) {
+++        errno = EINVAL;
+++        return NULL;
+++    }
+++    return _wopendir (wname.c_str());
+++}
+++
+++inline char* readir_entry(DIR* dir)
+++{
+++  struct _wdirent *wentry;
+++  wentry = _wreaddir (dir);
+++  while (wentry 
+++	     && (0 == wcscmp (wentry->d_name, L".") ||
+++		 0 == wcscmp (wentry->d_name, L"..")))
+++	     wentry = _wreaddir (dir);
+++  if (wentry == NULL) return NULL;
+++  else { 
+++  stackstring entry;
+++    if(!entry.convert(wentry->d_name) ) {
+++        errno = EINVAL;
+++        return NULL;
+++    }
+++    else return entry.c_str();
+++  }
+++} 
+++
++ #endif
++ } // nowide
++ 
++
+diff --git a/src/Plugins/Windows/nowide/utf.hpp b/src/Plugins/Windows/nowide/utf.hpp
+new file mode 100755
+index 0000000..55dc2cc
 --- /dev/null
 +++ b/src/Plugins/Windows/nowide/utf.hpp
 @@ -0,0 +1,469 @@
@@ -2705,7 +2855,7 @@ index 0000000..8c4664f
 +#ifndef NOWIDE_UTF_HPP_INCLUDED
 +#define NOWIDE_UTF_HPP_INCLUDED
 +
-+#include "config.hpp"
++#include <nowide/config.hpp>
 +
 +#ifndef NOWIDE_MSVC
 +namespace nowide  {
@@ -3165,8 +3315,8 @@ index 0000000..8c4664f
 +// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 +
 diff --git a/src/Plugins/Windows/nowide/utf8_codecvt.hpp b/src/Plugins/Windows/nowide/utf8_codecvt.hpp
-new file mode 100644
-index 0000000..ecd7843
+new file mode 100755
+index 0000000..32de5d1
 --- /dev/null
 +++ b/src/Plugins/Windows/nowide/utf8_codecvt.hpp
 @@ -0,0 +1,499 @@
@@ -3180,9 +3330,9 @@ index 0000000..ecd7843
 +#ifndef NOWIDE_UTF8_CODECVT_HPP
 +#define NOWIDE_UTF8_CODECVT_HPP
 +
-+#include "utf.hpp"
-+#include "cstdint.hpp"
-+#include "static_assert.hpp"
++#include <nowide/utf.hpp>
++#include <nowide/cstdint.hpp>
++#include <nowide/static_assert.hpp>
 +#include <locale>
 +
 +
@@ -3716,10 +3866,10 @@ index 0000000..b9abff4
 +// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 diff --git a/src/Plugins/Windows/win-utf8-compat.hpp b/src/Plugins/Windows/win-utf8-compat.hpp
 new file mode 100644
-index 0000000..0e69e25
+index 0000000..513e50a
 --- /dev/null
 +++ b/src/Plugins/Windows/win-utf8-compat.hpp
-@@ -0,0 +1,94 @@
+@@ -0,0 +1,98 @@
 +/******************************************************************************
 +* MODULE     : win-utf8-compat.hpp
 +* DESCRIPTION: The windows version of TeXmacs makes use of
@@ -3732,13 +3882,17 @@ index 0000000..0e69e25
 +* is complicated due to the fact that Windows API only accepts
 +* UTF-16 for unicode.
 +* 
-+* Boost.Nowide provides a substitute for standard library functions that
-+* accept utf-8 filenames in windows, make porting from *nix to
-+* windows UTF-16 unicode API mostly transparent
++* Boost.Nowide provides an elegant light weight solution to this problem,
++* making porting from *nix to windows UTF-16 unicode API mostly transparent
++*
++* See http://cppcms.com/files/nowide/html/index.html
++*
++* Texmacs specific changes to the original Boost.Nowide standalone files dated 
++* 2017-Jun-10 are indicated in nowide/texmacs_modifications.patch
 +* ****************************************************************************** 
 +* LICENCE :
 +* Boost.Nowide is released under Boost Software License - Version 1.0.
-+* see  
++* see https://www.boost.org/users/license.html
 +******************************************************************************/
 +
 +#include "nowide/args.hpp"
@@ -4122,3 +4276,16 @@ index cdd1f2c..2331213 100644
      image= resolve (relative (env->base_file_name, im));
      if (is_none (image) && suffix (im) == "")
        image= resolve (relative (env->base_file_name, ::glue (im, ".eps")));
+diff --git a/src/makefile.in b/src/makefile.in
+index 4fbadc6..28d727b 100644
+--- a/src/makefile.in
++++ b/src/makefile.in
+@@ -154,7 +154,7 @@ system_incl   := $(call incl_flags,System System/Boot System/Classes \
+   Scheme \
+   Graphics/Bitmap_fonts Graphics/Fonts Graphics/Gui Graphics/Mathematics \
+   Graphics/Renderer Graphics/Handwriting Graphics/Types Graphics/Pictures \
+-  Graphics/Spacial Graphics/Colors Plugins)
++  Graphics/Spacial Graphics/Colors Plugins Plugins/Windows)
+ kernel_incl   := $(system_incl)
+ data_incl     := $(system_incl)
+ graphics_incl := $(system_incl)
