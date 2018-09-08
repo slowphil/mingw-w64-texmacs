@@ -34,7 +34,7 @@ index d43e65a..03bd2fc 100644
            (else (build-disambiguation-page l)))))
  
 diff --git a/TeXmacs/progs/texmacs/menus/file-menu.scm b/TeXmacs/progs/texmacs/menus/file-menu.scm
-index fdcafaf..6153645 100644
+index 08904a4..5cab917 100644
 --- a/TeXmacs/progs/texmacs/menus/file-menu.scm
 +++ b/TeXmacs/progs/texmacs/menus/file-menu.scm
 @@ -27,8 +27,8 @@
@@ -122,6 +122,19 @@ index 573bcd1..c0b46bd 100644
 -  (buffer-close (current-buffer)))
 +  (buffer-close (current-buffer)))
 \ No newline at end of file
+diff --git a/misc/m4/tm_platform.m4 b/misc/m4/tm_platform.m4
+index 8c66d59..f9d6c6f 100644
+--- a/misc/m4/tm_platform.m4
++++ b/misc/m4/tm_platform.m4
+@@ -101,7 +101,7 @@ AC_DEFUN([TM_PLATFORM],[
+       CONFIG_CXXOPTIMIZE="-O3 -fexpensive-optimizations"
+       CONFIG_QTPIPES="yes"
+       CONFIG_OS_COMPAT="Windows"
+-      CPPFLAGS="$CPPFLAGS -I/usr/local/include -I."
++      CPPFLAGS="$CPPFLAGS -I/usr/local/include -IPlugins/Windows -I."
+       GUILE_LDFLAGS="-lmingwex $GUILE_LDFLAGS -lintl" #added mingwex to mask the internal guile readdir function
+       LC_APPEND_FLAG([-Wl,--stack=16777216],[LDFLAGS])
+     ;;
 diff --git a/src/Data/String/converter.cpp b/src/Data/String/converter.cpp
 index 5c55adf..43db989 100644
 --- a/src/Data/String/converter.cpp
@@ -174,7 +187,7 @@ index 669f900..84acf62 100644
      if (s == "") {
        set_message (concat ("File '", vim, "' not found"), "make image");
 diff --git a/src/Plugins/Pdf/pdf_hummus_renderer.cpp b/src/Plugins/Pdf/pdf_hummus_renderer.cpp
-index 141b63e..6353406 100644
+index 01fdf54..3b3f341 100644
 --- a/src/Plugins/Pdf/pdf_hummus_renderer.cpp
 +++ b/src/Plugins/Pdf/pdf_hummus_renderer.cpp
 @@ -312,13 +312,7 @@ pdf_hummus_renderer_rep::pdf_hummus_renderer_rep (
@@ -320,7 +333,7 @@ index a2c544f..08a0e64 100644
    QString qcmd = "sh -c \"";
    qcmd += _cmd;
 diff --git a/src/Plugins/Qt/qt_utilities.cpp b/src/Plugins/Qt/qt_utilities.cpp
-index c155d6a..d912ed7 100644
+index a89b720..cd2cbc2 100644
 --- a/src/Plugins/Qt/qt_utilities.cpp
 +++ b/src/Plugins/Qt/qt_utilities.cpp
 @@ -318,31 +318,6 @@ from_qstring_utf8 (const QString &s) {
@@ -4276,16 +4289,3 @@ index cdd1f2c..2331213 100644
      image= resolve (relative (env->base_file_name, im));
      if (is_none (image) && suffix (im) == "")
        image= resolve (relative (env->base_file_name, ::glue (im, ".eps")));
-diff --git a/src/makefile.in b/src/makefile.in
-index 4fbadc6..28d727b 100644
---- a/src/makefile.in
-+++ b/src/makefile.in
-@@ -154,7 +154,7 @@ system_incl   := $(call incl_flags,System System/Boot System/Classes \
-   Scheme \
-   Graphics/Bitmap_fonts Graphics/Fonts Graphics/Gui Graphics/Mathematics \
-   Graphics/Renderer Graphics/Handwriting Graphics/Types Graphics/Pictures \
--  Graphics/Spacial Graphics/Colors Plugins)
-+  Graphics/Spacial Graphics/Colors Plugins Plugins/Windows)
- kernel_incl   := $(system_incl)
- data_incl     := $(system_incl)
- graphics_incl := $(system_incl)
