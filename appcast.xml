@@ -7,7 +7,7 @@
         <item>
             <title>Latest : Version 1.99.8.svn11260+extras</title>
             <sparkle:releaseNotesLink>
-                https://raw.githubusercontent.com/slowphil/mingw-w64-texmacs/master/changelog.html
+                https://raw.githubusercontent.com/slowphil/mingw-w64-texmacs/test-updater/changelog.html
             </sparkle:releaseNotesLink>
             <pubDate>Sun, 23 Sep 2018 14:00:00 +0100</pubDate>
             <enclosure url="https://github.com/slowphil/mingw-w64-texmacs/releases/download/svn11260%2Bextras/TeXmacs_installer-1.99.8.svn11260.extra.exe"
