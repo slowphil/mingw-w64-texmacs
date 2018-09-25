@@ -7,7 +7,7 @@
         <item>
             <title>Latest : Version 1.99.8.svn11260+extras</title>
             <sparkle:releaseNotesLink>
-                http://htmlpreview.github.io/?https://raw.githubusercontent.com/slowphil/mingw-w64-texmacs/test-updater/changelog.html
+                https://slowphil.github.io/mingw-w64-texmacs/changelog.html
             </sparkle:releaseNotesLink>
             <pubDate>Sun, 23 Sep 2018 14:00:00 +0100</pubDate>
             <enclosure url="https://github.com/slowphil/mingw-w64-texmacs/releases/download/svn11260%2Bextras/TeXmacs_installer-1.99.8.svn11260.extra.exe"
@@ -19,7 +19,7 @@
         <item>
             <title>Version 1.99.7.svn11225+extras</title>
             <sparkle:releaseNotesLink>
-                http://htmlpreview.github.io/?https://raw.githubusercontent.com/slowphil/mingw-w64-texmacs/master/changelog.html
+                https://slowphil.github.io/mingw-w64-texmacs/changelog.html
             </sparkle:releaseNotesLink>
             <pubDate>Wed, 29 Aug 2018 14:00:00 +0100</pubDate>
             <enclosure url="https://github.com/slowphil/mingw-w64-texmacs/releases/download/svn11225%2Bextras/TeXmacs_installer-1.99.7.svn11225.extra.exe"
@@ -32,7 +32,7 @@
         <item>
             <title>Version 1.99.6.svn10980+extras</title>
             <sparkle:releaseNotesLink>
-                http://htmlpreview.github.io/?https://raw.githubusercontent.com/slowphil/mingw-w64-texmacs/master/changelog.html
+                https://slowphil.github.io/mingw-w64-texmacs/changelog.html
             </sparkle:releaseNotesLink>
             <pubDate>Sun, 24 Dec 2017 13:05:00 +0100</pubDate>
             <enclosure url="https://github.com/slowphil/mingw-w64-texmacs/releases/download/svn10980%2Bextras/TeXmacs_installer-1.99.6.svn10980.extras.exe"
@@ -44,7 +44,7 @@
         <item>
             <title>Version 1.99.5.svn10605+extras</title>
             <sparkle:releaseNotesLink>
-                http://htmlpreview.github.io/?https://raw.githubusercontent.com/slowphil/mingw-w64-texmacs/master/changelog.html
+                https://slowphil.github.io/mingw-w64-texmacs/changelog.html
             </sparkle:releaseNotesLink>
             <pubDate>Sat, 28 Jan 2017 16:05:00 +0100</pubDate>
             <enclosure url="https://github.com/slowphil/mingw-w64-texmacs/releases/download/svn10605%2Bextras/texmacs_installer-svn10605.extras.exe"
