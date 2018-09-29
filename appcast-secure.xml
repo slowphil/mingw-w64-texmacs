@@ -13,7 +13,6 @@
             <enclosure url="https://github.com/slowphil/mingw-w64-texmacs/releases/download/untagged-1e90fcdb5d479944fac4/TeXmacs_installer-1.99.8.svn11262.extra.exe"
                        sparkle:version="2.0.0"
                        length="0"
-                       sparkle:dsaSignature="MEQCIA7PwHxIJiEhPCdemq4vk4iIzHjkna6dh1HaUt6Al7GxAiA5f6a8z5j2kWEryVJJsy2oucHnxF7ikABJ13GYKRFw=="
                        type="application/octet-stream"/>
         </item>
     </channel>
