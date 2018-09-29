@@ -5,7 +5,31 @@
         <description>Most recent releases for TeXmacs on Windows</description>
         <language>en</language>
         <item>
-            <title>Latest : Version 1.99.6.svn10980+extras</title>
+            <title>Latest : Version 1.99.8.svn11260+extras</title>
+            <sparkle:releaseNotesLink>
+                https://slowphil.github.io/mingw-w64-texmacs/changelog.html
+            </sparkle:releaseNotesLink>
+            <pubDate>Fri, 28 Sep 2018 16:00:00 +0100</pubDate>
+            <enclosure url="https://github.com/slowphil/mingw-w64-texmacs/releases/download/svn11260%2Bextras/TeXmacs_installer-1.99.8.svn11260.extra.exe"
+                       sparkle:version="1.99.8.svn11260M"
+                       length="0"
+                       sparkle:dsaSignature="MEQCIBfUrwrayqfCphpzIUuICsbpm6RLHslO5UUBYPesbigNAiAbZtavK7c3Ge1vRHW2BH8O8AI1hmxK+ZLI0x2UHM35wA=="
+                       type="application/octet-stream"/>
+        </item>
+        <item>
+            <title>Version 1.99.7.svn11225+extras</title>
+            <sparkle:releaseNotesLink>
+                https://slowphil.github.io/mingw-w64-texmacs/changelog.html
+            </sparkle:releaseNotesLink>
+            <pubDate>Fri, 28 Sep 2018 16:00:00 +0100</pubDate>
+            <enclosure url="https://github.com/slowphil/mingw-w64-texmacs/releases/download/svn11225%2Bextras/TeXmacs_installer-1.99.7.svn11225.extra.exe"
+                       sparkle:version="1.99.7.svn11225M"
+                       length="0"
+                       type="application/octet-stream"/>
+        </item>
+
+        <item>
+            <title>Version 1.99.6.svn10980+extras</title>
             <sparkle:releaseNotesLink>
                 https://raw.githubusercontent.com/slowphil/mingw-w64-texmacs/master/changelog.html
             </sparkle:releaseNotesLink>
