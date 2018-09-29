@@ -30,6 +30,7 @@ depends=(
           "${MINGW_PACKAGE_PREFIX}-guile1.8"
           "${MINGW_PACKAGE_PREFIX}-poppler-qt4"
         )
+#source=("${_pkgname}::svn://svn.savannah.gnu.org/texmacs/trunk/src#revision=11260"  for a specific rev, otherwise latest
 source=("${_pkgname}::svn://svn.savannah.gnu.org/texmacs/trunk/src"
         )
 sha1sums=('SKIP'
@@ -57,11 +58,16 @@ prepare() {
 
   cd "${srcdir}/${_pkgname}-build"
 
-  #patch -i ../../temp2.patch -p1
   patch -i ../../winsparkle_config.patch -p1
   patch -i ../../equation-editor-plugin.patch -p1
   patch -i ../../windows_unicode_filenames.patch -p1
-  sed -i 's|^SVNREV=\${SVNREV/:/_}|SVNREV='${pkgver}'|' configure.in
+  if test ! -d TeXmacs/misc/updater_key ; then
+    mkdir -p TeXmacs/misc/updater_key
+  fi
+  cp ../../slowphil_github_texmacs_updates_dsa_pub.pem TeXmacs/misc/updater_key/
+  #sed -i 's|^SVNREV=\${SVNREV/:/_}|SVNREV='${pkgver}'|' configure.in
+  sed -i 's|^DEVEL_RELEASE="1"         # I think we should use|DEVEL_RELEASE=$SVNREV         # actually using|'  configure.in
+
   autoreconf
 
   sed -i 's|#! /bin/sh|#! /bin/bash|' configure
@@ -237,11 +243,12 @@ if test -f /build/inno/inno_setup/ISCC.exe ; then
     echo "It is an InnoSetup installer."
   fi
 
-else
+fi
+#else
 
 OPTS7="-m0=lzma -mx=9 -md=64M"
 TMPPACK="${srcdir}/tmp.7z"
-TARGET="/texmacs_installer.exe"
+TARGET="/texmacs_installer.7z.exe"
 
 fileList="$(ls -dp -1 $BUNDLE_DIR/*)"
 
@@ -265,6 +272,6 @@ echo "Success! You will find the new installer at \"$(cygpath -aw $TARGET)\"." &
 echo "It is a self-extracting .7z archive." &&
 rm $TMPPACK
 
-fi
+#fi
 }
 

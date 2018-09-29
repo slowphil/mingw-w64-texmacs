@@ -76,32 +76,6 @@ index 65e0107..f5d8e0c 100644
    1998--2002 by Joris van der Hoeven >>|<row|<cell|\<#8BB8\>\<#53EF\>\<#8BC1\>>|<cell|<hlink|GNU
    General Public License|$TEXMACS_PATH/LICENSE>>>|<row|<cell|\<#9879\>\<#76EE\>\<#4E3B\>\<#9875\>>|<cell|<tabular|<tformat|<twith|table-valign|T>|<cwith|1|-1|1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-rsep|0spc>|<table|<row|<cell|<verbatim|http://www.texmacs.org>>>|<row|<cell|<verbatim|http://www.gnu.org/software/texmacs>>>>>>>>|<row|<cell|\<#8054\>\<#7CFB\>\<#6211\>\<#4EEC\>>|<cell|<verbatim|contact@texmacs.org>>>|<row|<cell|\<#8054\>\<#7CFB\>\<#5730\>\<#5740\>>|<cell|<tabular|<tformat|<twith|table-valign|T>|<cwith|1|-1|1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-rsep|0spc>|<table|<row|<cell|<abbr|Dr.>
    Joris van der Hoeven>>|<row|<cell|<abbr|Dépt.> de Mathématiques
-diff --git a/TeXmacs/progs/utils/misc/updater.scm b/TeXmacs/progs/utils/misc/updater.scm
-index 99a8f3f..ced24fb 100644
---- a/TeXmacs/progs/utils/misc/updater.scm
-+++ b/TeXmacs/progs/utils/misc/updater.scm
-@@ -52,7 +52,7 @@
-         (else (noop))))
- 
- (define-preferences
--  ("updater:appcast" "http://www.texmacs.org/Download/ftp/tmftp/appcast.xml"
-+  ("updater:appcast" "https://raw.githubusercontent.com/slowphil/mingw-w64-texmacs/master/appcast.xml"
-                      updater-notify-pref)
-   ; dsa key ignored by Sparkle (set in Info.plist), unused by WinSparkle
-   ("updater:public-dsa-key" "texmacs_updates_dsa_pub.pem" updater-notify-pref)
-diff --git a/configure.in b/configure.in
-index 5282fa5..ef87fab 100644
---- a/configure.in
-+++ b/configure.in
-@@ -24,7 +24,7 @@ TM_SUBVERSION
- PACKAGE="TeXmacs"
- DEBIAN_NAME="texmacs"
- DEVEL_VERSION="1.99.8"
--DEVEL_RELEASE="1"         # I think we should use SVNREV here
-+DEVEL_RELEASE=$SVNREV         # actually using SVNREV here
- STABLE_VERSION="1.99.8"
- STABLE_RELEASE="1"
- 
 diff --git a/misc/m4/tm_subversion.m4 b/misc/m4/tm_subversion.m4
 index e9a94db..e5a3ef0 100644
 --- a/misc/m4/tm_subversion.m4
@@ -162,4 +136,186 @@ index bcee342..2cf508d 100644
 +      VALUE "ProductVersion", "@DEVEL_VERSION@.@SVNREV@\0"
      END
    END
+ diff --git a/TeXmacs/doc/devel/scheme/api/glue-auto-doc.en.tm b/TeXmacs/doc/devel/scheme/api/glue-auto-doc.en.tm
+index de16599..5ce645e 100644
+--- a/TeXmacs/doc/devel/scheme/api/glue-auto-doc.en.tm
++++ b/TeXmacs/doc/devel/scheme/api/glue-auto-doc.en.tm
+@@ -83,6 +83,14 @@ source code.
+   </explain>
  
+   <\explain>
++    <scm|(updater-set-pub-key <scm-arg|url>)>
++<explain-synopsis|no synopsis>
++  <|explain>
++    Calls the <c++> function <cpp|updater_set_pub_key> which returns
++    <scm|bool>.
++  </explain>
++
++  <\explain>
+     <scm|(updater-set-interval <scm-arg|int>)>
+ <explain-synopsis|no synopsis>
+   <|explain>
+diff --git a/TeXmacs/progs/prog/glue-symbols.scm b/TeXmacs/progs/prog/glue-symbols.scm
+index b964fc0..ed69668 100644
+--- a/TeXmacs/progs/prog/glue-symbols.scm
++++ b/TeXmacs/progs/prog/glue-symbols.scm
+@@ -35,6 +35,7 @@
+ "updater-check-foreground"
+ "updater-last-check"
+ "updater-set-appcast"
++"updater-set-pub-key"
+ "updater-set-interval"
+ "updater-set-automatic"
+ "get-original-path"
+diff --git a/TeXmacs/progs/utils/misc/updater.scm b/TeXmacs/progs/utils/misc/updater.scm
+index 99a8f3f..fc85f0e 100644
+--- a/TeXmacs/progs/utils/misc/updater.scm
++++ b/TeXmacs/progs/utils/misc/updater.scm
+@@ -39,7 +39,7 @@
+ 
+ (define (updater-notify-pref pref val)
+   (cond ((== pref "updater:appcast") (updater-set-appcast val))
+-        ((== pref "updater:public-dsa-key") (noop))
++        ((== pref "updater:public-dsa-key") (updater-set-pub-key val))
+         ((== pref "updater:interval")
+          (with n (string->number val)
+            (if (< n 24)
+@@ -52,10 +52,10 @@
+         (else (noop))))
+ 
+ (define-preferences
+-  ("updater:appcast" "http://www.texmacs.org/Download/ftp/tmftp/appcast.xml"
++  ("updater:appcast" "https://raw.githubusercontent.com/slowphil/mingw-w64-texmacs/master/appcast.xml"
+                      updater-notify-pref)
+   ; dsa key ignored by Sparkle (set in Info.plist), unused by WinSparkle
+-  ("updater:public-dsa-key" "texmacs_updates_dsa_pub.pem" updater-notify-pref)
++  ("updater:public-dsa-key" "$TEXMACS_PATH/misc/updater_key/slowphil_github_texmacs_updates_dsa_pub.pem" updater-notify-pref)
+   ("updater:interval" "24" updater-notify-pref)
+   ("updater:automatic-checks" 
+    (bool->string (or (os-win32?) (os-mingw?) (os-macos?)))
+diff --git a/src/Plugins/Updater/tm_updater.cpp b/src/Plugins/Updater/tm_updater.cpp
+index 7687e74..d548815 100644
+--- a/src/Plugins/Updater/tm_updater.cpp
++++ b/src/Plugins/Updater/tm_updater.cpp
+@@ -82,6 +82,12 @@ bool updater_set_appcast (url appcast)
+   return updater && updater->setAppcast (appcast);
+ }
+ 
++bool updater_set_pub_key (url pubkey)
++{
++  tm_updater* updater = tm_updater::instance ();
++  return updater && updater->setPubkey (pubkey);
++}
++
+ bool updater_set_interval (int hours)
+ {
+   tm_updater* updater = tm_updater::instance ();
+diff --git a/src/Plugins/Updater/tm_updater.hpp b/src/Plugins/Updater/tm_updater.hpp
+index 5eee566..c491601 100644
+--- a/src/Plugins/Updater/tm_updater.hpp
++++ b/src/Plugins/Updater/tm_updater.hpp
+@@ -41,6 +41,7 @@ public:
+   virtual bool setCheckInterval (int hours) { (void) hours; return false; }
+   virtual url  getAppcast () const { return appcast; }
+   virtual bool setAppcast (url _appcast) { (void) _appcast; return false; }
++  virtual bool setPubkey (url pubkey) { (void) pubkey; return false; }
+ };
+ 
+ 
+@@ -53,6 +54,7 @@ bool updater_is_running ();
+ bool updater_check_background ();
+ bool updater_check_foreground ();
+ bool updater_set_appcast (url appcast);
++bool updater_set_pub_key (url pubkey);
+ bool updater_set_interval (int hours);
+ bool updater_set_automatic (bool enable);
+ time_t updater_last_check ();
+diff --git a/src/Plugins/Updater/tm_winsparkle.cpp b/src/Plugins/Updater/tm_winsparkle.cpp
+index fd7060a..0d9ca9d 100644
+--- a/src/Plugins/Updater/tm_winsparkle.cpp
++++ b/src/Plugins/Updater/tm_winsparkle.cpp
+@@ -15,6 +15,7 @@
+ 
+ #include "tm_winsparkle.hpp"
+ #include "string.hpp"
++#include "file.hpp"
+ #include <winsparkle.h>
+ 
+ tm_winsparkle::~tm_winsparkle ()
+@@ -33,6 +34,20 @@ bool tm_winsparkle::setAppcast (url _appcast_url)
+   
+   return true;
+ }
++   // Set DSA public key used to verify update's signature.
++    // This is na example how to provide it from external source (i.e. from Qt
++    // resource). See the "psdk" example and its .rc file for an example how to
++    // provide the key using Windows resource.
++  //
++bool tm_winsparkle::setPubkey (url pubkey)
++{
++  if (running) return false;
++  
++  string s;
++  load_string (pubkey, s, false);
++  return (win_sparkle_set_dsa_pub_pem(c_string(s))==1);
++}
++
+ 
+ bool tm_winsparkle::setAutomaticChecks (bool enable)
+ {
+diff --git a/src/Plugins/Updater/tm_winsparkle.hpp b/src/Plugins/Updater/tm_winsparkle.hpp
+index 9f91520..db114ad 100644
+--- a/src/Plugins/Updater/tm_winsparkle.hpp
++++ b/src/Plugins/Updater/tm_winsparkle.hpp
+@@ -27,4 +27,5 @@ public:
+   bool setAutomaticChecks (bool enable);
+   bool setCheckInterval (int hours);
+   bool setAppcast (url _appcast_url);
++  bool setPubkey (url pubkey);
+ };
+\ No newline at end of file
+diff --git a/src/Scheme/Glue/build-glue-basic.scm b/src/Scheme/Glue/build-glue-basic.scm
+index 96538bb..613af50 100644
+--- a/src/Scheme/Glue/build-glue-basic.scm
++++ b/src/Scheme/Glue/build-glue-basic.scm
+@@ -25,6 +25,7 @@
+   (updater-check-foreground updater_check_foreground (bool))
+   (updater-last-check updater_last_check (long))
+   (updater-set-appcast updater_set_appcast (bool url))
++  (updater-set-pub-key updater_set_pub_key (bool url))
+   (updater-set-interval updater_set_interval (bool int))
+   (updater-set-automatic updater_set_automatic (bool bool))
+   (get-original-path get_original_path (string))
+diff --git a/src/Scheme/Glue/glue_basic.cpp b/src/Scheme/Glue/glue_basic.cpp
+index 0ffbf57..8825aee 100644
+--- a/src/Scheme/Glue/glue_basic.cpp
++++ b/src/Scheme/Glue/glue_basic.cpp
+@@ -98,6 +98,19 @@ tmg_updater_set_appcast (tmscm arg1) {
+ }
+ 
+ tmscm
++tmg_updater_set_pub_key (tmscm arg1) {
++  TMSCM_ASSERT_URL (arg1, TMSCM_ARG1, "updater-set-pub-key");
++
++  url in1= tmscm_to_url (arg1);
++
++  // TMSCM_DEFER_INTS;
++  bool out= updater_set_pub_key (in1);
++  // TMSCM_ALLOW_INTS;
++
++  return bool_to_tmscm (out);
++}
++
++tmscm
+ tmg_updater_set_interval (tmscm arg1) {
+   TMSCM_ASSERT_INT (arg1, TMSCM_ARG1, "updater-set-interval");
+ 
+@@ -9460,6 +9473,7 @@ initialize_glue_basic () {
+   tmscm_install_procedure ("updater-check-foreground",  tmg_updater_check_foreground, 0, 0, 0);
+   tmscm_install_procedure ("updater-last-check",  tmg_updater_last_check, 0, 0, 0);
+   tmscm_install_procedure ("updater-set-appcast",  tmg_updater_set_appcast, 1, 0, 0);
++  tmscm_install_procedure ("updater-set-pub-key",  tmg_updater_set_pub_key, 1, 0, 0);
+   tmscm_install_procedure ("updater-set-interval",  tmg_updater_set_interval, 1, 0, 0);
+   tmscm_install_procedure ("updater-set-automatic",  tmg_updater_set_automatic, 1, 0, 0);
+   tmscm_install_procedure ("get-original-path",  tmg_get_original_path, 0, 0, 0);
+
