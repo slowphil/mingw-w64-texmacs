@@ -207,7 +207,7 @@ echo $dicts
 
 # now fetch dictionaries.
 # We use Lyx Repo's because they are all nicely and systematically organized in a single location
-# (unlike LibreOffice dictionaries)
+# (unlike LibreOffice dictionaries https://github.com/LibreOffice/dictionaries)
 
 cd $BUNDLE_DIR/share/hunspell
 
