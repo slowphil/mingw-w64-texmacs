@@ -1462,7 +1462,7 @@ new file mode 100644
 index 0000000..0604b7e
 --- /dev/null
 +++ b/plugins/equation-editor/progs/init-equation-editor.scm
-@@ -0,0 +1,134 @@
+@@ -0,0 +1,135 @@
 +;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 +;;
 +;; MODULE      : init-equation-editor.scm
@@ -1572,6 +1572,7 @@ index 0000000..0604b7e
 +  (let ((stay (get-boolean-preference "equation-editor-server"))) ;; should we keep server running ?
 +;; we should also check (server-started?) but it's always false in qt-texmacs...
 +        (show-icon-bar 3 #f)
++        (buffer-pretend-saved current-equ-url)
 +        (if (nnot current-envelope) (server-error current-envelope  "disconnect"))  ;;how to simply disconnect that client? 
 +        (if stay (begin   
 +          (if (> (length (window-list)) 1)  
@@ -1640,3 +1641,4 @@ index 4f35e81..1dadb2e 100644
    
    string s= scheme_tree_to_block (texmacs_settings);
    //cout << "settings_t= " << texmacs_settings << "\n";
+
