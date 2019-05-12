@@ -60,7 +60,7 @@ prepare() {
 
   patch -i ../../winsparkle_config.patch -p1
   patch -i ../../equation-editor-plugin.patch -p1
-  patch -i ../../windows_unicode_filenames.patch -p1
+  # patch -i ../../windows_unicode_filenames.patch -p1
   if test ! -d TeXmacs/misc/updater_key ; then
     mkdir -p TeXmacs/misc/updater_key
   fi
