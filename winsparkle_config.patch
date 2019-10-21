@@ -1,86 +1,54 @@
-diff --git a/TeXmacs/doc/about/about-summary.de.tm b/TeXmacs/doc/about/about-summary.de.tm
-index 5a623ae..3efbc7f 100644
---- a/TeXmacs/doc/about/about-summary.de.tm
-+++ b/TeXmacs/doc/about/about-summary.de.tm
-@@ -7,7 +7,7 @@
+Index: TeXmacs/progs/prog/glue-symbols.scm
+===================================================================
+--- TeXmacs/progs/prog/glue-symbols.scm	(revision 12385)
++++ TeXmacs/progs/prog/glue-symbols.scm	(copie de travail)
+@@ -34,6 +34,8 @@
+ "updater-check-background"
+ "updater-check-foreground"
+ "updater-last-check"
++"updater-set-appcast"
++"updater-set-pub-key"
+ "updater-set-interval"
+ "get-original-path"
+ "os-win32?"
+Index: TeXmacs/progs/utils/misc/updater.scm
+===================================================================
+--- TeXmacs/progs/utils/misc/updater.scm	(revision 12385)
++++ TeXmacs/progs/utils/misc/updater.scm	(copie de travail)
+@@ -18,16 +18,26 @@
+ ;; Preference management
+ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
-   <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
-   <TeXmacs>>|<cell|>>|<row|<cell|Installierte
--  Version>|<cell|<TeXmacs-version>>>|<row|<cell|Unterstützte
-+  Version>|<cell|<TeXmacs-version-release|devel-release>>>|<row|<cell|Unterstützte
-   Systeme>|<cell|Most GNU/<name|Linux> systems>>|<row|<cell|Copyright>|<cell|<copyright>
-   1998--2002 by Joris van der Hoeven >>|<row|<cell|Lizenz>|<cell|<hlink|GNU
-   General Public License|$TEXMACS_PATH/LICENSE>>>|<row|<cell|Webseiten>|<cell|<tabular|<tformat|<twith|table-valign|T>|<cwith|1|-1|1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-rsep|0spc>|<table|<row|<cell|<verbatim|http://www.texmacs.org>>>|<row|<cell|<verbatim|http://www.gnu.org/software/texmacs>>>>>>>>|<row|<cell|Kontakt>|<cell|<verbatim|contact@texmacs.org>>>|<row|<cell|Postansschrift>|<cell|<tabular|<tformat|<twith|table-valign|T>|<cwith|1|-1|1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-rsep|0spc>|<table|<row|<cell|<abbr|Dr.>
-diff --git a/TeXmacs/doc/about/about-summary.en.tm b/TeXmacs/doc/about/about-summary.en.tm
-index 09240c1..6e2f2a9 100644
---- a/TeXmacs/doc/about/about-summary.en.tm
-+++ b/TeXmacs/doc/about/about-summary.en.tm
-@@ -7,7 +7,7 @@
++(define-preferences
++  ("updater:appcast" "https://raw.githubusercontent.com/slowphil/mingw-w64-texmacs/master/appcast.xml" noop)
++  ; dsa key ignored by Sparkle (set in Info.plist), used by WinSparkle
++  ("updater:public-dsa-key" "$TEXMACS_PATH/misc/updater_key/slowphil_github_texmacs_updates_dsa_pub.pem" noop)
++  ("updater:interval" "168" noop))
++
++
+ (tm-define (updater-initialize)
+   (when (updater-supported?)
+ 	(with n (get-preference "updater:interval")
+ 	      (when (string-number? n)
+ 		    (updater-set-interval (string->number n))
++        (updater-set-appcast (get-preference "updater:appcast"))
++        (updater-set-pub-key (get-preference"updater:public-dsa-key"))
+ 		    (updater-check-background)))))
  
-   <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
-   <TeXmacs>>|<cell|>>|<row|<cell|Installed
--  version>|<cell|<TeXmacs-version>>>|<row|<cell|Supported systems>|<cell|Most
-+  version>|<cell|<TeXmacs-version-release|devel-release>>>|<row|<cell|Supported systems>|<cell|Most
-   GNU/<name|Linux> systems>>|<row|<cell|Copyright>|<cell|<copyright>
-   1998--2002 by Joris van der Hoeven >>|<row|<cell|License>|<cell|<hlink|GNU
-   General Public License|$TEXMACS_PATH/LICENSE>>>|<row|<cell|Web
-diff --git a/TeXmacs/doc/about/about-summary.es.tm b/TeXmacs/doc/about/about-summary.es.tm
-index 4feed8b..525982c 100644
---- a/TeXmacs/doc/about/about-summary.es.tm
-+++ b/TeXmacs/doc/about/about-summary.es.tm
-@@ -6,7 +6,7 @@
-   <with|language|spanish|><tmdoc-title|Sumario>
+-(define-preferences
+-  ("updater:interval" "null" noop))
  
-   <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
--  <TeXmacs>>|<cell|>>|<row|<cell|Versión>|<cell|<TeXmacs-version>>>|<row|<cell|Sistemas
-+  <TeXmacs>>|<cell|>>|<row|<cell|Versión>|<cell|<TeXmacs-version-release|devel-release>>>|<row|<cell|Sistemas
-   soportados>|<cell|La mayoría de los sistemas
-   GNU/<name|Linux>>>|<row|<cell|Copyright>|<cell|<copyright> 1998--2002 por
-   Joris van der Hoeven >>|<row|<cell|Licencia>|<cell|<hlink|Licencia Pública
-diff --git a/TeXmacs/doc/about/about-summary.fr.tm b/TeXmacs/doc/about/about-summary.fr.tm
-index 7bef7be..ffcfba7 100644
---- a/TeXmacs/doc/about/about-summary.fr.tm
-+++ b/TeXmacs/doc/about/about-summary.fr.tm
-@@ -6,7 +6,7 @@
-   <tmdoc-title|Sommaire>
- 
-   <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
--  <TeXmacs>>|<cell|>>|<row|<cell|Version installée>|<cell|<TeXmacs-version>>>|<row|<cell|Systèmes
-+  <TeXmacs>>|<cell|>>|<row|<cell|Version installée>|<cell|<TeXmacs-version-release|devel-release>>>|<row|<cell|Systèmes
-   reconnus>|<cell|la plupart des systèmes
-   GNU/<name|Linux>>>|<row|<cell|Droits d'auteur>|<cell|<copyright> 1998--2003
-   de Joris van der Hoeven >>|<row|<cell|Licence>|<cell|<hlink|GNU General
-diff --git a/TeXmacs/doc/about/about-summary.it.tm b/TeXmacs/doc/about/about-summary.it.tm
-index 3be3d46..ae1e802 100644
---- a/TeXmacs/doc/about/about-summary.it.tm
-+++ b/TeXmacs/doc/about/about-summary.it.tm
-@@ -6,7 +6,7 @@
-   <tmdoc-title|Sommario>
- 
-   <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
--  <TeXmacs>>|<cell|>>|<row|<cell|<localize|Version>>|<cell|<TeXmacs-version>>>|<row|<cell|Sistemi
-+  <TeXmacs>>|<cell|>>|<row|<cell|<localize|Version>>|<cell|<TeXmacs-version-release|devel-release>>>|<row|<cell|Sistemi
-   supportati>|<cell|Principalmente sistemi
-   GNU/<name|Linux>>>|<row|<cell|Copyright>|<cell|<copyright> 1998--2002 by
-   Joris van der Hoeven >>|<row|<cell|Licenza>|<cell|<hlink|GNU General Public
-diff --git a/TeXmacs/doc/about/about-summary.zh.tm b/TeXmacs/doc/about/about-summary.zh.tm
-index 65e0107..f5d8e0c 100644
---- a/TeXmacs/doc/about/about-summary.zh.tm
-+++ b/TeXmacs/doc/about/about-summary.zh.tm
-@@ -6,7 +6,7 @@
-   <tmdoc-title|\<#6982\>\<#8981\>>
- 
-   <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
--  <TeXmacs>>|<cell|>>|<row|<cell|\<#5F53\>\<#524D\>\<#7248\>\<#672C\>\<#53F7\>>|<cell|<TeXmacs-version>>>|<row|<cell|\<#652F\>\<#6301\>\<#7684\>\<#7CFB\>\<#7EDF\>>|<cell|\<#5927\>\<#90E8\>\<#5206\>GNU/<name|Linux>\<#7CFB\>\<#7EDF\>>>|<row|<cell|\<#7248\>\<#6743\>>|<cell|<copyright>
-+  <TeXmacs>>|<cell|>>|<row|<cell|\<#5F53\>\<#524D\>\<#7248\>\<#672C\>\<#53F7\>>|<cell|<TeXmacs-version-release|devel-release>>>|<row|<cell|\<#652F\>\<#6301\>\<#7684\>\<#7CFB\>\<#7EDF\>>|<cell|\<#5927\>\<#90E8\>\<#5206\>GNU/<name|Linux>\<#7CFB\>\<#7EDF\>>>|<row|<cell|\<#7248\>\<#6743\>>|<cell|<copyright>
-   1998--2002 by Joris van der Hoeven >>|<row|<cell|\<#8BB8\>\<#53EF\>\<#8BC1\>>|<cell|<hlink|GNU
-   General Public License|$TEXMACS_PATH/LICENSE>>>|<row|<cell|\<#9879\>\<#76EE\>\<#4E3B\>\<#9875\>>|<cell|<tabular|<tformat|<twith|table-valign|T>|<cwith|1|-1|1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-rsep|0spc>|<table|<row|<cell|<verbatim|http://www.texmacs.org>>>|<row|<cell|<verbatim|http://www.gnu.org/software/texmacs>>>>>>>>|<row|<cell|\<#8054\>\<#7CFB\>\<#6211\>\<#4EEC\>>|<cell|<verbatim|contact@texmacs.org>>>|<row|<cell|\<#8054\>\<#7CFB\>\<#5730\>\<#5740\>>|<cell|<tabular|<tformat|<twith|table-valign|T>|<cwith|1|-1|1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-rsep|0spc>|<table|<row|<cell|<abbr|Dr.>
-   Joris van der Hoeven>>|<row|<cell|<abbr|Dépt.> de Mathématiques
-diff --git a/misc/m4/tm_subversion.m4 b/misc/m4/tm_subversion.m4
-index e9a94db..e5a3ef0 100644
---- a/misc/m4/tm_subversion.m4
-+++ b/misc/m4/tm_subversion.m4
-@@ -11,11 +11,20 @@
++;(define-preferences
++;  ("updater:interval" "null" noop))
++
+ ;; Uncomment to allow automatic updates
+ ;(when (== (get-preference "updater:interval" "null"))
+ ;    (set-preference "updater:interval" "168"))
+Index: misc/m4/tm_subversion.m4
+===================================================================
+--- misc/m4/tm_subversion.m4	(revision 12385)
++++ misc/m4/tm_subversion.m4	(copie de travail)
+@@ -11,10 +11,20 @@
  #
  #--------------------------------------------------------------------
  
@@ -91,8 +59,8 @@ index e9a94db..e5a3ef0 100644
  AC_DEFUN([TM_SUBVERSION],[
    AC_MSG_CHECKING(current Subversion revision number)
    SVNREV=`svnversion -n . 2>/dev/null`
-   SVNREV=${SVNREV/:/_}
--  if { test "$SVNREV" = "" || test "$SVNREV" = "exported" ; } ; then 
+- if { test "$SVNREV" = "" || test "$SVNREV" = "exported" ; } ; then 
++  SVNREV=${SVNREV/:/_}
 +  if test "$(echo $SVNREV | tr -cd [[:digit:]])" = "" ; 
 +  then #contains no digit -> invalid
 +  # maybe it was a git mirror repo? (needs git-svn)
@@ -102,33 +70,35 @@ index e9a94db..e5a3ef0 100644
      SVNREV=`cat $srcdir/SVNREV`
      AC_MSG_RESULT($SVNREV, read from $srcdir/SVNREV)
    else 
-diff --git a/packages/windows/TeXmacs.iss.in b/packages/windows/TeXmacs.iss.in
-index c4d9cc7..5705f24 100644
---- a/packages/windows/TeXmacs.iss.in
-+++ b/packages/windows/TeXmacs.iss.in
-@@ -17,7 +17,7 @@
+Index: packages/windows/TeXmacs.iss.in
+===================================================================
+--- packages/windows/TeXmacs.iss.in	(revision 12385)
++++ packages/windows/TeXmacs.iss.in	(copie de travail)
+@@ -8,16 +8,16 @@
+ DefaultDirName={commonpf32}\TeXmacs
+ DefaultGroupName=TeXmacs
+ ;denis begin
+-VersionInfoTextVersion=@DEVEL_VERSION@
++VersionInfoTextVersion=@DEVEL_VERSION@.@SVNREV@
+ AppPublisher=MAGIX
+ AppPublisherURL=http://www.texmacs.org/
+-AppVersion=@DEVEL_VERSION@
++AppVersion=@DEVEL_VERSION@.@SVNREV@
+ LicenseFile=..\..\..\distr\TeXmacs-Windows\LICENSE
+ ;denis end
  
  UninstallDisplayIcon={app}\TeXmacs.ico
  OutputDir=..\..\..\distr\windows
--OutputBaseFilename=@tm_devel@.@SVNREV@-win-x86
-+OutputBaseFilename=TeXmacs-@DEVEL_VERSION@.@SVNREV@-win-x86
+-OutputBaseFilename=@tm_devel@-installer
++OutputBaseFilename=@tm_devel@.@SVNREV@-win-x86
  ; SourceDir=../..
  ChangesAssociations=yes
  
-@@ -34,7 +34,7 @@
- Root: HKCR; Subkey: "tmfile\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\bin\texmacs.exe"" ""%1""" 
- 
- [Files]
--Source: ..\..\..\distr\TeXmacs-Windows\*; DestDir: {app}; Flags: recursesubdirs createallsubdirs
-+Source: ..\..\..\distr\TeXmacs-Windows\*; DestDir: {app}; Flags: ignoreversion recursesubdirs createallsubdirs
- Source: TeXmacs.ico; DestDir: {app}
- 
- [Icons]
-diff --git a/packages/windows/resource.rc.in b/packages/windows/resource.rc.in
-index bcee342..2cf508d 100644
---- a/packages/windows/resource.rc.in
-+++ b/packages/windows/resource.rc.in
-@@ -31,7 +31,7 @@ BEGIN
+Index: packages/windows/resource.rc.in
+===================================================================
+--- packages/windows/resource.rc.in	(revision 12385)
++++ packages/windows/resource.rc.in	(copie de travail)
+@@ -30,7 +30,7 @@
        VALUE "OriginalFilename", "texmacs.exe\0"
        VALUE "LegalCopyright", "Licensed under GPLv3\0"
        VALUE "ProductName", "TeXmacs\0"
@@ -136,71 +106,35 @@ index bcee342..2cf508d 100644
 +      VALUE "ProductVersion", "@DEVEL_VERSION@.@SVNREV@\0"
      END
    END
- diff --git a/TeXmacs/doc/devel/scheme/api/glue-auto-doc.en.tm b/TeXmacs/doc/devel/scheme/api/glue-auto-doc.en.tm
-index de16599..5ce645e 100644
---- a/TeXmacs/doc/devel/scheme/api/glue-auto-doc.en.tm
-+++ b/TeXmacs/doc/devel/scheme/api/glue-auto-doc.en.tm
-@@ -83,6 +83,14 @@ source code.
-   </explain>
  
-   <\explain>
-+    <scm|(updater-set-pub-key <scm-arg|url>)>
-+<explain-synopsis|no synopsis>
-+  <|explain>
-+    Calls the <c++> function <cpp|updater_set_pub_key> which returns
-+    <scm|bool>.
-+  </explain>
+Index: src/Plugins/Updater/tm_updater.cpp
+===================================================================
+--- src/Plugins/Updater/tm_updater.cpp	(revision 12385)
++++ src/Plugins/Updater/tm_updater.cpp	(copie de travail)
+@@ -24,6 +24,13 @@
+ {
+   static tm_updater* _instance = NULL;
+   
++  url appcast = get_preference ("updater:appcast");
++  if (appcast == "default") {
++    if (DEBUG_STD)
++      cout << "Updater] ERROR: no appcast URL was set in the preferences.\n";
++    return 0;
++  }
 +
-+  <\explain>
-     <scm|(updater-set-interval <scm-arg|int>)>
- <explain-synopsis|no synopsis>
-   <|explain>
-diff --git a/TeXmacs/progs/prog/glue-symbols.scm b/TeXmacs/progs/prog/glue-symbols.scm
-index b964fc0..ed69668 100644
---- a/TeXmacs/progs/prog/glue-symbols.scm
-+++ b/TeXmacs/progs/prog/glue-symbols.scm
-@@ -35,6 +35,7 @@
- "updater-check-foreground"
- "updater-last-check"
- "updater-set-appcast"
-+"updater-set-pub-key"
- "updater-set-interval"
- "updater-set-automatic"
- "get-original-path"
-diff --git a/TeXmacs/progs/utils/misc/updater.scm b/TeXmacs/progs/utils/misc/updater.scm
-index 99a8f3f..fc85f0e 100644
---- a/TeXmacs/progs/utils/misc/updater.scm
-+++ b/TeXmacs/progs/utils/misc/updater.scm
-@@ -39,7 +39,7 @@
- 
- (define (updater-notify-pref pref val)
-   (cond ((== pref "updater:appcast") (updater-set-appcast val))
--        ((== pref "updater:public-dsa-key") (noop))
-+        ((== pref "updater:public-dsa-key") (updater-set-pub-key val))
-         ((== pref "updater:interval")
-          (with n (string->number val)
-            (if (< n 24)
-@@ -52,10 +52,10 @@
-         (else (noop))))
- 
- (define-preferences
--  ("updater:appcast" "http://www.texmacs.org/Download/ftp/tmftp/appcast.xml"
-+  ("updater:appcast" "https://raw.githubusercontent.com/slowphil/mingw-w64-texmacs/master/appcast.xml"
-                      updater-notify-pref)
-   ; dsa key ignored by Sparkle (set in Info.plist), unused by WinSparkle
--  ("updater:public-dsa-key" "texmacs_updates_dsa_pub.pem" updater-notify-pref)
-+  ("updater:public-dsa-key" "$TEXMACS_PATH/misc/updater_key/slowphil_github_texmacs_updates_dsa_pub.pem" updater-notify-pref)
-   ("updater:interval" "24" updater-notify-pref)
-   ("updater:automatic-checks" 
-    (bool->string (or (os-win32?) (os-mingw?) (os-macos?)))
-diff --git a/src/Plugins/Updater/tm_updater.cpp b/src/Plugins/Updater/tm_updater.cpp
-index 7687e74..d548815 100644
---- a/src/Plugins/Updater/tm_updater.cpp
-+++ b/src/Plugins/Updater/tm_updater.cpp
-@@ -82,6 +82,12 @@ bool updater_set_appcast (url appcast)
-   return updater && updater->setAppcast (appcast);
+   if (! _instance) {
+     #if defined (OS_MACOS) && defined (USE_SPARKLE)
+       _instance = new tm_sparkle ();
+@@ -70,6 +77,18 @@
+   return updater && updater->checkInForeground();
  }
  
++bool updater_set_appcast (url appcast)
++{
++  tm_updater* updater = tm_updater::instance ();
++  return updater && updater->setAppcast (appcast);
++}
++
 +bool updater_set_pub_key (url pubkey)
 +{
 +  tm_updater* updater = tm_updater::instance ();
@@ -210,42 +144,60 @@ index 7687e74..d548815 100644
  bool updater_set_interval (int hours)
  {
    tm_updater* updater = tm_updater::instance ();
-diff --git a/src/Plugins/Updater/tm_updater.hpp b/src/Plugins/Updater/tm_updater.hpp
-index 5eee566..c491601 100644
---- a/src/Plugins/Updater/tm_updater.hpp
-+++ b/src/Plugins/Updater/tm_updater.hpp
-@@ -41,6 +41,7 @@ public:
+Index: src/Plugins/Updater/tm_updater.hpp
+===================================================================
+--- src/Plugins/Updater/tm_updater.hpp	(revision 12385)
++++ src/Plugins/Updater/tm_updater.hpp	(copie de travail)
+@@ -38,6 +38,9 @@
+   virtual time_t lastCheck () const { return 0; }
+   virtual bool getCheckInterval () const { return interval; }
    virtual bool setCheckInterval (int hours) { (void) hours; return false; }
-   virtual url  getAppcast () const { return appcast; }
-   virtual bool setAppcast (url _appcast) { (void) _appcast; return false; }
++  virtual url  getAppcast () const { return appcast; }
++  virtual bool setAppcast (url _appcast) { (void) _appcast; return false; }
 +  virtual bool setPubkey (url pubkey) { (void) pubkey; return false; }
  };
  
  
-@@ -53,6 +54,7 @@ bool updater_is_running ();
+@@ -49,6 +52,8 @@
+ bool updater_is_running ();
  bool updater_check_background ();
  bool updater_check_foreground ();
- bool updater_set_appcast (url appcast);
++bool updater_set_appcast (url appcast);
 +bool updater_set_pub_key (url pubkey);
  bool updater_set_interval (int hours);
- bool updater_set_automatic (bool enable);
  time_t updater_last_check ();
-diff --git a/src/Plugins/Updater/tm_winsparkle.cpp b/src/Plugins/Updater/tm_winsparkle.cpp
-index fd7060a..0d9ca9d 100644
---- a/src/Plugins/Updater/tm_winsparkle.cpp
-+++ b/src/Plugins/Updater/tm_winsparkle.cpp
-@@ -15,6 +15,7 @@
+ 
+Index: src/Plugins/Updater/tm_winsparkle.cpp
+===================================================================
+--- src/Plugins/Updater/tm_winsparkle.cpp	(revision 12385)
++++ src/Plugins/Updater/tm_winsparkle.cpp	(copie de travail)
+@@ -15,16 +15,44 @@
  
  #include "tm_winsparkle.hpp"
  #include "string.hpp"
 +#include "file.hpp"
  #include <winsparkle.h>
  
++/*/ constructor initializes winsparkle 
++tm_winsparkle::tm_winsparkle (void) {
++   win_sparkle_init();
++}*/
++
  tm_winsparkle::~tm_winsparkle ()
-@@ -33,6 +34,20 @@ bool tm_winsparkle::setAppcast (url _appcast_url)
-   
-   return true;
+ {
+   win_sparkle_cleanup();
  }
+ 
++bool tm_winsparkle::setAppcast (url _appcast_url)
++{
++  if (appcast == _appcast_url) return true;
++  
++  appcast = _appcast_url;
++  c_string s (as_string (_appcast_url));  // FIXME! This has to be UTF8!
++  win_sparkle_set_appcast_url (s);
++  
++  return true;
++}
 +   // Set DSA public key used to verify update's signature.
 +    // This is na example how to provide it from external source (i.e. from Qt
 +    // resource). See the "psdk" example and its .rc file for an example how to
@@ -253,47 +205,107 @@ index fd7060a..0d9ca9d 100644
 +  //
 +bool tm_winsparkle::setPubkey (url pubkey)
 +{
-+  if (running) return false;
-+  
 +  string s;
 +  load_string (pubkey, s, false);
 +  return (win_sparkle_set_dsa_pub_pem(c_string(s))==1);
 +}
 +
- 
- bool tm_winsparkle::setAutomaticChecks (bool enable)
++
+ bool tm_winsparkle::setCheckInterval (int hours)
  {
-diff --git a/src/Plugins/Updater/tm_winsparkle.hpp b/src/Plugins/Updater/tm_winsparkle.hpp
-index 9f91520..db114ad 100644
---- a/src/Plugins/Updater/tm_winsparkle.hpp
-+++ b/src/Plugins/Updater/tm_winsparkle.hpp
-@@ -27,4 +27,5 @@ public:
-   bool setAutomaticChecks (bool enable);
+-  if (running) return false;
+   interval = hours <= 0 ? 0
+     : max (MinimumCheckInterval, min (MaximumCheckInterval, hours));
+   win_sparkle_set_update_check_interval (interval * 3600);
+@@ -41,9 +69,7 @@
+ {
+   // WinSparkle docs state that configuration must be finished before the first
+   // call to win_sparkle_init(), so we block any further attempts to change it.
+-  if (running || interval <= 0) return false;
+-  running = true;
+-  win_sparkle_init();
++  if (interval <= 0) return false;
+   win_sparkle_check_update_without_ui();
+   return true;
+ }
+@@ -50,11 +76,9 @@
+ 
+ bool tm_winsparkle::checkInForeground ()
+ {
+-  if (running) return false;
+-  running = true;
+-  win_sparkle_init();
+   win_sparkle_check_update_with_ui();
+   return true;
+ }
+ 
+ #endif  // defined (USE_SPARKLE) && defined (OS_MINGW)
++
+Index: src/Plugins/Updater/tm_winsparkle.hpp
+===================================================================
+--- src/Plugins/Updater/tm_winsparkle.hpp	(revision 12385)
++++ src/Plugins/Updater/tm_winsparkle.hpp	(copie de travail)
+@@ -9,12 +9,13 @@
+  ******************************************************************************/
+ 
+ #include "tm_updater.hpp"
++#include <winsparkle.h>
+ 
+ class tm_winsparkle : public tm_updater
+ {
+-  bool running;
++//  bool running;
+   
+-  tm_winsparkle () : tm_updater (), running (false) { }
++  tm_winsparkle () : tm_updater () { win_sparkle_init();}
+   ~tm_winsparkle ();
+   friend class tm_updater;
+ 
+@@ -21,8 +22,9 @@
+ public:
+   bool checkInBackground ();
+   bool checkInForeground ();
+-  bool isRunning () const { return running; }
++  //bool isRunning () const { return running; }
+   time_t lastCheck () const;
    bool setCheckInterval (int hours);
    bool setAppcast (url _appcast_url);
 +  bool setPubkey (url pubkey);
  };
-\ No newline at end of file
-diff --git a/src/Scheme/Glue/build-glue-basic.scm b/src/Scheme/Glue/build-glue-basic.scm
-index 96538bb..613af50 100644
---- a/src/Scheme/Glue/build-glue-basic.scm
-+++ b/src/Scheme/Glue/build-glue-basic.scm
-@@ -25,6 +25,7 @@
+Index: src/Scheme/Glue/build-glue-basic.scm
+===================================================================
+--- src/Scheme/Glue/build-glue-basic.scm	(revision 12385)
++++ src/Scheme/Glue/build-glue-basic.scm	(copie de travail)
+@@ -24,6 +24,8 @@
+   (updater-check-background updater_check_background (bool))
    (updater-check-foreground updater_check_foreground (bool))
    (updater-last-check updater_last_check (long))
-   (updater-set-appcast updater_set_appcast (bool url))
++  (updater-set-appcast updater_set_appcast (bool url))
 +  (updater-set-pub-key updater_set_pub_key (bool url))
    (updater-set-interval updater_set_interval (bool int))
-   (updater-set-automatic updater_set_automatic (bool bool))
    (get-original-path get_original_path (string))
-diff --git a/src/Scheme/Glue/glue_basic.cpp b/src/Scheme/Glue/glue_basic.cpp
-index 0ffbf57..8825aee 100644
---- a/src/Scheme/Glue/glue_basic.cpp
-+++ b/src/Scheme/Glue/glue_basic.cpp
-@@ -98,6 +98,19 @@ tmg_updater_set_appcast (tmscm arg1) {
+   (os-win32? os_win32 (bool))
+Index: src/Scheme/Glue/glue_basic.cpp
+===================================================================
+--- src/Scheme/Glue/glue_basic.cpp	(revision 12385)
++++ src/Scheme/Glue/glue_basic.cpp	(copie de travail)
+@@ -85,6 +85,32 @@
  }
  
  tmscm
++tmg_updater_set_appcast (tmscm arg1) {
++  TMSCM_ASSERT_URL (arg1, TMSCM_ARG1, "updater-set-appcast");
++
++  url in1= tmscm_to_url (arg1);
++
++  // TMSCM_DEFER_INTS;
++  bool out= updater_set_appcast (in1);
++  // TMSCM_ALLOW_INTS;
++
++  return bool_to_tmscm (out);
++}
++
++tmscm
 +tmg_updater_set_pub_key (tmscm arg1) {
 +  TMSCM_ASSERT_URL (arg1, TMSCM_ARG1, "updater-set-pub-key");
 +
@@ -310,12 +322,12 @@ index 0ffbf57..8825aee 100644
  tmg_updater_set_interval (tmscm arg1) {
    TMSCM_ASSERT_INT (arg1, TMSCM_ARG1, "updater-set-interval");
  
-@@ -9460,6 +9473,7 @@ initialize_glue_basic () {
+@@ -9875,6 +9901,8 @@
+   tmscm_install_procedure ("updater-check-background",  tmg_updater_check_background, 0, 0, 0);
    tmscm_install_procedure ("updater-check-foreground",  tmg_updater_check_foreground, 0, 0, 0);
    tmscm_install_procedure ("updater-last-check",  tmg_updater_last_check, 0, 0, 0);
-   tmscm_install_procedure ("updater-set-appcast",  tmg_updater_set_appcast, 1, 0, 0);
++  tmscm_install_procedure ("updater-set-appcast",  tmg_updater_set_appcast, 1, 0, 0);
 +  tmscm_install_procedure ("updater-set-pub-key",  tmg_updater_set_pub_key, 1, 0, 0);
    tmscm_install_procedure ("updater-set-interval",  tmg_updater_set_interval, 1, 0, 0);
-   tmscm_install_procedure ("updater-set-automatic",  tmg_updater_set_automatic, 1, 0, 0);
    tmscm_install_procedure ("get-original-path",  tmg_get_original_path, 0, 0, 0);
-
+   tmscm_install_procedure ("os-win32?",  tmg_os_win32P, 0, 0, 0);

@@ -58,9 +58,8 @@ prepare() {
 
   cd "${srcdir}/${_pkgname}-build"
 
-  patch -i ../../winsparkle_config.patch -p1
+  patch -i ../../winsparkle_config.patch -p0
   patch -i ../../equation-editor-plugin.patch -p1
-  # patch -i ../../windows_unicode_filenames.patch -p1
   if test ! -d TeXmacs/misc/updater_key ; then
     mkdir -p TeXmacs/misc/updater_key
   fi
@@ -87,7 +86,7 @@ build() {
     --host=${MINGW_CHOST} \
     --with-guile="/mingw32/bin/guile-config" \
     --with-qt="/mingw32/bin/" \
-    --with-sparkle="/build/winsparkle" \
+    --with-sparkle="/build/winsparkle/WinSparkle*" \
     #--enable-console \
     #--enable-debug  # must not strip in this case (line 37 and 159) !!
     
