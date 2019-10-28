@@ -46,24 +46,26 @@ conflicts=('texmacs')
 #}
 
 prepare() {
+  export TM_BUILD_DIR="${srcdir}/${_pkgname}-build"
+  export BUNDLE_DIR="${srcdir}/distr/TeXmacs-Windows"
   cd "${srcdir}/../${_pkgname}"
   pkgver="svn$(svnversion)+extras"
   echo ${pkgver}
   echo ${pkgver} > SVNREV
-  if [ -d "${srcdir}/${_pkgname}-build" ]; then
-    rm -rf "${srcdir}/${_pkgname}-build"
+  if [ -d $TM_BUILD_DIR ]; then
+    rm -rf $TM_BUILD_DIR
   fi 
-  mv "${srcdir}/${_pkgname}" "${srcdir}/${_pkgname}-build"
-  # svn export "${srcdir}/${_pkgname}" "${srcdir}/${_pkgname}-build"
+  mv "${srcdir}/${_pkgname}" $TM_BUILD_DIR
+  # svn export "${srcdir}/${_pkgname}" $TM_BUILD_DIR
 
-  cd "${srcdir}/${_pkgname}-build"
+  cd $TM_BUILD_DIR
 
-  patch -i ../../winsparkle_config.patch -p0
+  patch -i ../../winsparkle_config.patch -p1
   patch -i ../../equation-editor-plugin.patch -p1
   if test ! -d TeXmacs/misc/updater_key ; then
     mkdir -p TeXmacs/misc/updater_key
   fi
-  cp ../../slowphil_github_texmacs_updates_dsa_pub.pem TeXmacs/misc/updater_key/
+  cp ../../slowphil_github_texmacs_updates_dsa_pub.pem packages/windows/dsa_pub.pem
   #sed -i 's|^SVNREV=\${SVNREV/:/_}|SVNREV='${pkgver}'|' configure.in
   sed -i 's|^DEVEL_RELEASE="1"         # I think we should use|DEVEL_RELEASE=$SVNREV         # actually using|'  configure.in
 
@@ -78,7 +80,7 @@ prepare() {
 build() {
   export GUILE_LOAD_PATH="${MINGW_PREFIX}/share/guile/1.8"
 
-  cd "${srcdir}/${_pkgname}-build"
+  cd $TM_BUILD_DIR
 
   ./configure \
     --prefix=${MINGW_PREFIX} \
@@ -167,7 +169,6 @@ cp -r -f  -u TeXmacs/* $BUNDLE_DIR/
 mv -f $BUNDLE_DIR/bin/texmacs.bin $BUNDLE_DIR/bin/texmacs.exe
 strip -s $BUNDLE_DIR/bin/texmacs.exe
 rm -f -r $BUNDLE_DIR/bin/texmacs
-#cp -r -f misc/admin/texmacs_updates_dsa_pub.pem $BUNDLE_DIR/bin
 cp -r -f packages/windows/*.exe $BUNDLE_DIR/bin
 
 cd /
@@ -243,8 +244,9 @@ if test -f /build/inno/inno_setup/ISCC.exe ; then
   fi
 
 fi
-#else
+#else  #if the inno installer is all we want, uncomment (and adjust the 'fi's)
 
+#make a 7z installer 
 OPTS7="-m0=lzma -mx=9 -md=64M"
 TMPPACK="${srcdir}/tmp.7z"
 TARGET="/texmacs_installer.7z.exe"
