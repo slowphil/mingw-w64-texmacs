@@ -1,5 +1,5 @@
 diff --git a/TeXmacs/doc/main/convert/man-convert.en.tm b/TeXmacs/doc/main/convert/man-convert.en.tm
-index 0669eca..d8e023d 100644
+index 0669eca1..d8e023d7 100644
 --- a/TeXmacs/doc/main/convert/man-convert.en.tm
 +++ b/TeXmacs/doc/main/convert/man-convert.en.tm
 @@ -1,4 +1,4 @@
@@ -44,7 +44,7 @@ index 0669eca..d8e023d 100644
 +</body>
 diff --git a/TeXmacs/doc/main/convert/man-equation-editor.en.tm b/TeXmacs/doc/main/convert/man-equation-editor.en.tm
 new file mode 100644
-index 0000000..94ba463
+index 00000000..94ba463d
 --- /dev/null
 +++ b/TeXmacs/doc/main/convert/man-equation-editor.en.tm
 @@ -0,0 +1,118 @@
@@ -168,7 +168,7 @@ index 0000000..94ba463
 +
 diff --git a/TeXmacs/doc/main/convert/man-graphics-export.en.tm b/TeXmacs/doc/main/convert/man-graphics-export.en.tm
 new file mode 100644
-index 0000000..768d4ba
+index 00000000..768d4baa
 --- /dev/null
 +++ b/TeXmacs/doc/main/convert/man-graphics-export.en.tm
 @@ -0,0 +1,81 @@
@@ -254,7 +254,7 @@ index 0000000..768d4ba
 +  \;
 +</body>
 diff --git a/TeXmacs/misc/inkscape_extension/texmacs_reedit.py b/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
-index 55cede1..7e28fdf 100755
+index 55cede1c..7e28fdf3 100755
 --- a/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
 +++ b/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
 @@ -2,31 +2,34 @@
@@ -685,7 +685,7 @@ index 55cede1..7e28fdf 100755
  
      def remove_temp_files(self):
 diff --git a/TeXmacs/progs/convert/images/tmimage.scm b/TeXmacs/progs/convert/images/tmimage.scm
-index 561d6e7..c8fb5de 100644
+index 561d6e73..90e55a70 100644
 --- a/TeXmacs/progs/convert/images/tmimage.scm
 +++ b/TeXmacs/progs/convert/images/tmimage.scm
 @@ -3,13 +3,19 @@
@@ -709,7 +709,7 @@ index 561d6e7..c8fb5de 100644
  
  (texmacs-module (convert images tmimage)
    (:use (convert tmml tmmlout)
-@@ -18,28 +24,153 @@
+@@ -18,28 +24,164 @@
  ;; (display "Texmacs] Loading module tmimage\n")
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -789,8 +789,19 @@ index 561d6e7..c8fb5de 100644
 +  (set-boolean-preference "equation-editor-server" on?)
 +  (refresh-now "svg-configutation"))
 +
++(define (supports-inkscape?) (url-exists-in-path? "inkscape"))
 +
 +(tm-widget (image-preferences-widget)
++  ===
++  (bold (text "Image -> TeXmacs"))
++  ===
++  (aligned
++    (meti
++      (when (supports-inkscape?)
++        (hlist // (text "Prefer Inkscape for conversion from SVG")))
++      (when (supports-inkscape?)
++        (toggle (set-boolean-preference "image->texmacs:svg-prefer-inkscape" answer)
++                (get-boolean-preference "image->texmacs:svg-prefer-inkscape"))))))
 +  ===
 +  (bold (text "TeXmacs -> Image"))
 +  ===
@@ -873,7 +884,7 @@ index 561d6e7..c8fb5de 100644
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;; commodity functions for tree manipulations
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@@ -64,8 +195,9 @@
+@@ -64,8 +206,9 @@
    ;; similar to "remove tag" operation in the editor
    (let* ((parent (tree-ref node :up))
           (pos (+ (tree-index node) 1))
@@ -885,7 +896,7 @@ index 561d6e7..c8fb5de 100644
      (do ((i lastindex (- i 1))) ((= i firstindex))
        (copy-node! (tree-ref node i) parent pos))
      (remove-node! node)
-@@ -76,46 +208,117 @@
+@@ -76,46 +219,117 @@
    ;; Makes the node a leaf if it wasn't one
    (tree-assign! leaf (string->tree newtext)))
  
@@ -1035,7 +1046,7 @@ index 561d6e7..c8fb5de 100644
  (define (latex-encode tm-fragment-tree)
    ;; for the latex representation we mimick what is done when
    ;; "copy to latex" is performed
-@@ -128,87 +331,80 @@
+@@ -128,87 +342,80 @@
  (define (tm-encode tm-fragment-tree)
    (escape-to-ascii (serialize-texmacs tm-fragment-tree)))
  
@@ -1192,7 +1203,7 @@ index 561d6e7..c8fb5de 100644
      (let* (;; convert back to stree, recreate the *TOP* node,
             ;; and restore *PI* xml
             ;; (instead of *PI* "xml" given by tree->stree -
-@@ -237,73 +433,134 @@
+@@ -237,73 +444,134 @@
      (set-message "Qt GUI only, sorry. Use \"Export selection...\"" "")
      (if (not (selection-active-any?))
        (set-message "no selection!" "")
@@ -1389,10 +1400,10 @@ index 561d6e7..c8fb5de 100644
 -       (system-remove temp0) ;; temp pdf file not needed anymore
 -  )))
 diff --git a/TeXmacs/progs/init-texmacs.scm b/TeXmacs/progs/init-texmacs.scm
-index 5530d72..2fa2783 100644
+index 56507623..44e0fabf 100644
 --- a/TeXmacs/progs/init-texmacs.scm
 +++ b/TeXmacs/progs/init-texmacs.scm
-@@ -331,7 +331,7 @@
+@@ -348,7 +348,7 @@
  (lazy-format (convert bibtex init-bibtex) bibtex)
  (lazy-format (convert images init-images)
               postscript pdf xfig xmgrace svg xpm jpeg ppm gif png pnm)
@@ -1402,11 +1413,11 @@ index 5530d72..2fa2783 100644
  (lazy-define (convert rewrite init-rewrite) texmacs->code texmacs->verbatim)
  (lazy-define (convert html tmhtml-expand) tmhtml-env-patch)
 diff --git a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
-index bc86cb6..a1579e5 100644
+index 9dfa834b..47f198c3 100644
 --- a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
 +++ b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
-@@ -488,31 +488,7 @@
- 	      (get-preference "texmacs->pdf:version") "8em")))))
+@@ -521,43 +521,7 @@
+               (get-preference "texmacs->pdf:version") "8em")))))
  
  ;; Images ----------
 -
@@ -1419,26 +1430,38 @@ index bc86cb6..a1579e5 100644
 -   (eval `(define-preference-names "texmacs->image:format" ,@valid-image-format-list))
 -   (cadr (apply map list valid-image-format-list))))
 -
+-(define (supports-inkscape?) (url-exists-in-path? "inkscape"))
+-
 -(tm-widget (image-preferences-widget)
 -  ===
 -  (bold (text "TeXmacs -> Image"))
 -  ===
 -  (aligned
--      (item (text "Bitmap resolution (dpi):")
--        (enum (set-preference "texmacs->image:raster-resolution" answer)
--	      '("1200" "600" "300" "150" "")
--	      (get-preference "texmacs->image:raster-resolution")
--	      "5em"))
--      (item (text "Clipboard image format:")
--        (enum (set-pretty-preference "texmacs->image:format" answer)
--	      (pretty-format-list)
--	      (get-pretty-preference "texmacs->image:format")
--	      "5em"))))
+-    (item (text "Bitmap resolution (dpi):")
+-      (enum (set-preference "texmacs->image:raster-resolution" answer)
+-            '("1200" "600" "300" "150" "")
+-            (get-preference "texmacs->image:raster-resolution")
+-            "5em"))
+-    (item (text "Clipboard image format:")
+-      (enum (set-pretty-preference "texmacs->image:format" answer)
+-            (pretty-format-list)
+-            (get-pretty-preference "texmacs->image:format")
+-            "5em")))
+-  ===
+-  (bold (text "Image -> TeXmacs"))
+-  ===
+-  (aligned
+-    (meti
+-      (when (supports-inkscape?)
+-        (hlist // (text "Prefer Inkscape for conversion from SVG")))
+-      (when (supports-inkscape?)
+-        (toggle (set-boolean-preference "image->texmacs:svg-prefer-inkscape" answer)
+-                (get-boolean-preference "image->texmacs:svg-prefer-inkscape"))))))
 +;; see module convert images tmimage.scm
  
  ;; All converters ----------
  
-@@ -520,15 +496,15 @@
+@@ -565,15 +529,15 @@
    ===
    (padded
      (tabs
@@ -1459,7 +1482,7 @@ index bc86cb6..a1579e5 100644
            (dynamic (verbatim-preferences-widget))))
 diff --git a/plugins/equation-editor/progs/init-equation-editor.scm b/plugins/equation-editor/progs/init-equation-editor.scm
 new file mode 100644
-index 0000000..0604b7e
+index 00000000..b3c723a5
 --- /dev/null
 +++ b/plugins/equation-editor/progs/init-equation-editor.scm
 @@ -0,0 +1,135 @@
@@ -1599,10 +1622,10 @@ index 0000000..0604b7e
 +
 +
 diff --git a/src/System/Boot/init_texmacs.cpp b/src/System/Boot/init_texmacs.cpp
-index 4f35e81..1dadb2e 100644
+index 266b673b..9b7fa85f 100644
 --- a/src/System/Boot/init_texmacs.cpp
 +++ b/src/System/Boot/init_texmacs.cpp
-@@ -367,30 +367,6 @@ init_misc () {
+@@ -369,30 +369,6 @@ init_misc () {
  
  }
  
@@ -1633,7 +1656,7 @@ index 4f35e81..1dadb2e 100644
  /******************************************************************************
  * Deprecated initializations
  ******************************************************************************/
-@@ -446,7 +422,6 @@ setup_texmacs () {
+@@ -448,7 +424,6 @@ setup_texmacs () {
  
    set_setting ("VERSION", TEXMACS_VERSION);
    setup_tex ();
@@ -1641,4 +1664,6 @@ index 4f35e81..1dadb2e 100644
    
    string s= scheme_tree_to_block (texmacs_settings);
    //cout << "settings_t= " << texmacs_settings << "\n";
+-- 
+2.17.1
 
