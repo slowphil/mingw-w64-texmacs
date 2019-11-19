@@ -685,7 +685,7 @@ index 55cede1c..7e28fdf3 100755
  
      def remove_temp_files(self):
 diff --git a/TeXmacs/progs/convert/images/tmimage.scm b/TeXmacs/progs/convert/images/tmimage.scm
-index 561d6e73..90e55a70 100644
+index 561d6e73..58aee903 100644
 --- a/TeXmacs/progs/convert/images/tmimage.scm
 +++ b/TeXmacs/progs/convert/images/tmimage.scm
 @@ -3,13 +3,19 @@
@@ -709,7 +709,7 @@ index 561d6e73..90e55a70 100644
  
  (texmacs-module (convert images tmimage)
    (:use (convert tmml tmmlout)
-@@ -18,28 +24,164 @@
+@@ -18,28 +24,166 @@
  ;; (display "Texmacs] Loading module tmimage\n")
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -798,10 +798,12 @@ index 561d6e73..90e55a70 100644
 +  (aligned
 +    (meti
 +      (when (supports-inkscape?)
-+        (hlist // (text "Prefer Inkscape for conversion from SVG")))
++        (hlist // (text "Use Inkscape for conversion from SVG")))
 +      (when (supports-inkscape?)
-+        (toggle (set-boolean-preference "image->texmacs:svg-prefer-inkscape" answer)
-+                (get-boolean-preference "image->texmacs:svg-prefer-inkscape"))))))
++        (toggle (set-boolean-preference
++                 "image->texmacs:svg-prefer-inkscape" answer)
++                (get-boolean-preference
++                 "image->texmacs:svg-prefer-inkscape"))))))
 +  ===
 +  (bold (text "TeXmacs -> Image"))
 +  ===
@@ -884,7 +886,7 @@ index 561d6e73..90e55a70 100644
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;; commodity functions for tree manipulations
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@@ -64,8 +206,9 @@
+@@ -64,8 +208,9 @@
    ;; similar to "remove tag" operation in the editor
    (let* ((parent (tree-ref node :up))
           (pos (+ (tree-index node) 1))
@@ -896,7 +898,7 @@ index 561d6e73..90e55a70 100644
      (do ((i lastindex (- i 1))) ((= i firstindex))
        (copy-node! (tree-ref node i) parent pos))
      (remove-node! node)
-@@ -76,46 +219,117 @@
+@@ -76,46 +221,117 @@
    ;; Makes the node a leaf if it wasn't one
    (tree-assign! leaf (string->tree newtext)))
  
@@ -1046,7 +1048,7 @@ index 561d6e73..90e55a70 100644
  (define (latex-encode tm-fragment-tree)
    ;; for the latex representation we mimick what is done when
    ;; "copy to latex" is performed
-@@ -128,87 +342,80 @@
+@@ -128,87 +344,80 @@
  (define (tm-encode tm-fragment-tree)
    (escape-to-ascii (serialize-texmacs tm-fragment-tree)))
  
@@ -1203,7 +1205,7 @@ index 561d6e73..90e55a70 100644
      (let* (;; convert back to stree, recreate the *TOP* node,
             ;; and restore *PI* xml
             ;; (instead of *PI* "xml" given by tree->stree -
-@@ -237,73 +444,134 @@
+@@ -237,73 +446,134 @@
      (set-message "Qt GUI only, sorry. Use \"Export selection...\"" "")
      (if (not (selection-active-any?))
        (set-message "no selection!" "")
@@ -1413,10 +1415,10 @@ index 56507623..44e0fabf 100644
  (lazy-define (convert rewrite init-rewrite) texmacs->code texmacs->verbatim)
  (lazy-define (convert html tmhtml-expand) tmhtml-env-patch)
 diff --git a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
-index 9dfa834b..47f198c3 100644
+index 4e4a3501..5bc81047 100644
 --- a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
 +++ b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
-@@ -521,43 +521,7 @@
+@@ -531,45 +531,7 @@
                (get-preference "texmacs->pdf:version") "8em")))))
  
  ;; Images ----------
@@ -1453,15 +1455,17 @@ index 9dfa834b..47f198c3 100644
 -  (aligned
 -    (meti
 -      (when (supports-inkscape?)
--        (hlist // (text "Prefer Inkscape for conversion from SVG")))
+-        (hlist // (text "Use Inkscape for conversion from SVG")))
 -      (when (supports-inkscape?)
--        (toggle (set-boolean-preference "image->texmacs:svg-prefer-inkscape" answer)
--                (get-boolean-preference "image->texmacs:svg-prefer-inkscape"))))))
+-        (toggle (set-boolean-preference
+-                 "image->texmacs:svg-prefer-inkscape" answer)
+-                (get-boolean-preference
+-                 "image->texmacs:svg-prefer-inkscape"))))))
 +;; see module convert images tmimage.scm
  
  ;; All converters ----------
  
-@@ -565,15 +529,15 @@
+@@ -577,15 +539,15 @@
    ===
    (padded
      (tabs
