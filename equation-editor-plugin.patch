@@ -803,7 +803,7 @@ index 561d6e73..58aee903 100644
 +        (toggle (set-boolean-preference
 +                 "image->texmacs:svg-prefer-inkscape" answer)
 +                (get-boolean-preference
-+                 "image->texmacs:svg-prefer-inkscape"))))))
++                 "image->texmacs:svg-prefer-inkscape")))))
 +  ===
 +  (bold (text "TeXmacs -> Image"))
 +  ===
