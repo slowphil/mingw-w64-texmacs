@@ -254,7 +254,7 @@ index 00000000..768d4baa
 +  \;
 +</body>
 diff --git a/TeXmacs/misc/inkscape_extension/texmacs_reedit.py b/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
-index 55cede1c..7e28fdf3 100755
+index 55cede1c..d6205e0b 100755
 --- a/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
 +++ b/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
 @@ -2,31 +2,34 @@
@@ -262,7 +262,7 @@ index 55cede1c..7e28fdf3 100755
  *******************************************************************************
  * Texmacs extension for Inkscape
 -* COPYRIGHT  : (C) 2012 Philippe JOYEZ and the TeXmacs team
-+* COPYRIGHT  : (C) 2012-2017 Philippe JOYEZ and the TeXmacs team
++* COPYRIGHT  : (C) 2012-2019 Philippe JOYEZ and the TeXmacs team
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
  * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
@@ -402,7 +402,7 @@ index 55cede1c..7e28fdf3 100755
             root = tree.getroot()
             new_node = root.find('{%s}g' % SVG_NS)
  
-@@ -121,47 +141,171 @@ class Texmacs(inkex.Effect):
+@@ -121,47 +141,175 @@ class Texmacs(inkex.Effect):
          Dig out equation to be modified (texmacs or textext)
          Returns: (old_svg_node, latex_option_command (for the textext case), tm_equation_to_be_edited)
          """
@@ -411,7 +411,11 @@ index 55cede1c..7e28fdf3 100755
          # gets list of ids in the call of the extension.
 -            node = self.selected[i] 
 -            # selects each member of selection in turn ; 
-+            node = self.selected[i]
++            try :
++              #for inkscape ⩾1
++              node = self.svg.selected[i]
++            except :
++              node = self.selected[i]
 +            # selects each member of selection in turn ;
              #only the first one which can be processed will be
              if node.tag != '{%s}g' % SVG_NS: continue
@@ -604,7 +608,7 @@ index 55cede1c..7e28fdf3 100755
  
      def replace_node(self, old_node, new_node):
          """
-@@ -169,37 +313,42 @@ class Texmacs(inkex.Effect):
+@@ -169,37 +317,42 @@ class Texmacs(inkex.Effect):
          in self.document.
          """
          if old_node is None:
@@ -676,7 +680,7 @@ index 55cede1c..7e28fdf3 100755
          # -- Work around probable bugs in several viewers that don't handle
          #    "stroke-width: 0;" style properly.
          style = 'stroke-width: 0.0000001'
-@@ -218,7 +367,6 @@ class Texmacs(inkex.Effect):
+@@ -218,7 +371,6 @@ class Texmacs(inkex.Effect):
              style = xstyle
          new_node.attrib['style'] = style
  
@@ -684,8 +688,18 @@ index 55cede1c..7e28fdf3 100755
  
  
      def remove_temp_files(self):
+@@ -242,4 +394,8 @@ class Texmacs(inkex.Effect):
+ 
+ if __name__ == "__main__":
+     e = Texmacs()
+-    e.affect()
++    try : 
++      #for inkscape ⩾1
++      e.run()
++    except:
++      e.affect()
 diff --git a/TeXmacs/progs/convert/images/tmimage.scm b/TeXmacs/progs/convert/images/tmimage.scm
-index 561d6e73..58aee903 100644
+index 561d6e73..69aa5ce5 100644
 --- a/TeXmacs/progs/convert/images/tmimage.scm
 +++ b/TeXmacs/progs/convert/images/tmimage.scm
 @@ -3,13 +3,19 @@
