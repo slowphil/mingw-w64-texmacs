@@ -254,10 +254,12 @@ index 00000000..768d4baa
 +  \;
 +</body>
 diff --git a/TeXmacs/misc/inkscape_extension/texmacs_reedit.py b/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
-index 55cede1c..d6205e0b 100755
+index 55cede1c..ff2654a8 100755
 --- a/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
 +++ b/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
-@@ -2,31 +2,34 @@
+@@ -1,32 +1,36 @@
+ #!/usr/bin/env python
++# -*- coding: utf-8 -*-
  """
  *******************************************************************************
  * Texmacs extension for Inkscape
@@ -301,7 +303,7 @@ index 55cede1c..d6205e0b 100755
  
  This extension is meant to be as much as possible 2-ways compatible with
  Textext.ink equations. Note however that in order to correctly edit texmacs
-@@ -34,7 +37,7 @@ equations, textext has to be invoked with a preamble file containing the
+@@ -34,7 +38,7 @@ equations, textext has to be invoked with a preamble file containing the
  texmacs latex macros and appropriate includes (see texmacs_latex.sty coming
  with this file).
  
@@ -310,7 +312,7 @@ index 55cede1c..d6205e0b 100755
  script directly comes from textext.py (http://www.iki.fi/pav/software/textext/)
  , an Inkscape extension written by Pauli Virtanen  (pav@iki.fi) that does
  the same thing with Latex equations, albeit in an essentially non-WYSIWYG way.
-@@ -43,17 +46,30 @@ Part of the code is directly copied from textext.py. Thank you Pauli!
+@@ -43,17 +47,30 @@ Part of the code is directly copied from textext.py. Thank you Pauli!
  """
  #------------------------------------------------------------------------------
  
@@ -346,7 +348,7 @@ index 55cede1c..d6205e0b 100755
  else : texmacs_path ='texmacs' #texmacs needs to be in the path!
  
  TEXTEXT_NS = u"http://www.iki.fi/pav/software/textext/"
-@@ -66,13 +82,14 @@ NSS = {
+@@ -66,13 +83,14 @@ NSS = {
      u'svg': SVG_NS
  }
  
@@ -366,7 +368,7 @@ index 55cede1c..d6205e0b 100755
  tm_extra_latex_cmd_line_args=  "(delayed (:idle 000)(insert (latex->texmacs (parse-latex \"\\\\[ %s \\\\]\"))))"
  tm_no_style=""
  
-@@ -87,25 +104,28 @@ class Texmacs(inkex.Effect):
+@@ -87,25 +105,28 @@ class Texmacs(inkex.Effect):
          self.tmp_base = 'inkscape_edit_tmp.tm'
          self.tmp_name = os.path.join(self.tmp_path,self.tmp_base)
  
@@ -402,7 +404,7 @@ index 55cede1c..d6205e0b 100755
             root = tree.getroot()
             new_node = root.find('{%s}g' % SVG_NS)
  
-@@ -121,47 +141,175 @@ class Texmacs(inkex.Effect):
+@@ -121,47 +142,175 @@ class Texmacs(inkex.Effect):
          Dig out equation to be modified (texmacs or textext)
          Returns: (old_svg_node, latex_option_command (for the textext case), tm_equation_to_be_edited)
          """
@@ -608,7 +610,7 @@ index 55cede1c..d6205e0b 100755
  
      def replace_node(self, old_node, new_node):
          """
-@@ -169,37 +317,42 @@ class Texmacs(inkex.Effect):
+@@ -169,37 +318,42 @@ class Texmacs(inkex.Effect):
          in self.document.
          """
          if old_node is None:
@@ -680,7 +682,7 @@ index 55cede1c..d6205e0b 100755
          # -- Work around probable bugs in several viewers that don't handle
          #    "stroke-width: 0;" style properly.
          style = 'stroke-width: 0.0000001'
-@@ -218,7 +371,6 @@ class Texmacs(inkex.Effect):
+@@ -218,7 +372,6 @@ class Texmacs(inkex.Effect):
              style = xstyle
          new_node.attrib['style'] = style
  
@@ -688,7 +690,7 @@ index 55cede1c..d6205e0b 100755
  
  
      def remove_temp_files(self):
-@@ -242,4 +394,8 @@ class Texmacs(inkex.Effect):
+@@ -242,4 +395,8 @@ class Texmacs(inkex.Effect):
  
  if __name__ == "__main__":
      e = Texmacs()
