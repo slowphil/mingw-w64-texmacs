@@ -207,7 +207,7 @@ index 2330fa31..da00c445 100644
 -VersionInfoTextVersion=@DEVEL_VERSION@
 +VersionInfoTextVersion=@DEVEL_VERSION@.@SVNREV@
  AppPublisher=MAGIX
- AppPublisherURL=http://www.texmacs.org/
+ AppPublisherURL=https://www.texmacs.org/
 -AppVersion=@DEVEL_VERSION@
 +AppVersion=@DEVEL_VERSION@.@SVNREV@
  LicenseFile=..\..\..\distr\TeXmacs-Windows\LICENSE

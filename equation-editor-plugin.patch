@@ -254,7 +254,7 @@ index 00000000..768d4baa
 +  \;
 +</body>
 diff --git a/TeXmacs/misc/inkscape_extension/texmacs_reedit.py b/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
-index 55cede1c..ff2654a8 100755
+index 13512b2f..dc125aa1 100755
 --- a/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
 +++ b/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
 @@ -1,32 +1,36 @@
@@ -275,7 +275,7 @@ index 55cede1c..ff2654a8 100755
  
 -This extension allows to (re-)edit mathematical equations in WYSIWYG 
 -way with TeXmacs. It works with equations originally produced by 
--versions of TeXmacs <http://www.texmacs.org> dated after july 2012, 
+-versions of TeXmacs <https://www.texmacs.org> dated after july 2012, 
 +This extension allows to (re-)edit mathematical equations in WYSIWYG
 +way with GNU-TeXmacs. It works with equations originally produced by
 +versions of TeXmacs <http://www.texmacs.org> dated after july 2012,
@@ -312,7 +312,7 @@ index 55cede1c..ff2654a8 100755
  script directly comes from textext.py (http://www.iki.fi/pav/software/textext/)
  , an Inkscape extension written by Pauli Virtanen  (pav@iki.fi) that does
  the same thing with Latex equations, albeit in an essentially non-WYSIWYG way.
-@@ -43,17 +47,30 @@ Part of the code is directly copied from textext.py. Thank you Pauli!
+@@ -43,37 +47,59 @@ Part of the code is directly copied from textext.py. Thank you Pauli!
  """
  #------------------------------------------------------------------------------
  
@@ -320,8 +320,10 @@ index 55cede1c..ff2654a8 100755
 -import inkex, tempfile, subprocess, copy
 +import os, glob, platform, time
 +import inkex, tempfile, subprocess
++#from xml.etree import ElementTree as etree
  from lxml import etree
  
++
 +import socket
 +
  IS_WINDOWS = (platform.system() == "Windows")
@@ -347,10 +349,28 @@ index 55cede1c..ff2654a8 100755
 +
  else : texmacs_path ='texmacs' #texmacs needs to be in the path!
  
++def string_unescape(s):
++    """
++etree.parse uses the encoding specified in the xml file (UTF8)
++However when the svg is created, texmacs uses Cork encoding and escapes
++the characters above 128 (for instance é => \xe9 ) and some special characters (&,<,>...)
++so that the texmacs code recorded by texmacs
++and read back by this python code in LO are not immediatly consistent.
++Here, we take care that these characters are properly translated back to texmacs
++(note also the .encode when writing the file content)
++    """
++    return bytes(s, 'utf8').decode('unicode_escape')
++
  TEXTEXT_NS = u"http://www.iki.fi/pav/software/textext/"
-@@ -66,13 +83,14 @@ NSS = {
-     u'svg': SVG_NS
- }
+-TEXMACS_NS = u"https://www.texmacs.org/"
++TEXMACS_NS = u"http://www.texmacs.org/"
+ SVG_NS = u"http://www.w3.org/2000/svg"
+ 
+-NSS = {
+-    u'textext': TEXTEXT_NS,
+-    u'texmacs': TEXMACS_NS,
+-    u'svg': SVG_NS
+-}
  
 -tm_file="<TeXmacs|1.0.7.15>\n\n<style|generic>\n\n<\\body>\n %s \n\n</body>\n\n<\\initial>\n %s \n\n</initial>"
 +tm_file="<TeXmacs|1.99.5>\n\n<style|generic>\n\n<\\body>\n %s \n\n</body>\n\n<\\initial>\n %s \n\n</initial>"
@@ -360,15 +380,16 @@ index 55cede1c..ff2654a8 100755
 -		"((balloon \"Done\" \"update equation in Inkscape\") (((select-all)(export-selection-as-graphics "\
 -		"(url-glue (current-buffer) \".svg\"))(quit-TeXmacs))))((balloon \"Cancel\" "\
 -		"\"abandon modifying equation\")(quit-TeXmacs)))%s) "
-+#tm_scheme_cmd_line_args =  "(begin (show-icon-bar 3 #t) (menu-bind texmacs-extra-icons "\
-+#        "((balloon \"Done\" \"update equation in Inkscape\") (begin (select-all)(export-selection-as-graphics"\
-+#        " (url-glue (current-buffer) \".svg\"))(quit-TeXmacs)))((balloon \"Cancel\" "\
-+#        "\"abandon modifying equation\")(quit-TeXmacs)))%s) "
+-tm_extra_latex_cmd_line_args=  "(delayed (:idle 000)(insert (latex->texmacs (parse-latex \"\\\\[ %s \\\\]\"))))"
 +tm_scheme_cmd_line_args =  '(begin (lazy-plugin-force) (equ-edit-cmdline) %s) '
- tm_extra_latex_cmd_line_args=  "(delayed (:idle 000)(insert (latex->texmacs (parse-latex \"\\\\[ %s \\\\]\"))))"
++if IS_WINDOWS :
++    tm_extra_latex_cmd_line_args=  "(delayed (:idle 000)(insert (latex->texmacs (parse-latex \\\"\\\\[ %s \\\\]\\\"))))"
++else :
++    tm_extra_latex_cmd_line_args=  '(delayed (:idle 000)(insert (latex->texmacs (parse-latex \"\\\\[ %s \\\\]\"))))'
  tm_no_style=""
  
-@@ -87,25 +105,28 @@ class Texmacs(inkex.Effect):
+ #------------------------------------------------------------------------------
+@@ -87,25 +113,28 @@ class Texmacs(inkex.Effect):
          self.tmp_base = 'inkscape_edit_tmp.tm'
          self.tmp_name = os.path.join(self.tmp_path,self.tmp_base)
  
@@ -404,7 +425,7 @@ index 55cede1c..ff2654a8 100755
             root = tree.getroot()
             new_node = root.find('{%s}g' % SVG_NS)
  
-@@ -121,47 +142,175 @@ class Texmacs(inkex.Effect):
+@@ -121,47 +150,172 @@ class Texmacs(inkex.Effect):
          Dig out equation to be modified (texmacs or textext)
          Returns: (old_svg_node, latex_option_command (for the textext case), tm_equation_to_be_edited)
          """
@@ -428,11 +449,11 @@ index 55cede1c..ff2654a8 100755
 -            	if '{%s}texmacstyle'%TEXMACS_NS in node.attrib: #further contains styling info
 -            	    tm_style = node.attrib.get('{%s}texmacstyle' % TEXMACS_NS, '').decode('string-escape')
 -            	else:
-+                tm_equation = node.attrib.get('{%s}texmacscode' % TEXMACS_NS, '').decode('string-escape')
++                tm_equation = string_unescape(node.attrib.get('{%s}texmacscode' % TEXMACS_NS, ''))
 +                if '{%s}texmacsstyle'%TEXMACS_NS in node.attrib: #further contains styling info
-+                    tm_style = node.attrib.get('{%s}texmacsstyle' % TEXMACS_NS, '').decode('string-escape')
++                    tm_style = string_unescape(node.attrib.get('{%s}texmacsstyle' % TEXMACS_NS, ''))
 +                elif '{%s}texmacstyle'%TEXMACS_NS in node.attrib: #there was a typo at some point in the code; handle it gracefully
-+                    tm_style = node.attrib.get('{%s}texmacstyle' % TEXMACS_NS, '').decode('string-escape')
++                    tm_style = string_unescape(node.attrib.get('{%s}texmacstyle' % TEXMACS_NS, ''))
 +                else:
                      tm_style =''
 -            	return (node, '', tm_equation, tm_style)
@@ -468,9 +489,10 @@ index 55cede1c..ff2654a8 100755
 -			    raise RuntimeError("Command %s failed (code %d): %s"
 -                               % (' '.join(cmd), p.returncode, out + err))
 +    def call_texmacs(self, scheme_cmd, equ, styl, latex):
-+        f_tmp = open(self.tmp_name, 'w') # create a temporaty tm file that texmacs will edit
++        """" handle various ways of calling and communicating with texmacs """
++        f_tmp = open(self.tmp_name, 'wb') # create a temporaty tm file that texmacs will edit
 +        try:
-+            f_tmp.write(tm_file %( equ, styl)) #insert equation to be edited in file (blank in textext case)
++            f_tmp.write((tm_file %( equ, styl)).encode("iso-8859-1")) #insert equation to be edited in file (blank in textext case)
 +        finally:
 +            f_tmp.close()
 +
@@ -483,7 +505,7 @@ index 55cede1c..ff2654a8 100755
 +            clientsocket.connect(('localhost', 6561))
 +            time.sleep(.1)
 +            msg='(0 (remote-login "inkscape" "inkscape"))\n'
-+            clientsocket.sendall(str(len(msg))+ '\n'+msg)
++            clientsocket.sendall(bytes(str(len(bytes(msg,'utf8')))+ '\n'+msg,'utf8'))
 +            clientsocket.setblocking(1)
 +            time.sleep(.1)
 +            msg = clientsocket.recv(size)
@@ -491,16 +513,18 @@ index 55cede1c..ff2654a8 100755
 +            use_socket = False
 +            #inkex.debug("use_socket = False")
 +        else:
-+            if msg.find("ready") : use_socket = True
++            if msg.find(b"ready") : use_socket = True
 +#login was accepted; continue with socket connection (assume tm-service remote-equ is properly setup)
 +            else : use_socket = False #login failed. user not defined?
 +        if use_socket :
 +            clientsocket.settimeout(None)
 +            clientsocket.setblocking(1)
-+            msg = '(0 (remote-equ "%s" "%s"))\n' % (self.tmp_name , latex)
 +            if IS_WINDOWS :
-+                msg = msg.replace('\\','\\\\')
-+            clientsocket.sendall(str(len(msg))+ '\n'+msg)
++                aux = self.tmp_name.replace('\\','\\\\')
++            else :
++                aux = self.tmp_name
++            msg = '(0 (remote-equ "%s" "%s"))\n' % (aux , latex)
++            clientsocket.sendall(bytes(str(len(bytes(msg,'utf8')))+ '\n'+msg,'utf8'))
 +            time.sleep(.1)
 +            data = clientsocket.recv(size)
 +#            inkex.debug("recvd: " + str(len(data)) + " bytes")
@@ -543,7 +567,7 @@ index 55cede1c..ff2654a8 100755
 +
 +                tmPipename = r"\\.\pipe\namedpipe1"
 +
-+                hPipe = ctypes.windll.kernel32.CreateNamedPipeA(tmPipename,
++                hPipe = ctypes.windll.kernel32.CreateNamedPipeW(tmPipename,
 +                                                 PIPE_ACCESS_DUPLEX,
 +                                                 PIPE_TYPE_MESSAGE |
 +                                                 PIPE_READMODE_MESSAGE |
@@ -554,13 +578,7 @@ index 55cede1c..ff2654a8 100755
 +                if (hPipe == INVALID_HANDLE_VALUE):
 +                    inkex.debug("Error in creating Named Pipe")
 +                    return
-+                import sys
-+                if sys.version_info >= (2,7) : #need different quotings according to python version...
-+                    #inkscape 0.92
-+                    cmd = '"'+texmacs_path+'" -x "'+scheme_cmd+'" "'+self.tmp_name+'" > '+tmPipename
-+                else :
-+                    #inkscape 0.48, 0.91
-+                    cmd = '""'+texmacs_path+'" -x "'+scheme_cmd+'" "'+self.tmp_name+'"" > '+tmPipename
++                cmd = '"'+texmacs_path+'" -x "'+scheme_cmd+'" "'+tmp_name+'" > '+tmPipename
 +                
 +                #print (cmd)
 +                DETACHED_PROCESS = 8
@@ -580,9 +598,9 @@ index 55cede1c..ff2654a8 100755
 +                while 1 : # repeat loop if ERROR_MORE_DATA
 +                    fSuccess = ctypes.windll.kernel32.ReadFile(hPipe, chBuf, BUFSIZE, ctypes.byref(cbRead), None)
 +                    if (fSuccess == 1) :
-+                        #print "Number of bytes read:", cbRead.value
-+                        #print chBuf.value
-+                        if (("done" in chBuf.value) or ("cancel" in chBuf.value) ):
++                        #print ("Number of bytes read:", cbRead.value)
++                        #print (chBuf.value)
++                        if ((b"done" in chBuf.value) or (b"cancel" in chBuf.value) ):
 +                            break
 +                    elif (ctypes.windll.kernel32.GetLastError() != ERROR_MORE_DATA):
 +                        inkex.debug("error reading from named pipe")
@@ -594,32 +612,33 @@ index 55cede1c..ff2654a8 100755
 +
 +            else : # Linux, MacOS: so much simpler!
 +                cmd = [texmacs_path,"-x",scheme_cmd , self.tmp_name]
-+                try:
-+                    p = subprocess.Popen(cmd, 
++                #try:
++                p = subprocess.Popen(cmd, 
 +                                     stdout=subprocess.PIPE,
 +                                     stderr=subprocess.STDOUT)
-+                    while p.poll() is None:
++                while p.poll() is None:
 +                        output = p.stdout.readline()
-+                        if (("done" in output) or ("cancel" in output) ):
++                        if ((b"done" in output) or (b"cancel" in output) ):
 +                            break
-+                except OSError as e:
-+                    raise RuntimeError("Command %s failed: %s" % (' '.join(cmd), e))
-+                except :
-+                    inkex.debug("launching texmacs failed   ")
++                #except OSError as e:
++                #    raise RuntimeError("Command %s failed: %s" % (' '.join(cmd), e))
++                #except :
++                #    inkex.debug("launching texmacs failed   ")
 +                    
  
      def replace_node(self, old_node, new_node):
          """
-@@ -169,37 +318,42 @@ class Texmacs(inkex.Effect):
+@@ -169,37 +323,42 @@ class Texmacs(inkex.Effect):
          in self.document.
          """
          if old_node is None:
+-            self.current_layer.append(new_node)
 +            new_node.attrib['transform'] = "scale(0.264583333)" 
 +            # 0.35277779 is 25.4/72 and this scaling is applied when inkscape *imports* an svg (or pdf) file
 +            # 0.264583333 is (3/4)*25.4/72 (= 25.4/96) and this scaling is applied when inkscape *pastes* our svg from clipboard
 +            # we apply it here for having consistent sizes when pasting or creating an equation using this extension
 +            # if we furthermore want the font size to be "correct" we need to set the image output scale to 1.333 in texmacs
-             self.current_layer.append(new_node)
++            self.svg.get_current_layer().append(new_node)
          else:
 -		# -- Copy transform
 -        	try:
@@ -682,7 +701,7 @@ index 55cede1c..ff2654a8 100755
          # -- Work around probable bugs in several viewers that don't handle
          #    "stroke-width: 0;" style properly.
          style = 'stroke-width: 0.0000001'
-@@ -218,7 +372,6 @@ class Texmacs(inkex.Effect):
+@@ -218,7 +377,6 @@ class Texmacs(inkex.Effect):
              style = xstyle
          new_node.attrib['style'] = style
  
@@ -690,18 +709,14 @@ index 55cede1c..ff2654a8 100755
  
  
      def remove_temp_files(self):
-@@ -242,4 +395,8 @@ class Texmacs(inkex.Effect):
+@@ -242,4 +400,4 @@ class Texmacs(inkex.Effect):
  
  if __name__ == "__main__":
      e = Texmacs()
 -    e.affect()
-+    try : 
-+      #for inkscape ⩾1
-+      e.run()
-+    except:
-+      e.affect()
++    e.run()
 diff --git a/TeXmacs/progs/convert/images/tmimage.scm b/TeXmacs/progs/convert/images/tmimage.scm
-index 561d6e73..69aa5ce5 100644
+index 9d1a4544..9dc02b6b 100644
 --- a/TeXmacs/progs/convert/images/tmimage.scm
 +++ b/TeXmacs/progs/convert/images/tmimage.scm
 @@ -3,13 +3,19 @@
@@ -1136,7 +1151,7 @@ index 561d6e73..69aa5ce5 100644
 -       (extra-latex-attrib
 -        `((xmlns:ns0 "http://www.iki.fi/pav/software/textext/")
 -          (ns0:text ,latex-code) (ns0:preamble "texmacs_latex.sty")))
--       (extra-tm-attrib `((xmlns:ns1 "http://www.texmacs.org/")
+-       (extra-tm-attrib `((xmlns:ns1 "https://www.texmacs.org/")
 -                          (ns1:texmacscode ,tm-code) (ns1:texmacstyle ,tm-style)))
 -       ;; OK, the texmacs namespace maybe not correctly described at that url
 -       (old->new-labels (newids! idlist tm-code))
@@ -1187,7 +1202,7 @@ index 561d6e73..69aa5ce5 100644
 +      `((xmlns:ns0 "http://www.iki.fi/pav/software/textext/")
 +        (ns0:text ,latex-code) (ns0:preamble "texmacs_latex.sty")))
 +      (extra-tm-attrib 
-+      `((xmlns:ns1 "http://www.texmacs.org/")
++      `((xmlns:ns1 "https://www.texmacs.org/")
 +        (ns1:texmacscode ,tm-code) (ns1:texmacsstyle ,tm-style)
 +        (ns1:texmacsbaseline ,relbaseline)))
 +      ;; OK, the texmacs namespace maybe not correctly described at that url ...
@@ -1418,10 +1433,10 @@ index 561d6e73..69aa5ce5 100644
 -       (system-remove temp0) ;; temp pdf file not needed anymore
 -  )))
 diff --git a/TeXmacs/progs/init-texmacs.scm b/TeXmacs/progs/init-texmacs.scm
-index 56507623..44e0fabf 100644
+index 597cf9b0..88bd1233 100644
 --- a/TeXmacs/progs/init-texmacs.scm
 +++ b/TeXmacs/progs/init-texmacs.scm
-@@ -348,7 +348,7 @@
+@@ -360,7 +360,7 @@
  (lazy-format (convert bibtex init-bibtex) bibtex)
  (lazy-format (convert images init-images)
               postscript pdf xfig xmgrace svg xpm jpeg ppm gif png pnm)
@@ -1429,13 +1444,13 @@ index 56507623..44e0fabf 100644
 +(lazy-define (convert images tmimage) image-preferences-widget
               export-selection-as-graphics clipboard-copy-image)
  (lazy-define (convert rewrite init-rewrite) texmacs->code texmacs->verbatim)
- (lazy-define (convert html tmhtml-expand) tmhtml-env-patch)
+ (lazy-define (convert html tmhtml) ext-tmhtml-eqnarray*)
 diff --git a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
-index 4e4a3501..5bc81047 100644
+index 0457584c..056c0eca 100644
 --- a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
 +++ b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
-@@ -531,45 +531,7 @@
-               (get-preference "texmacs->pdf:version") "8em")))))
+@@ -542,45 +542,7 @@
+               (get-preference "texmacs->pdf:version") "12em")))))
  
  ;; Images ----------
 -
@@ -1481,7 +1496,7 @@ index 4e4a3501..5bc81047 100644
  
  ;; All converters ----------
  
-@@ -577,15 +539,15 @@
+@@ -588,15 +550,15 @@
    ===
    (padded
      (tabs
@@ -1642,10 +1657,10 @@ index 00000000..b3c723a5
 +
 +
 diff --git a/src/System/Boot/init_texmacs.cpp b/src/System/Boot/init_texmacs.cpp
-index 266b673b..9b7fa85f 100644
+index 4685e63b..1463004d 100644
 --- a/src/System/Boot/init_texmacs.cpp
 +++ b/src/System/Boot/init_texmacs.cpp
-@@ -369,30 +369,6 @@ init_misc () {
+@@ -399,30 +399,6 @@ init_misc () {
  
  }
  
@@ -1676,7 +1691,7 @@ index 266b673b..9b7fa85f 100644
  /******************************************************************************
  * Deprecated initializations
  ******************************************************************************/
-@@ -448,7 +424,6 @@ setup_texmacs () {
+@@ -478,7 +454,6 @@ setup_texmacs () {
  
    set_setting ("VERSION", TEXMACS_VERSION);
    setup_tex ();
@@ -1686,4 +1701,3 @@ index 266b673b..9b7fa85f 100644
    //cout << "settings_t= " << texmacs_settings << "\n";
 -- 
 2.17.1
-
