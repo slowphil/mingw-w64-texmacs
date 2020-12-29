@@ -263,10 +263,20 @@ echo "Creating archive" &&
  echo 'ExtractDialogText="Please, wait..."' &&
  echo 'ExtractPathText="Where do you want to install TeXmacs?"' &&
  echo 'ExtractTitle="Extracting..."' &&
- echo 'GUIFlags="8+32+64+256+4096"' &&
- echo 'GUIMode="1"' &&
- echo 'InstallPath="%PROGRAMFILES%\\TeXmacs"' &&
- echo 'OverwriteMode="2"' &&
+ # the new "modified sfx" no longer handles these options https://github.com/git-for-windows/7-Zip/blob/v19.00-VS2019-sfx/README.md
+ #echo 'GUIFlags="8+32+64+256+4096"' &&
+ #echo 'GUIMode="1"' &&
+ #echo 'InstallPath="%PROGRAMFILES%\\TeXmacs"' &&
+ echo 'InstallPath="%%S\\TeXmacs"' &&
+ #if RunProgram is empty, the sfx tries to run setup.exe
+ #so we run a do-nothing program
+ echo 'RunProgram="cmd.exe /q /c exit"' &&
+ # where to find the program https://github.com/chrislake/7zsfxmm/wiki/Parameters#RunProgram
+ # Note: the new modified sfx does not seem to expand environment variables...
+ echo 'Directory="C:\\Windows\\system32\\"' &&
+ #echo 'executeFile="cmd"' &&
+ #echo 'executeParameters="exit"' &&
+ #echo 'OverwriteMode="2"' &&
  echo ';!@InstallEnd@!' &&
  cat "$TMPPACK") > "$TARGET" &&
 echo "Success! You will find the new installer at \"$(cygpath -aw $TARGET)\"." &&
