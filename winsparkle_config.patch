@@ -6,8 +6,8 @@ index 5a623ae6..da10dca4 100644
  
    <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
    <TeXmacs>>|<cell|>>|<row|<cell|Installierte
--  Version>|<cell|<TeXmacs-version>>>|<row|<cell|Unterstützte
-+  Version>|<cell|<TeXmacs-version-release|revision>>>|<row|<cell|Unterstützte
+-  Version>|<cell|<TeXmacs-version>>>|<row|<cell|UnterstÃ¼tzte
++  Version>|<cell|<TeXmacs-version-release|revision>>>|<row|<cell|UnterstÃ¼tzte
    Systeme>|<cell|Most GNU/<name|Linux> systems>>|<row|<cell|Copyright>|<cell|<copyright>
    1998--2002 by Joris van der Hoeven >>|<row|<cell|Lizenz>|<cell|<hlink|GNU
    General Public License|$TEXMACS_PATH/LICENSE>>>|<row|<cell|Webseiten>|<cell|<tabular|<tformat|<twith|table-valign|T>|<cwith|1|-1|1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-rsep|0spc>|<table|<row|<cell|<verbatim|http://www.texmacs.org>>>|<row|<cell|<verbatim|http://www.gnu.org/software/texmacs>>>>>>>>|<row|<cell|Kontakt>|<cell|<verbatim|contact@texmacs.org>>>|<row|<cell|Postansschrift>|<cell|<tabular|<tformat|<twith|table-valign|T>|<cwith|1|-1|1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-rsep|0spc>|<table|<row|<cell|<abbr|Dr.>
@@ -46,11 +46,11 @@ index 4feed8ba..bff72c35 100644
    <with|language|spanish|><tmdoc-title|Sumario>
  
    <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
--  <TeXmacs>>|<cell|>>|<row|<cell|Versión>|<cell|<TeXmacs-version>>>|<row|<cell|Sistemas
-+  <TeXmacs>>|<cell|>>|<row|<cell|Versión>|<cell|<TeXmacs-version-release|revision>>>|<row|<cell|Sistemas
-   soportados>|<cell|La mayoría de los sistemas
+-  <TeXmacs>>|<cell|>>|<row|<cell|VersiÃ³n>|<cell|<TeXmacs-version>>>|<row|<cell|Sistemas
++  <TeXmacs>>|<cell|>>|<row|<cell|VersiÃ³n>|<cell|<TeXmacs-version-release|revision>>>|<row|<cell|Sistemas
+   soportados>|<cell|La mayorÃ­a de los sistemas
    GNU/<name|Linux>>>|<row|<cell|Copyright>|<cell|<copyright> 1998--2002 por
-   Joris van der Hoeven >>|<row|<cell|Licencia>|<cell|<hlink|Licencia Pública
+   Joris van der Hoeven >>|<row|<cell|Licencia>|<cell|<hlink|Licencia PÃºblica
 @@ -42,4 +42,4 @@
    <\collection>
      <associate|language|spanish>
@@ -66,9 +66,9 @@ index 7bef7be8..a15998b1 100644
    <tmdoc-title|Sommaire>
  
    <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
--  <TeXmacs>>|<cell|>>|<row|<cell|Version installée>|<cell|<TeXmacs-version>>>|<row|<cell|Systèmes
-+  <TeXmacs>>|<cell|>>|<row|<cell|Version installée>|<cell|<TeXmacs-version-release|revision>>>|<row|<cell|Systèmes
-   reconnus>|<cell|la plupart des systèmes
+-  <TeXmacs>>|<cell|>>|<row|<cell|Version installÃ©e>|<cell|<TeXmacs-version>>>|<row|<cell|SystÃ¨mes
++  <TeXmacs>>|<cell|>>|<row|<cell|Version installÃ©e>|<cell|<TeXmacs-version-release|revision>>>|<row|<cell|SystÃ¨mes
+   reconnus>|<cell|la plupart des systÃ¨mes
    GNU/<name|Linux>>>|<row|<cell|Droits d'auteur>|<cell|<copyright> 1998--2003
    de Joris van der Hoeven >>|<row|<cell|Licence>|<cell|<hlink|GNU General
 @@ -33,4 +33,4 @@
@@ -161,7 +161,7 @@ index a0ff2cb5..5ecdbf06 100644
 +;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 +;; For testing updates
 +;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-+: in windows version the appcast feed and location of the DSA public key are
++; in windows version the appcast feed and location of the DSA public key are
 +; set at build time in resource.rc
 +; these settings can be overridden by manually pointing elswhere
 +; This must be done by calling (updater-set-appcast @url) and or (updater-set-pub-key @path-to-pubkey-file)
