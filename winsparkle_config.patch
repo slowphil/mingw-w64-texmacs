@@ -6,8 +6,8 @@ index 5a623ae6..da10dca4 100644
  
    <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
    <TeXmacs>>|<cell|>>|<row|<cell|Installierte
--  Version>|<cell|<TeXmacs-version>>>|<row|<cell|Unterstï¿½tzte
-+  Version>|<cell|<TeXmacs-version-release|revision>>>|<row|<cell|Unterstï¿½tzte
+-  Version>|<cell|<TeXmacs-version>>>|<row|<cell|Unterstützte
++  Version>|<cell|<TeXmacs-version-release|revision>>>|<row|<cell|Unterstützte
    Systeme>|<cell|Most GNU/<name|Linux> systems>>|<row|<cell|Copyright>|<cell|<copyright>
    1998--2002 by Joris van der Hoeven >>|<row|<cell|Lizenz>|<cell|<hlink|GNU
    General Public License|$TEXMACS_PATH/LICENSE>>>|<row|<cell|Webseiten>|<cell|<tabular|<tformat|<twith|table-valign|T>|<cwith|1|-1|1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-rsep|0spc>|<table|<row|<cell|<verbatim|http://www.texmacs.org>>>|<row|<cell|<verbatim|http://www.gnu.org/software/texmacs>>>>>>>>|<row|<cell|Kontakt>|<cell|<verbatim|contact@texmacs.org>>>|<row|<cell|Postansschrift>|<cell|<tabular|<tformat|<twith|table-valign|T>|<cwith|1|-1|1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-rsep|0spc>|<table|<row|<cell|<abbr|Dr.>
@@ -46,11 +46,11 @@ index 4feed8ba..bff72c35 100644
    <with|language|spanish|><tmdoc-title|Sumario>
  
    <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
--  <TeXmacs>>|<cell|>>|<row|<cell|Versiï¿½n>|<cell|<TeXmacs-version>>>|<row|<cell|Sistemas
-+  <TeXmacs>>|<cell|>>|<row|<cell|Versiï¿½n>|<cell|<TeXmacs-version-release|revision>>>|<row|<cell|Sistemas
-   soportados>|<cell|La mayorï¿½a de los sistemas
+-  <TeXmacs>>|<cell|>>|<row|<cell|Versión>|<cell|<TeXmacs-version>>>|<row|<cell|Sistemas
++  <TeXmacs>>|<cell|>>|<row|<cell|Versión>|<cell|<TeXmacs-version-release|revision>>>|<row|<cell|Sistemas
+   soportados>|<cell|La mayoría de los sistemas
    GNU/<name|Linux>>>|<row|<cell|Copyright>|<cell|<copyright> 1998--2002 por
-   Joris van der Hoeven >>|<row|<cell|Licencia>|<cell|<hlink|Licencia Pï¿½blica
+   Joris van der Hoeven >>|<row|<cell|Licencia>|<cell|<hlink|Licencia Pública
 @@ -42,4 +42,4 @@
    <\collection>
      <associate|language|spanish>
@@ -66,9 +66,9 @@ index 7bef7be8..a15998b1 100644
    <tmdoc-title|Sommaire>
  
    <big-table|<descriptive-table|<tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|1|1|1|1|cell-halign|c>|<table|<row|<cell|GNU
--  <TeXmacs>>|<cell|>>|<row|<cell|Version installï¿½e>|<cell|<TeXmacs-version>>>|<row|<cell|Systï¿½mes
-+  <TeXmacs>>|<cell|>>|<row|<cell|Version installï¿½e>|<cell|<TeXmacs-version-release|revision>>>|<row|<cell|Systï¿½mes
-   reconnus>|<cell|la plupart des systï¿½mes
+-  <TeXmacs>>|<cell|>>|<row|<cell|Version installée>|<cell|<TeXmacs-version>>>|<row|<cell|Systèmes
++  <TeXmacs>>|<cell|>>|<row|<cell|Version installée>|<cell|<TeXmacs-version-release|revision>>>|<row|<cell|Systèmes
+   reconnus>|<cell|la plupart des systèmes
    GNU/<name|Linux>>>|<row|<cell|Droits d'auteur>|<cell|<copyright> 1998--2003
    de Joris van der Hoeven >>|<row|<cell|Licence>|<cell|<hlink|GNU General
 @@ -33,4 +33,4 @@
