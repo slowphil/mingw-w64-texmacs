@@ -254,7 +254,7 @@ index 00000000..768d4baa
 +  \;
 +</body>
 diff --git a/TeXmacs/misc/inkscape_extension/texmacs_reedit.py b/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
-index 13512b2f..dc125aa1 100755
+index 13512b2f..232d20fb 100755
 --- a/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
 +++ b/TeXmacs/misc/inkscape_extension/texmacs_reedit.py
 @@ -1,32 +1,36 @@
@@ -264,7 +264,7 @@ index 13512b2f..dc125aa1 100755
  *******************************************************************************
  * Texmacs extension for Inkscape
 -* COPYRIGHT  : (C) 2012 Philippe JOYEZ and the TeXmacs team
-+* COPYRIGHT  : (C) 2012-2019 Philippe JOYEZ and the TeXmacs team
++* COPYRIGHT  : (C) 2012-2021 Philippe JOYEZ and the TeXmacs team
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
  * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
@@ -323,7 +323,6 @@ index 13512b2f..dc125aa1 100755
 +#from xml.etree import ElementTree as etree
  from lxml import etree
  
-+
 +import socket
 +
  IS_WINDOWS = (platform.system() == "Windows")
@@ -362,8 +361,8 @@ index 13512b2f..dc125aa1 100755
 +    return bytes(s, 'utf8').decode('unicode_escape')
 +
  TEXTEXT_NS = u"http://www.iki.fi/pav/software/textext/"
--TEXMACS_NS = u"https://www.texmacs.org/"
-+TEXMACS_NS = u"http://www.texmacs.org/"
+ TEXMACS_NS = u"https://www.texmacs.org/"
++TEXMACS_OLD_NS = u"http://www.texmacs.org/"
  SVG_NS = u"http://www.w3.org/2000/svg"
  
 -NSS = {
@@ -425,7 +424,7 @@ index 13512b2f..dc125aa1 100755
             root = tree.getroot()
             new_node = root.find('{%s}g' % SVG_NS)
  
-@@ -121,47 +150,172 @@ class Texmacs(inkex.Effect):
+@@ -121,47 +150,180 @@ class Texmacs(inkex.Effect):
          Dig out equation to be modified (texmacs or textext)
          Returns: (old_svg_node, latex_option_command (for the textext case), tm_equation_to_be_edited)
          """
@@ -452,8 +451,16 @@ index 13512b2f..dc125aa1 100755
 +                tm_equation = string_unescape(node.attrib.get('{%s}texmacscode' % TEXMACS_NS, ''))
 +                if '{%s}texmacsstyle'%TEXMACS_NS in node.attrib: #further contains styling info
 +                    tm_style = string_unescape(node.attrib.get('{%s}texmacsstyle' % TEXMACS_NS, ''))
-+                elif '{%s}texmacstyle'%TEXMACS_NS in node.attrib: #there was a typo at some point in the code; handle it gracefully
-+                    tm_style = string_unescape(node.attrib.get('{%s}texmacstyle' % TEXMACS_NS, ''))
++                else:
++                    tm_style =''
++                return (node, '', tm_equation, tm_style)
++
++            elif '{%s}texmacscode'%TEXMACS_OLD_NS in node.attrib: # that group contains texmacs data
++                tm_equation = string_unescape(node.attrib.get('{%s}texmacscode' % TEXMACS_OLD_NS, ''))
++                if '{%s}texmacsstyle'%TEXMACS_OLD_NS in node.attrib: #further contains styling info
++                    tm_style = string_unescape(node.attrib.get('{%s}texmacsstyle' % TEXMACS_OLD_NS, ''))
++                elif '{%s}texmacstyle'%TEXMACS_OLD_NS in node.attrib: #there was a typo at some point in the code; handle it gracefully
++                    tm_style = string_unescape(node.attrib.get('{%s}texmacstyle' % TEXMACS_OLD_NS, ''))
 +                else:
                      tm_style =''
 -            	return (node, '', tm_equation, tm_style)
@@ -628,7 +635,7 @@ index 13512b2f..dc125aa1 100755
  
      def replace_node(self, old_node, new_node):
          """
-@@ -169,37 +323,42 @@ class Texmacs(inkex.Effect):
+@@ -169,37 +331,42 @@ class Texmacs(inkex.Effect):
          in self.document.
          """
          if old_node is None:
@@ -701,7 +708,7 @@ index 13512b2f..dc125aa1 100755
          # -- Work around probable bugs in several viewers that don't handle
          #    "stroke-width: 0;" style properly.
          style = 'stroke-width: 0.0000001'
-@@ -218,7 +377,6 @@ class Texmacs(inkex.Effect):
+@@ -218,7 +385,6 @@ class Texmacs(inkex.Effect):
              style = xstyle
          new_node.attrib['style'] = style
  
@@ -709,14 +716,14 @@ index 13512b2f..dc125aa1 100755
  
  
      def remove_temp_files(self):
-@@ -242,4 +400,4 @@ class Texmacs(inkex.Effect):
+@@ -242,4 +408,4 @@ class Texmacs(inkex.Effect):
  
  if __name__ == "__main__":
      e = Texmacs()
 -    e.affect()
 +    e.run()
 diff --git a/TeXmacs/progs/convert/images/tmimage.scm b/TeXmacs/progs/convert/images/tmimage.scm
-index 9d1a4544..9dc02b6b 100644
+index 3696c689..ad5c7548 100644
 --- a/TeXmacs/progs/convert/images/tmimage.scm
 +++ b/TeXmacs/progs/convert/images/tmimage.scm
 @@ -3,13 +3,19 @@
@@ -724,7 +731,7 @@ index 9d1a4544..9dc02b6b 100644
  ;; DESCRIPTION : convert texmacs fragment (selection) to image formats.
  ;;               Try embedding source code in image
 -;; COPYRIGHT   : (C) 2012  Philippe Joyez
-+;; COPYRIGHT   : (C) 2012-2018  Philippe Joyez
++;; COPYRIGHT   : (C) 2012-2021  Philippe Joyez
  ;;
  ;; This software falls under the GNU general public license version 3 or later.
  ;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
@@ -740,7 +747,7 @@ index 9d1a4544..9dc02b6b 100644
  
  (texmacs-module (convert images tmimage)
    (:use (convert tmml tmmlout)
-@@ -18,28 +24,166 @@
+@@ -18,31 +24,169 @@
  ;; (display "Texmacs] Loading module tmimage\n")
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -752,9 +759,12 @@ index 9d1a4544..9dc02b6b 100644
 +;; And preference widget 
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
+ (define (default-image-export-format)
+   (if (nnot (converter-search "pdf-file" "svg-file")) "svg" "pdf"))
+ 
  (define-preferences
--  ("texmacs->image:format" "svg" noop))
-+  ("texmacs->image:format" "svg" noop)
+-  ("texmacs->image:format" (default-image-export-format) noop))
++  ("texmacs->image:format" (default-image-export-format) noop)
 +  ("texmacs->image:scale" "2.0" noop)
 +  ("texmacs->image:raster-resolution" "300" noop)
 +  ("equation-editor-server" "off" noop))
@@ -917,19 +927,30 @@ index 9d1a4544..9dc02b6b 100644
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;; commodity functions for tree manipulations
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@@ -64,8 +208,9 @@
+@@ -65,13 +209,16 @@
+ 
+ (define (remove-node-raise-children! node . firstlast)
    ;; similar to "remove tag" operation in the editor
++  ;; if no extra args are given all children are raised
++  ;; if only one extra arg is given all children starting from this one are raised
++  ;; if last is specified, children up to last (included) are raised
    (let* ((parent (tree-ref node :up))
-          (pos (+ (tree-index node) 1))
+-         (pos (+ (tree-index node) 1))
 -         (lastindex (if (< (length firstlast) 2) (- (tree-arity node) 1) (cadr firstlast) ))
 -         (firstindex (- (if (null? firstlast) 0 (car firstlast)) 1)))
-+         (lastindex (- (if (< (length firstlast) 2) (tree-arity node) (cadr firstlast) )1))
-+         (firstindex (- (if (null? firstlast) 1 (car firstlast)) 1)))
-+;;    (display* firstindex " " lastindex "\n")  
-     (do ((i lastindex (- i 1))) ((= i firstindex))
-       (copy-node! (tree-ref node i) parent pos))
-     (remove-node! node)
-@@ -76,46 +221,117 @@
+-    (do ((i lastindex (- i 1))) ((= i firstindex))
+-      (copy-node! (tree-ref node i) parent pos))
+-    (remove-node! node)
++         (pos (tree-index node))
++         (lastindex+1 (if (< (length firstlast) 2) (tree-arity node) (+ (cadr firstlast) 1) ))
++         (firstindex (if (null? firstlast) 0 (car firstlast)))
++         (cl (select node `((:range ,firstindex ,lastindex+1)))))
++    (tree-insert! parent (+ pos 1) cl)
++    (tree-remove! parent pos 1)
+     ))
+ 
+ (define (replace-leaftext! leaf newtext)
+@@ -79,46 +226,117 @@
    ;; Makes the node a leaf if it wasn't one
    (tree-assign! leaf (string->tree newtext)))
  
@@ -1079,7 +1100,7 @@ index 9d1a4544..9dc02b6b 100644
  (define (latex-encode tm-fragment-tree)
    ;; for the latex representation we mimick what is done when
    ;; "copy to latex" is performed
-@@ -128,87 +344,80 @@
+@@ -131,87 +349,84 @@
  (define (tm-encode tm-fragment-tree)
    (escape-to-ascii (serialize-texmacs tm-fragment-tree)))
  
@@ -1232,11 +1253,15 @@ index 9d1a4544..9dc02b6b 100644
 -    ;; so that they remain together in inkscape
  
 -    ;; Fifth : finally create output
++    ;;wrap maingroup in another group otherwise inkscape 1.0.2 breaks the group for some reason (could be an inkscape bug).
++    (tree-insert! svgroot 1 '((g "")))
++    (move-node! maingroup (tree-ref svgroot 1) 1)
++
 +    ;; 5: finally create output
      (let* (;; convert back to stree, recreate the *TOP* node,
             ;; and restore *PI* xml
             ;; (instead of *PI* "xml" given by tree->stree -
-@@ -237,73 +446,134 @@
+@@ -240,81 +455,147 @@
      (set-message "Qt GUI only, sorry. Use \"Export selection...\"" "")
      (if (not (selection-active-any?))
        (set-message "no selection!" "")
@@ -1265,11 +1290,83 @@ index 9d1a4544..9dc02b6b 100644
 +  ;; for svg export, the texmacs code of the selection as well as 
 +  ;; global document parameters such as style, fonts, etc. are
 +  ;; embedded in the drawing to enable re-editing from inkscape
-+ 
+ 
+-  (when (or (== (url-suffix myurl) "")
+-            (not (converter-search "pdf-file" (file-format myurl))))
++  (if (== (url-suffix myurl) "")
+     (with format (get-preference "texmacs->image:format")
+-      (when (not (converter-search "pdf-file" (string-append format "-file")))
+-        (set! format "pdf"))
++      (show-message (string-append "No file extension specified, defaulting to " format) "No image format given" )
+       (with suffix (format-default-suffix format)
+         (set! myurl (url-glue myurl (string-append "." suffix))))))
+-
+-  (if (not (selection-active-any?))
+-      (set-message "no selection!" "")
+-      (let* (
+-        ;; step 1 prepare and typeset selection
+-        ;; if selection is part of math need to re-encapsulate
+-        ;; it with math to obtain proper typesetting :
+-        (tm-fragment
+-          (if (in-math?)
+-              (stree->tree `(equation* (document ,(selection-tree))))
+-  	          (selection-tree)))
+-        ;; also if selection spans several lines of text,
+-        ;; need to encapsulate it in a fixed-width table
+-        ;;to enforce pagewidth :
+-        (tm-fragment-enforce-pagewidth
+-          (if (tree-multi-paragraph? (selection-tree))
+-              (stree->tree
+-                `(tabular
+-                   (tformat (twith "table-width" "1par")
+-			               (twith "table-hmode" "exact")
+-			               (cwith "1" "1" "1" "1" "cell-hyphen" "t")
+-                     (table (row (cell (document ,tm-fragment)))))))
+-              (selection-tree)))
+-        (temp0 (url-temp-ext "pdf"))
+-        (dpi-pref (get-preference "printer dpi"))
+-        (suffix (url-suffix myurl)))
+-
+-       (set-printer-dpi "236") ; 472 is ~ exact size
+-       ;;set to a fixed value so our graphics does
+-       ;;not depend on the printer dpi
+-       ;;We need to set this weird dpi value so that the size of the svg
+-       ;;produced is about twice that of direct pdf or ps output. Why??
+-       (print-snippet temp0 tm-fragment-enforce-pagewidth #t)
+-       ;;typeset fragment to ps as starting point
+-       (set-printer-dpi dpi-pref)
+-       ;; revert to preference dpi
+-       ;; step 2 generate output according to desired output format
+-
+-       (cond
+-        ((== suffix "pdf") (system-copy temp0 myurl))
+-        ((== suffix "svg")
+-         ;; assume target is inkscape
+-         (file-convert temp0 myurl)
+-         ;; using either pdf2svg or pdf2cairo converters is crucial
+-         ;; for svg inport in inkscape:
+-         ;; fonts are properly passed as vector outlines
+-         ;; file converters are defined in init-images.scm
+-         (refactor-svg myurl tm-fragment))
+-         ;; modify svg, embedding texmacs code
+-        (else
+-         (file-convert temp0 myurl)))
+-
+-       (system-remove temp0) ;; temp pdf file not needed anymore
+-  )))
++  
++  (with suffix (url-suffix myurl)
++    (when (not (file-converter-exists? "x.pdf" (string-append "y." suffix)))
++      (show-message (string-append "Sorry, pdf to " suffix " converter is missing. Generating pdf instead") "Image format not available" )
++      (let* ((sufl (string-length suffix))
++            (surl (url->string myurl))
++            (sl (string-length surl))) 
++        (set! myurl (string->url (string-append (substring surl (- sl sufl) sl) "pdf"))))))
++
++; TODO Handle when output file already exists (presently we overwritte without warning)
++
 +  (cond
 +   ((not (selection-active-any?)) (set-message "no selection!" ""))
-+   ((not (file-converter-exists? "x.pdf" (string-append "y." (url-suffix myurl)) )) 
-+      (show-message (string-append "pdf to " (url-suffix myurl) " converter not available. Sorry.") "Cannot generate image" ))
 +   (else 
 +    (let*
 +     (
@@ -1378,65 +1475,11 @@ index 9d1a4544..9dc02b6b 100644
 +
 +	  (system-remove temp1) ;; temp pdf file not needed anymore
 +	))))
- 
--  (if (not (selection-active-any?))
--      (set-message "no selection!" "")
--      (let* (
--        ;; step 1 prepare and typeset selection
--        ;; if selection is part of math need to re-encapsulate
--        ;; it with math to obtain proper typesetting :
--        (tm-fragment
--          (if (in-math?)
--              (stree->tree `(equation* (document ,(selection-tree))))
--  	          (selection-tree)))
--        ;; also if selection spans several lines of text,
--        ;; need to encapsulate it in a fixed-width table
--        ;;to enforce pagewidth :
--        (tm-fragment-enforce-pagewidth
--          (if (tree-multi-paragraph? (selection-tree))
--              (stree->tree
--                `(tabular
--                   (tformat (twith "table-width" "1par")
--			               (twith "table-hmode" "exact")
--			               (cwith "1" "1" "1" "1" "cell-hyphen" "t")
--                     (table (row (cell (document ,tm-fragment)))))))
--              (selection-tree)))
--        (temp0 (url-temp-ext "pdf"))
--        (dpi-pref (get-preference "printer dpi"))
--        (suffix (url-suffix myurl)))
--
--       (set-printer-dpi "236") ; 472 is ~ exact size
--       ;;set to a fixed value so our graphics does
--       ;;not depend on the printer dpi
--       ;;We need to set this weird dpi value so that the size of the svg
--       ;;produced is about twice that of direct pdf or ps output. Why??
--       (print-snippet temp0 tm-fragment-enforce-pagewidth #t)
--       ;;typeset fragment to ps as starting point
--       (set-printer-dpi dpi-pref)
--       ;; revert to preference dpi
--       ;; step 2 generate output according to desired output format
--
--       (cond
--        ((== suffix "pdf") (system-copy temp0 myurl))
--        ((== suffix "svg")
--         ;; assume target is inkscape
--         (file-convert temp0 myurl)
--         ;; using either pdf2svg or pdf2cairo converters is crucial
--         ;; for svg inport in inkscape:
--         ;; fonts are properly passed as vector outlines
--         ;; file converters are defined in init-images.scm
--         (refactor-svg myurl tm-fragment))
--         ;; modify svg, embedding texmacs code
--        (else
--         (file-convert temp0 myurl)))
--
--       (system-remove temp0) ;; temp pdf file not needed anymore
--  )))
 diff --git a/TeXmacs/progs/init-texmacs.scm b/TeXmacs/progs/init-texmacs.scm
-index 597cf9b0..88bd1233 100644
+index 54f0256f..0916a477 100644
 --- a/TeXmacs/progs/init-texmacs.scm
 +++ b/TeXmacs/progs/init-texmacs.scm
-@@ -360,7 +360,7 @@
+@@ -368,7 +368,7 @@
  (lazy-format (convert bibtex init-bibtex) bibtex)
  (lazy-format (convert images init-images)
               postscript pdf xfig xmgrace svg xpm jpeg ppm gif png pnm)
@@ -1701,3 +1744,4 @@ index 4685e63b..1463004d 100644
    //cout << "settings_t= " << texmacs_settings << "\n";
 -- 
 2.17.1
+
