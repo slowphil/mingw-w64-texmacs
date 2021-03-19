@@ -723,7 +723,7 @@ index 13512b2f..232d20fb 100755
 -    e.affect()
 +    e.run()
 diff --git a/TeXmacs/progs/convert/images/tmimage.scm b/TeXmacs/progs/convert/images/tmimage.scm
-index 3696c689..ad5c7548 100644
+index 3696c689..7465ad59 100644
 --- a/TeXmacs/progs/convert/images/tmimage.scm
 +++ b/TeXmacs/progs/convert/images/tmimage.scm
 @@ -3,13 +3,19 @@
@@ -1100,7 +1100,7 @@ index 3696c689..ad5c7548 100644
  (define (latex-encode tm-fragment-tree)
    ;; for the latex representation we mimick what is done when
    ;; "copy to latex" is performed
-@@ -131,87 +349,84 @@
+@@ -131,87 +349,86 @@
  (define (tm-encode tm-fragment-tree)
    (escape-to-ascii (serialize-texmacs tm-fragment-tree)))
  
@@ -1253,15 +1253,17 @@ index 3696c689..ad5c7548 100644
 -    ;; so that they remain together in inkscape
  
 -    ;; Fifth : finally create output
-+    ;;wrap maingroup in another group otherwise inkscape 1.0.2 breaks the group for some reason (could be an inkscape bug).
-+    (tree-insert! svgroot 1 '((g "")))
-+    (move-node! maingroup (tree-ref svgroot 1) 1)
++    ;;wrap maingroup in another group otherwise inkscape 1.0.2 breaks the group for some reason
++    ; not applying the change (does not work in all situations) and really seems an inkscape bug
++    ; see https://gitlab.com/inkscape/inbox/-/issues/4644
++;    (tree-insert! svgroot 1 '((g "")))
++;    (move-node! maingroup (tree-ref svgroot 1) 1)
 +
 +    ;; 5: finally create output
      (let* (;; convert back to stree, recreate the *TOP* node,
             ;; and restore *PI* xml
             ;; (instead of *PI* "xml" given by tree->stree -
-@@ -240,81 +455,147 @@
+@@ -240,81 +457,147 @@
      (set-message "Qt GUI only, sorry. Use \"Export selection...\"" "")
      (if (not (selection-active-any?))
        (set-message "no selection!" "")
