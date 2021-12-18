@@ -723,7 +723,7 @@ index 13512b2f..232d20fb 100755
 -    e.affect()
 +    e.run()
 diff --git a/TeXmacs/progs/convert/images/tmimage.scm b/TeXmacs/progs/convert/images/tmimage.scm
-index 3696c689..7465ad59 100644
+index 3696c689..8d2bd670 100644
 --- a/TeXmacs/progs/convert/images/tmimage.scm
 +++ b/TeXmacs/progs/convert/images/tmimage.scm
 @@ -3,13 +3,19 @@
@@ -771,7 +771,7 @@ index 3696c689..7465ad59 100644
 +
 +(define (pretty-format-list)
 +  (let* ((desired-image-format-list '(("svg" "Svg")  ("eps" "Eps")
-+           ("png" "Png")("tif" "Tiff") ("jpg" "Jpeg")))
++           ("png" "Png")("tif" "Tiff") ("jpg" "Jpeg") ("pdf" "Pdf")))
 +         (valid-image-format-list 
 +           (filter (lambda (x) (file-converter-exists? "x.pdf" (string-append "y." (car x)) ))
 +             desired-image-format-list)))
@@ -833,7 +833,7 @@ index 3696c689..7465ad59 100644
 +(define (supports-inkscape?) (url-exists-in-path? "inkscape"))
 +
 +(tm-widget (image-preferences-widget)
-+  ===
++  ======
 +  (bold (text "Image -> TeXmacs"))
 +  ===
 +  (aligned
@@ -845,7 +845,7 @@ index 3696c689..7465ad59 100644
 +                 "image->texmacs:svg-prefer-inkscape" answer)
 +                (get-boolean-preference
 +                 "image->texmacs:svg-prefer-inkscape")))))
-+  ===
++  ====== ======
 +  (bold (text "TeXmacs -> Image"))
 +  ===
 +  (refreshable "svg-configutation"
@@ -1478,10 +1478,10 @@ index 3696c689..7465ad59 100644
 +	  (system-remove temp1) ;; temp pdf file not needed anymore
 +	))))
 diff --git a/TeXmacs/progs/init-texmacs.scm b/TeXmacs/progs/init-texmacs.scm
-index 54f0256f..0916a477 100644
+index 8dcbbc24..853ae312 100644
 --- a/TeXmacs/progs/init-texmacs.scm
 +++ b/TeXmacs/progs/init-texmacs.scm
-@@ -368,7 +368,7 @@
+@@ -370,7 +370,7 @@
  (lazy-format (convert bibtex init-bibtex) bibtex)
  (lazy-format (convert images init-images)
               postscript pdf xfig xmgrace svg xpm jpeg ppm gif png pnm)
@@ -1491,10 +1491,10 @@ index 54f0256f..0916a477 100644
  (lazy-define (convert rewrite init-rewrite) texmacs->code texmacs->verbatim)
  (lazy-define (convert html tmhtml) ext-tmhtml-eqnarray*)
 diff --git a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
-index 0457584c..056c0eca 100644
+index 035ecf5f..a1947aaf 100644
 --- a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
 +++ b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
-@@ -542,45 +542,7 @@
+@@ -586,45 +586,7 @@
                (get-preference "texmacs->pdf:version") "12em")))))
  
  ;; Images ----------
@@ -1511,7 +1511,7 @@ index 0457584c..056c0eca 100644
 -(define (supports-inkscape?) (url-exists-in-path? "inkscape"))
 -
 -(tm-widget (image-preferences-widget)
--  ===
+-  ======
 -  (bold (text "TeXmacs -> Image"))
 -  ===
 -  (aligned
@@ -1519,13 +1519,13 @@ index 0457584c..056c0eca 100644
 -      (enum (set-preference "texmacs->image:raster-resolution" answer)
 -            '("1200" "600" "300" "150" "")
 -            (get-preference "texmacs->image:raster-resolution")
--            "5em"))
+-            "8em"))
 -    (item (text "Clipboard image format:")
 -      (enum (set-pretty-preference "texmacs->image:format" answer)
 -            (pretty-format-list)
 -            (get-pretty-preference "texmacs->image:format")
--            "5em")))
--  ===
+-            "8em")))
+-  ====== ======
 -  (bold (text "Image -> TeXmacs"))
 -  ===
 -  (aligned
@@ -1541,7 +1541,7 @@ index 0457584c..056c0eca 100644
  
  ;; All converters ----------
  
-@@ -588,15 +550,15 @@
+@@ -632,15 +594,15 @@
    ===
    (padded
      (tabs
@@ -1702,10 +1702,10 @@ index 00000000..b3c723a5
 +
 +
 diff --git a/src/System/Boot/init_texmacs.cpp b/src/System/Boot/init_texmacs.cpp
-index 4685e63b..1463004d 100644
+index 26e13703..9a0d8f98 100644
 --- a/src/System/Boot/init_texmacs.cpp
 +++ b/src/System/Boot/init_texmacs.cpp
-@@ -399,30 +399,6 @@ init_misc () {
+@@ -404,30 +404,6 @@ init_misc () {
  
  }
  
@@ -1736,7 +1736,7 @@ index 4685e63b..1463004d 100644
  /******************************************************************************
  * Deprecated initializations
  ******************************************************************************/
-@@ -478,7 +454,6 @@ setup_texmacs () {
+@@ -483,7 +459,6 @@ setup_texmacs () {
  
    set_setting ("VERSION", TEXMACS_VERSION);
    setup_tex ();
