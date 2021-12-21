@@ -1,3 +1,35 @@
+Index: src/System/Link/socket_notifier.cpp
+===================================================================
+--- src/System/Link/socket_notifier.cpp	(revision 13828)
++++ src/System/Link/socket_notifier.cpp	(working copy)
+@@ -8,7 +8,7 @@
+ * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+ * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+ ******************************************************************************/
+-#ifndef QTTEXMACS
++#if !(defined (QTTEXMACS) && defined (QTPIPES))
+ 
+ #include "config.h"
+ 
+Index: src/Plugins/Qt/qt_gui.cpp
+===================================================================
+--- src/Plugins/Qt/qt_gui.cpp	(revision 13828)
++++ src/Plugins/Qt/qt_gui.cpp	(working copy)
+@@ -71,9 +71,11 @@
+ Q_IMPORT_PLUGIN(qsvg)
+ #endif
+ 
+-#ifdef WIN32 
+-Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
+-#endif
++
++//#ifdef OS_MINGW 
++//Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
++//#endif
++
+ #ifdef QT_MAC_USE_COCOA
+ Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin)
+ #endif
 Index: Plugins/Windows/spawn.cpp
 ===================================================================
 --- src/Plugins/Windows/spawn.cpp	(revision 13828)
@@ -14,25 +46,25 @@ Index: Plugins/Windows/spawn.cpp
  
  Channel::Channel (int s):sz(s) {
   origin= -1; saved= -1; fd= -1;toBeClosed= -1; str= NULL; tid= 0; 
-Index: System/Misc/fast_alloc.cpp
+Index: src/System/Misc/fast_alloc.cpp
 ===================================================================
---- src/System/Misc/fast_alloc.cpp	(revision 13828)
-+++ src/System/Misc/fast_alloc.cpp	(working copy)
+--- src/System/Misc/fast_alloc.cpp      (revision 13828)
++++ src/System/Misc/fast_alloc.cpp      (working copy)
 @@ -62,7 +62,7 @@
- 
+
  void*
  fast_alloc (size_t sz) {
 -  sz= (sz+WORD_LENGTH_INC)&WORD_MASK;
-+  sz= (sz+WORD_LENGTH_INC)&reinterpret_cast<unsigned int>(WORD_MASK);
++  sz= (sz+WORD_LENGTH_INC)&0xfffffffc;
    if (sz<MAX_FAST) {
      void *ptr= alloc_ptr (sz);
      if (ptr==NULL) return enlarge_malloc (sz);
 @@ -82,7 +82,7 @@
- 
+
  void
  fast_free (void* ptr, size_t sz) {
 -  sz=(sz+WORD_LENGTH_INC)&WORD_MASK;
-+  sz=(sz+WORD_LENGTH_INC)&reinterpret_cast<unsigned int>(WORD_MASK);
++  sz=(sz+WORD_LENGTH_INC)&0xfffffffc;
    if (sz<MAX_FAST) {
      #ifdef DEBUG_ON
      break_stub(ptr);
@@ -41,10 +73,10 @@ Index: System/Misc/fast_alloc.cpp
    void* ptr;
    #ifdef DEBUG_ON
 -  s= (s+ (4 * WORD_LENGTH) + WORD_LENGTH_INC)&WORD_MASK;
-+  s= (s+ (4 * WORD_LENGTH) + WORD_LENGTH_INC)&reinterpret_cast<unsigned int>(WORD_MASK);
++  s= (s+ (4 * WORD_LENGTH) + WORD_LENGTH_INC)&0xfffffffc;
    #else
 -  s= (s+ WORD_LENGTH+ WORD_LENGTH_INC)&WORD_MASK;
-+  s= (s+ WORD_LENGTH+ WORD_LENGTH_INC)&reinterpret_cast<unsigned int>(WORD_MASK);
++  s= (s+ WORD_LENGTH+ WORD_LENGTH_INC)&0xfffffffc;
    #endif
    if (s<MAX_FAST) {
      ptr= alloc_ptr(s);
