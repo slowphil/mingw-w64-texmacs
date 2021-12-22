@@ -46,37 +46,3 @@ Index: Plugins/Windows/spawn.cpp
  
  Channel::Channel (int s):sz(s) {
   origin= -1; saved= -1; fd= -1;toBeClosed= -1; str= NULL; tid= 0; 
-Index: src/System/Misc/fast_alloc.cpp
-===================================================================
---- src/System/Misc/fast_alloc.cpp      (revision 13828)
-+++ src/System/Misc/fast_alloc.cpp      (working copy)
-@@ -62,7 +62,7 @@
-
- void*
- fast_alloc (size_t sz) {
--  sz= (sz+WORD_LENGTH_INC)&WORD_MASK;
-+  sz= (sz+WORD_LENGTH_INC)&0xfffffffc;
-   if (sz<MAX_FAST) {
-     void *ptr= alloc_ptr (sz);
-     if (ptr==NULL) return enlarge_malloc (sz);
-@@ -82,7 +82,7 @@
-
- void
- fast_free (void* ptr, size_t sz) {
--  sz=(sz+WORD_LENGTH_INC)&WORD_MASK;
-+  sz=(sz+WORD_LENGTH_INC)&0xfffffffc;
-   if (sz<MAX_FAST) {
-     #ifdef DEBUG_ON
-     break_stub(ptr);
-@@ -103,9 +103,9 @@
- fast_new (size_t s) {
-   void* ptr;
-   #ifdef DEBUG_ON
--  s= (s+ (4 * WORD_LENGTH) + WORD_LENGTH_INC)&WORD_MASK;
-+  s= (s+ (4 * WORD_LENGTH) + WORD_LENGTH_INC)&0xfffffffc;
-   #else
--  s= (s+ WORD_LENGTH+ WORD_LENGTH_INC)&WORD_MASK;
-+  s= (s+ WORD_LENGTH+ WORD_LENGTH_INC)&0xfffffffc;
-   #endif
-   if (s<MAX_FAST) {
-     ptr= alloc_ptr(s);
