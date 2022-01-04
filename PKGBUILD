@@ -203,6 +203,9 @@ mkdir $BUNDLE_DIR/share/hunspell
 
 dicts="en_US" 
 local_lang=$(echo $LANG | cut -d'.' -f1)
+if [[ $local_lang = "" ]]; then
+  local_lang=$(echo $LC_CTYPE | cut -d'.' -f1)
+fi
 if [[ $dicts != *"$local_lang"* ]]; then
   dicts="$dicts $local_lang"
 fi 
