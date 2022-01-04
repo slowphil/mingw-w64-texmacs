@@ -61,8 +61,9 @@ prepare() {
   cd $TM_BUILD_DIR
 
   patch -i ../../winsparkle_config.patch -p1
-  patch -i ../../equation-editor-plugin.patch -p1
-  patch -i ../../patch_dec21.patch -p0
+#  patch -i ../../equation-editor-plugin.patch -p1
+  git --work-tree=. apply ../../equation-editor-plugin.patch #needed for binary file oxt
+  patch -i ../../dec21.patch -p1  
 
   if test ! -d TeXmacs/misc/updater_key ; then
     mkdir -p TeXmacs/misc/updater_key
@@ -233,6 +234,14 @@ echo "$lang_list"
 for language in $lang_list ; do
   svn export --force "svn://svn.lyx.org/lyx/dictionaries/trunk/dicts/info/${language}" ./$language
 done
+
+#pull additional plugins from tm-forge
+  #mkdir -p $BUNDLE_DIR/plugins
+  cd $BUNDLE_DIR/plugins
+  svn export https://github.com/texmacs/tm-forge/trunk/miscellanea/komments komments
+  svn export https://github.com/texmacs/tm-forge/trunk/miscellanea/outline outline
+  svn export https://github.com/texmacs/tm-forge/trunk/miscellanea/fontawesome fontawesome
+
 
 if test -f /build/inno/inno_setup/ISCC.exe ; then
   rm -rf ${srcdir}/distr/windows
