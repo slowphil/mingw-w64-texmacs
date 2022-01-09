@@ -95,7 +95,7 @@ build() {
     #--enable-console \
     #--enable-debug  # must not strip in this case (line 37 and 159) !!
     
-  echo "#define GS_EXE \"bin/gswin32c.exe\"" >> src/System/tm_configure.hpp
+  echo "#define GS_EXE \"bin/gs.exe\"" >> src/System/tm_configure.hpp
   make -j$(nproc)
 
 }
@@ -183,6 +183,8 @@ done
 for prog in "$DEPS" ; do
   cp -u $prog $BUNDLE_DIR/bin
 done
+
+mv $BUNDLE_DIR/bin/gswin32c.exe $BUNDLE_DIR/bin/gs.exe
 
 for PLUGIN in $QT_NEEDED_PLUGINS_LIST ; do
   cp -r -f -u /mingw32/share/qt4/plugins/$PLUGIN $BUNDLE_DIR/bin
