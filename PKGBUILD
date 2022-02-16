@@ -23,6 +23,7 @@ depends=(
           "${MINGW_PACKAGE_PREFIX}-gc"
           "${MINGW_PACKAGE_PREFIX}-ghostscript"
           "${MINGW_PACKAGE_PREFIX}-imagemagick"
+          "${MINGW_PACKAGE_PREFIX}-librsvg"
           "${MINGW_PACKAGE_PREFIX}-lcms2"
           "${MINGW_PACKAGE_PREFIX}-freetype"
           "${MINGW_PACKAGE_PREFIX}-iconv"
@@ -140,6 +141,9 @@ dlls_for_exes () {
 # the additional programs we bundle with TeXmacs
 
 DEPS="/mingw32/bin/pdftocairo.exe \
+ /mingw32/bin/magick.exe \
+ /mingw32/bin/identify.exe \
+ /mingw32/bin/rsvg-convert.exe \
  /mingw32/bin/hunspell.exe \
  /mingw32/bin/gswin32c.exe \
  /mingw32/bin/wget.exe \
@@ -240,12 +244,13 @@ for language in $lang_list ; do
   svn export --force "svn://svn.lyx.org/lyx/dictionaries/trunk/dicts/info/${language}" ./$language
 done
 
-#pull additional plugins from tm-forge
+#pull additional plugins from tm-forge and slowphil
   #mkdir -p $BUNDLE_DIR/plugins
   cd $BUNDLE_DIR/plugins
   svn export https://github.com/texmacs/tm-forge/trunk/miscellanea/komments komments
   svn export https://github.com/texmacs/tm-forge/trunk/miscellanea/outline outline
   svn export https://github.com/texmacs/tm-forge/trunk/miscellanea/fontawesome fontawesome
+  svn export https://github.com/slowphil/zotexmacs/trunk/plugin/zotexmacs zotexmacs
 
 
 if test -f /build/inno/inno_setup/ISCC.exe ; then
