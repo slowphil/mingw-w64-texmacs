@@ -22,7 +22,7 @@ depends=(
           "${MINGW_PACKAGE_PREFIX}-wget"
           "${MINGW_PACKAGE_PREFIX}-gc"
           "${MINGW_PACKAGE_PREFIX}-ghostscript"
-          "${MINGW_PACKAGE_PREFIX}-imagemagick"
+#          "${MINGW_PACKAGE_PREFIX}-imagemagick"
           "${MINGW_PACKAGE_PREFIX}-librsvg"
           "${MINGW_PACKAGE_PREFIX}-lcms2"
           "${MINGW_PACKAGE_PREFIX}-freetype"
@@ -141,14 +141,13 @@ dlls_for_exes () {
 # the additional programs we bundle with TeXmacs
 
 DEPS="/mingw32/bin/pdftocairo.exe \
- /mingw32/bin/magick.exe \
- /mingw32/bin/identify.exe \
  /mingw32/bin/rsvg-convert.exe \
  /mingw32/bin/hunspell.exe \
  /mingw32/bin/gswin32c.exe \
  /mingw32/bin/wget.exe \
- /build/winsparkle/WinSparkle.dll
- /build/SumatraPDF/SumatraPDF.exe  "
+ /build/winsparkle/WinSparkle.dll \
+ /build/SumatraPDF/SumatraPDF.exe \
+ /build/Imagemagick/magick.exe "
 
 PROGS="$DEPS  $TM_BUILD_DIR/TeXmacs/bin/texmacs.bin"
 
