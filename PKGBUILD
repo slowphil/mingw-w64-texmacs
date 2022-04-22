@@ -16,6 +16,7 @@ license=('GPL')
 makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
              "${MINGW_PACKAGE_PREFIX}-pkg-config"
              p7zip
+             "${MINGW_PACKAGE_PREFIX}-autotools"
             )
 depends=(
           "${MINGW_PACKAGE_PREFIX}-hunspell"
@@ -27,9 +28,9 @@ depends=(
           "${MINGW_PACKAGE_PREFIX}-lcms2"
           "${MINGW_PACKAGE_PREFIX}-freetype"
           "${MINGW_PACKAGE_PREFIX}-iconv"
-          "${MINGW_PACKAGE_PREFIX}-qt4"
+          "${MINGW_PACKAGE_PREFIX}-qt5"
           "${MINGW_PACKAGE_PREFIX}-guile1.8"
-          "${MINGW_PACKAGE_PREFIX}-poppler-qt4"
+          "${MINGW_PACKAGE_PREFIX}-poppler"
         )
 #source=("${_pkgname}::svn://svn.savannah.gnu.org/texmacs/trunk/src#revision=11260"  for a specific rev, otherwise latest
 source=("${_pkgname}::svn://svn.savannah.gnu.org/texmacs/trunk/src"
@@ -63,9 +64,8 @@ prepare() {
 
   patch -i ../../winsparkle_config.patch -p1
 #  patch -i ../../equation-editor-plugin.patch -p1
-  git --work-tree=. apply ../../equation-editor-plugin.patch #needed for binary file oxt
-  patch -i ../../dec21.patch -p1  
-
+  git --work-tree=. apply ../../april22.patch #needed for binary file oxt
+  
   if test ! -d TeXmacs/misc/updater_key ; then
     mkdir -p TeXmacs/misc/updater_key
   fi
@@ -94,6 +94,7 @@ build() {
     --with-qt="/mingw32/bin/" \
     --with-sparkle="/build/winsparkle/WinSparkle*" \
     #--enable-console \
+    #--disable-qtpipes\
     #--enable-debug  # must not strip in this case (line 37 and 159) !!
     
   echo "#define GS_EXE \"bin/gs.exe\"" >> src/System/tm_configure.hpp
@@ -157,8 +158,8 @@ MINGW_DLLs_NEEDED=$(dlls_for_exes $PROGS)
 echo $MINGW_DLLs_NEEDED
 
 # Qt plugins TeXmacs presently uses
-QT_NEEDED_PLUGINS_LIST="accessible imageformats"
-
+QT_NEEDED_PLUGINS_LIST="generic imageformats" #qt5 platforms/qwindows.dll handled separately below
+#QT_NEEDED_PLUGINS_LIST="accessible imageformats" #qt4
 rm -r -f $BUNDLE_DIR
 
 if test ! -d $BUNDLE_DIR ; then
@@ -190,8 +191,10 @@ done
 mv $BUNDLE_DIR/bin/gswin32c.exe $BUNDLE_DIR/bin/gs.exe
 
 for PLUGIN in $QT_NEEDED_PLUGINS_LIST ; do
-  cp -r -f -u /mingw32/share/qt4/plugins/$PLUGIN $BUNDLE_DIR/bin
+  cp -r -f -u /mingw32/share/qt5/plugins/$PLUGIN $BUNDLE_DIR/bin
 done
+mkdir $BUNDLE_DIR/bin/platforms
+cp -r -f -u /mingw32/share/qt5/plugins/platforms/qwindows.dll $BUNDLE_DIR/bin/platforms
 
 # pick up ice-9 for guile
 export GUILE_LOAD_PATH="${MINGW_PREFIX}/share/guile/1.8"
