@@ -6,6 +6,8 @@ when running `makepkg`, this will build TeXmacs for Windows from latest svn and 
 
 - Hunspell spell checker. Hunspell is OpenOffice/LibreOffice's spellchecker, more actively developped than Aspell that ships with the official TeXmacs for windows. Also, for sake of not bloating the package, we pack only the dictionaries for English and the locale of the machine on which the build is made (French for the released installer).
 
+- some command-line tools (used transparently) for better support of SVG images 
+
 - This version of TeXmacs packs several custom plugins:
   - a plugin allowing to use TeXmacs as a fully graphical "equation editor" for Inkscape and LibreOffice
   - [outline plugin](https://github.com/texmacs/tm-forge/tree/main/miscellanea/outline), to reorganize large documents in a structured manner.
