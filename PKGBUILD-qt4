@@ -63,7 +63,7 @@ prepare() {
 
   patch -i ../../winsparkle_config.patch -p1
 #  patch -i ../../equation-editor-plugin.patch -p1
-  git --work-tree=. apply ../../april22.patch #needed for binary file oxt
+  git --work-tree=. apply ../../my_current.patch #needed for binary file oxt
   
   if test ! -d TeXmacs/misc/updater_key ; then
     mkdir -p TeXmacs/misc/updater_key

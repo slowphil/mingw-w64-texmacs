@@ -685,10 +685,10 @@ index d6af9721..4d71d4a6 100644
                   (h (tmlength->htmllength (third l) #f)))
              `((h:img (@ (class "image")
 diff --git a/TeXmacs/progs/convert/images/init-images.scm b/TeXmacs/progs/convert/images/init-images.scm
-index 3f0f2542..1a5229aa 100644
+index 3f0f2542..2e8cce9c 100644
 --- a/TeXmacs/progs/convert/images/init-images.scm
 +++ b/TeXmacs/progs/convert/images/init-images.scm
-@@ -17,24 +17,78 @@
+@@ -17,24 +17,84 @@
  ;; Helper functions for testing available converters
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
@@ -713,7 +713,7 @@ index 3f0f2542..1a5229aa 100644
 +(tm-define (has-inkscape?)
 +  (if (== inkscape-check -1)
 +          (with ans (and (url-exists-in-path? "inkscape")
-+                     (test-version-num "inkscape -V" "Inkscape " 0.92))
++                     (test-version-num "inkscape -V" "Inkscape " 0 92))
 +             (set! inkscape-check (if ans 1 0))
 +             ans)
 +        (> inkscape-check 0)))
@@ -722,7 +722,7 @@ index 3f0f2542..1a5229aa 100644
 +(tm-define (has-rsvg-convert?)
 +  (if (== rsvg-check -1)
 +          (with ans (and (url-exists-in-path? "rsvg-convert")
-+                    (test-version-num "rsvg-convert -v" "version " 2.40))
++                    (test-version-num "rsvg-convert -v" "version " 2 40))
 +             (set! rsvg-check (if ans 1 0))
 +             ans)
 +        (> rsvg-check 0)))
@@ -742,7 +742,7 @@ index 3f0f2542..1a5229aa 100644
 +(tm-define (has-gs?)
 +  (if (== gs-check -1)
 +        (with ans (and (url-exists? (gs-url))
-+                  (test-version-num (string-append (gs-binary) " --version") "" 9.26))
++                  (test-version-num (string-append (gs-binary) " --version") "" 9 26))
 +; because of bug #61991, but maybe a good idea to require even more recent gs (9.50?)
 +; see https://www.cvedetails.com/product/36469/Artifex-Ghostscript.html?vendor_id=10846           
 +          (set! gs-check (if ans 1 0))
@@ -752,22 +752,28 @@ index 3f0f2542..1a5229aa 100644
 +	        #f)))
 +      (> gs-check 0)))
 +    
-+(define (test-version-num cmd key minv)
-+;only cares about major.minor, minor<100
-+   (with a (eval-system cmd)
-+  (if (string-null? a)
++(define (test-version-num cmd key major minor)
++;tests if program reports version >=  major.minor
++  (with a (eval-system cmd)
++    (if (string-null? a)
 +      #f
-+      (let* ((st (if (string-null? key) 0 (string-search-forwards key 0 a)))
-+             (mid (if (>= st 0) (string-search-forwards "." st a) #f))
-+             (end (if mid (string-search-forwards "." (1+ mid) a) #f))
-+             (end (if (== -1 end) (string-length (string-trim-spaces-right a)) end))
-+             (vs (and end (substring a (+ st (string-length key)) end)))
-+             (vn (and end (string->float vs))))
-+        (if (and vn (>= (* 100 vn) (* 100 minv))) #t
-+   (begin (debug-message "debug-convert" (string-append cmd " reports version " vs 
-+                "; TeXmacs will not use it as a converter.\n(minimun version needed is " 
-+                (float->string minv) ")\n"))
-+    #f))))))
++      (with st (if (string-null? key) 
++               0 (string-search-forwards key 0 a))
++        (if (== st -1)
++          #f
++          (let*
++            ((a (substring a (+ st (string-length key))))
++             (a (car (string-split a #\space)))
++             (a (string-split a #\.)) 
++             (v1 (string->number (first a)))
++             (v2 (string->number (second a))))
++            (if (or (> v1 major) (and (== v1 major) (>= v2 minor)))
++              #t
++              (begin 
++                (debug-message "debug-convert" (string-append cmd " reports version " (first a) "." (second a) 
++                 ";\nTeXmacs will not use it as a converter.\n
++                 (minimun required version is " (number->string major) "." (number->string minor) ")\n"))
++                #f))))))))
 +    
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 -;; Helper functions for conversions
@@ -775,7 +781,7 @@ index 3f0f2542..1a5229aa 100644
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
  (define-preferences
-@@ -49,61 +103,145 @@
+@@ -49,61 +109,145 @@
        (escape-shell (url-concretize (url-resolve-in-path cmd)))))
  
  (tm-define (rsvg-convert x opts)
@@ -957,7 +963,7 @@ index 3f0f2542..1a5229aa 100644
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;; Graphical document and geometric image formats
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@@ -116,17 +254,15 @@
+@@ -116,17 +260,15 @@
    (:name "Pdf")
    (:suffix "pdf"))
  
@@ -981,7 +987,7 @@ index 3f0f2542..1a5229aa 100644
  
  (define-format xfig
    (:name "Xfig")
-@@ -147,22 +283,21 @@
+@@ -147,22 +289,21 @@
     (:name "Svg")
     (:suffix "svg"))
  
@@ -1016,7 +1022,7 @@ index 3f0f2542..1a5229aa 100644
  
  (define-format geogebra
    (:name "Geogebra")
-@@ -176,6 +311,14 @@
+@@ -176,6 +317,14 @@
    (:require (url-exists-in-path? "geogebra"))
    (:shell "geogebra" "--export=" to "--dpi=600" from))
  
@@ -1031,7 +1037,7 @@ index 3f0f2542..1a5229aa 100644
  ;;(converter pdf-file postscript-document
  ;;  (:require (has-pdftocairo?))
  ;;  (:shell "pdftocairo" "-eps" from to))
-@@ -188,17 +331,9 @@
+@@ -188,17 +337,9 @@
    (:require (has-pdftocairo?))
    (:shell "pdftocairo" "-origpagesizes -nocrop -nocenter -svg" from to))
    
@@ -1050,7 +1056,7 @@ index 3f0f2542..1a5229aa 100644
  
  (define-format xpm
    (:name "Xpm")
-@@ -266,6 +401,18 @@
+@@ -266,6 +407,18 @@
  
  (converter pnm-file postscript-document
    (:function image->psdoc))
@@ -1069,7 +1075,7 @@ index 3f0f2542..1a5229aa 100644
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;; From vector graphics to bitmaps
-@@ -273,21 +420,15 @@
+@@ -273,21 +426,15 @@
  
  (converter pdf-file png-file
    (:require (has-convert?))
@@ -1094,7 +1100,7 @@ index 3f0f2542..1a5229aa 100644
  
  (converter pdf-file png-file
    (:require (has-pdftocairo?))
-@@ -298,9 +439,7 @@
+@@ -298,9 +445,7 @@
  
  (converter pdf-file jpeg-file
    (:require (has-pdftocairo?))
@@ -1105,7 +1111,7 @@ index 3f0f2542..1a5229aa 100644
  
  (converter pdf-file png-file
    (:require (has-gs?))
-@@ -313,3 +452,11 @@
+@@ -313,3 +458,11 @@
  (converter pdf-file tif-file
    (:require (has-gs?))
    (:function-with-options pdf-file->gs-raster))
@@ -4776,15 +4782,14 @@ HcmV?d00001
 
 diff --git a/plugins/equation-editor/misc/inkscape_extension/texmacs.inx b/plugins/equation-editor/misc/inkscape_extension/texmacs.inx
 new file mode 100644
-index 00000000..650f1046
+index 00000000..6fb766dc
 --- /dev/null
 +++ b/plugins/equation-editor/misc/inkscape_extension/texmacs.inx
-@@ -0,0 +1,13 @@
+@@ -0,0 +1,12 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
 +  <_name>TeXmacs equation</_name>
 +  <id>texmacs</id>
-+  <dependency type="executable" location="extensions">inkex.py</dependency>
 +  <dependency type="executable" location="extensions">texmacs_reedit.py</dependency>
 +  <effect>
 +    <object-type>all</object-type>
