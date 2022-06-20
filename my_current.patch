@@ -1697,22 +1697,22 @@ index 92276843..b299ba72 100644
 --- a/TeXmacs/progs/kernel/texmacs/tm-convert.scm
 +++ b/TeXmacs/progs/kernel/texmacs/tm-convert.scm
 @@ -237,6 +237,7 @@
- 	(if fun
- 	    (let* ((last? (null? (cdr path)))
- 		   (opts1 (acons 'last? last? options))
-+           (opts1 (acons 'to-format (car path) opts1)) 
- 		   (opts2 (std-converter-options from (car path)))
- 		   (what* (fun what (append opts1 opts2)))
- 		   (result (convert-via what* (car path) (cdr path) options)))
+         (if fun
+             (let* ((last? (null? (cdr path)))
+                    (opts1 (acons 'last? last? options))
++                   (opts1 (acons 'to-format (car path) opts1))
+                    (opts2 (std-converter-options from (car path)))
+                    (what* (fun what (append opts1 opts2)))
+                    (result (convert-via what* (car path) (cdr path) options)))
 @@ -450,7 +451,7 @@
           '("ps" "eps" "bmp" "gif" "ico" "tga" "pcx" "wbmp" "wmf" "jpg"
- 	   "jpeg" "png" "tif" "jbig" "ras" "pnm" "jp2" "jpc" "pgx"
+            "jpeg" "png" "tif" "jbig" "ras" "pnm" "jp2" "jpc" "pgx"
             "cut" "iff" "lbm" "jng" "koa" "mng" "pbm" "pcd" "pcx"
 -           "pgm" "ppm" "psd" "tga" "tiff" "xbm" "xpm"))
 +           "pgm" "ppm" "psd" "svg" "tga" "tiff" "xbm" "xpm"))
          ((== fm "image") (format-image-suffixes))
          ((== fm "sound")
- 	 '("au" "cdr" "cvs" "dat" "gsm" "ogg" "snd" "voc" "wav"))
+          '("au" "cdr" "cvs" "dat" "gsm" "ogg" "snd" "voc" "wav"))
 diff --git a/TeXmacs/progs/kernel/texmacs/tm-plugins.scm b/TeXmacs/progs/kernel/texmacs/tm-plugins.scm
 index af0f36e1..b6774b75 100644
 --- a/TeXmacs/progs/kernel/texmacs/tm-plugins.scm
