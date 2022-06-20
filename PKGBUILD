@@ -23,7 +23,7 @@ depends=(
           "${MINGW_PACKAGE_PREFIX}-wget"
           "${MINGW_PACKAGE_PREFIX}-gc"
           "${MINGW_PACKAGE_PREFIX}-ghostscript"
-#          "${MINGW_PACKAGE_PREFIX}-imagemagick"
+          "${MINGW_PACKAGE_PREFIX}-imagemagick"
           "${MINGW_PACKAGE_PREFIX}-librsvg"
           "${MINGW_PACKAGE_PREFIX}-lcms2"
           "${MINGW_PACKAGE_PREFIX}-freetype"
@@ -148,7 +148,7 @@ DEPS="/mingw32/bin/pdftocairo.exe \
  /mingw32/bin/wget.exe \
  /build/winsparkle/WinSparkle.dll \
  /build/SumatraPDF/SumatraPDF.exe \
- /build/Imagemagick/magick.exe "
+ /mingw32/bin/magick.exe"
 
 PROGS="$DEPS  $TM_BUILD_DIR/TeXmacs/bin/texmacs.bin"
 
