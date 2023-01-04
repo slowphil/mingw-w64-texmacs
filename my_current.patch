@@ -1521,19 +1521,6 @@ index 9b1cc935b..ade5b25d9 100644
    bool r= waitForStarted ();
    if (r) {
      connect (this, SIGNAL(readyReadStandardOutput ()), SLOT(readErrOut ()));
-diff --git a/src/Plugins/Qt/QTMWindow.cpp b/src/Plugins/Qt/QTMWindow.cpp
-index 74e629a1c..4114acaf5 100644
---- a/src/Plugins/Qt/QTMWindow.cpp
-+++ b/src/Plugins/Qt/QTMWindow.cpp
-@@ -47,7 +47,7 @@ void QTMWindow::closeEvent (QCloseEvent* event)
-   string name= ( !is_nil(tmwid) ? concrete(tmwid)->get_nickname () : "QTMWindow");
-   if (DEBUG_QT_WIDGETS) debug_widgets << "Close QTMWindow " << name << LF;
-   event->ignore ();
--  notify_window_destroy (name);
-+  //notify_window_destroy (name);
-   emit closed();
- }
- 
 diff --git a/src/Plugins/Qt/qt_gui.cpp b/src/Plugins/Qt/qt_gui.cpp
 index 60271a468..caca29629 100644
 --- a/src/Plugins/Qt/qt_gui.cpp
@@ -1731,21 +1718,6 @@ index 755183961..02a4940d7 100644
  void qt_image_to_pdf (url image, url pdf, int w_pt =0, int h_pt =0, int dpi =0);
  
  string qt_application_directory ();
-diff --git a/src/Plugins/Qt/qt_window_widget.cpp b/src/Plugins/Qt/qt_window_widget.cpp
-index d29a4f14a..2d1d0ef7d 100644
---- a/src/Plugins/Qt/qt_window_widget.cpp
-+++ b/src/Plugins/Qt/qt_window_widget.cpp
-@@ -75,7 +75,9 @@ qt_window_widget_rep::~qt_window_widget_rep ()
-   if (!fake) nr_windows--;
-   if (DEBUG_QT)
-     debug_qt << "Deleting qt_window_widget " << id << "\n";
--  if (qwid) qwid->deleteLater();
-+  notify_window_destroy (get_nickname ());
-+  //if (qwid) qwid->deleteLater(); // this causes bug 61844
-+  if (qwid) delete qwid; // That's the important change
- }
- 
- widget
 diff --git a/src/Plugins/Windows/spawn.cpp b/src/Plugins/Windows/spawn.cpp
 index 36a50b616..223d54875 100644
 --- a/src/Plugins/Windows/spawn.cpp
