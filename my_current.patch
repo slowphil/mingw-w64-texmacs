@@ -1,5 +1,5 @@
 diff --git a/TeXmacs/doc/devel/scheme/api/glue-auto-doc.en.tm b/TeXmacs/doc/devel/scheme/api/glue-auto-doc.en.tm
-index 20e8aa836..31d30f179 100644
+index e8f4a60c2..9159650c5 100644
 --- a/TeXmacs/doc/devel/scheme/api/glue-auto-doc.en.tm
 +++ b/TeXmacs/doc/devel/scheme/api/glue-auto-doc.en.tm
 @@ -1274,6 +1274,14 @@ source code.
@@ -17,7 +17,7 @@ index 20e8aa836..31d30f179 100644
    <\explain>
      <scm|(tree-\<gtr\>stree <scm-arg|tree>)>
  <explain-synopsis|no synopsis>
-@@ -8563,7 +8571,7 @@ source code.
+@@ -8571,7 +8579,7 @@ source code.
    </explain>
  
    <\explain>
@@ -264,7 +264,7 @@ index 3c2cea952..818c14b70 100644
 +  (:option "texmacs->html:svg" "off")
    (:option "texmacs->html:css-stylesheet" "---"))
 diff --git a/TeXmacs/progs/convert/html/tmhtml.scm b/TeXmacs/progs/convert/html/tmhtml.scm
-index 524e7a8d8..30e4d1fca 100644
+index 0cce200aa..64b8e9444 100644
 --- a/TeXmacs/progs/convert/html/tmhtml.scm
 +++ b/TeXmacs/progs/convert/html/tmhtml.scm
 @@ -32,11 +32,13 @@
@@ -414,7 +414,7 @@ index 524e7a8d8..30e4d1fca 100644
                (func? (cadar l) 'raw-data 1)
                (string? (cadr (cadar l)))
                (string? (caddar l)))
--         (receive (name-url name-string) (tmhtml-image-names (caddar l))
+-         (receive (name-url name-string) (tmhtml-image-names (cork->utf8 (caddar l)))
 -           (when (in? (url-suffix name-url)
 -                      (list "ps" "eps" "pdf" "tif"))
 -             (set! name-string (url->string name-url)))
@@ -428,9 +428,9 @@ index 524e7a8d8..30e4d1fca 100644
 +         (display "tmhtml-image : treat complex images as generic markup\n")
           (tmhtml-png (cons 'image l)))
          (else
--          (let* ((s (tmhtml-image-name (cork->html (first l))))
+-          (let* ((s (tmhtml-image-name (first l)))
 +          ;; web images
-+          (let* ((s (tmhtml-web-image-name (cork->html (first l))))
++          (let* ((s (tmhtml-web-image-name (first l)))
                   (w (tmlength->htmllength (second l) #f))
                   (h (tmlength->htmllength (third l) #f)))
              `((h:img (@ (class "image")
@@ -444,7 +444,7 @@ index 524e7a8d8..30e4d1fca 100644
  	 (if (string-null? x) '() (tmhtml-text x))) ; non-verbatim string nodes
  	(else (or (tmhtml-dispatch 'tmhtml-primitives% x)
 diff --git a/TeXmacs/progs/convert/images/init-images.scm b/TeXmacs/progs/convert/images/init-images.scm
-index 3f0f2542f..f8834ce87 100644
+index 8115eebc4..c1aa5abbd 100644
 --- a/TeXmacs/progs/convert/images/init-images.scm
 +++ b/TeXmacs/progs/convert/images/init-images.scm
 @@ -17,24 +17,84 @@
@@ -551,7 +551,9 @@ index 3f0f2542f..f8834ce87 100644
 +         (fm (if (== fm "ps") "eps" fm))
 +         (dest (if last? (assoc-ref opts 'dest)
 +               (url-glue (url-temp) (string-append "." fm))))
-+         (res (get-raster-resolution opts))
+          (res (get-raster-resolution opts))
+-	 (cmd (get-shell-command "rsvg-convert")))
+-    (system-2 (string-append cmd " -f " fm " -d " res " -o ") dest x)
 +         (w (assoc-ref opts 'width)) ; width for export
 +         (wstr (if w (string-append " -w "  w) ""))
 +         (h (assoc-ref opts 'height))
@@ -571,9 +573,7 @@ index 3f0f2542f..f8834ce87 100644
 +         (dest (if last? (assoc-ref opts 'dest)
 +               (url-glue (url-temp) (string-append "." fm))))
 +         (fullname (url-concretize dest))
-          (res (get-raster-resolution opts))
--	 (cmd (get-shell-command "rsvg-convert")))
--    (system-2 (string-append cmd " -f " fm " -d " res " -o ") dest x)
++         (res (get-raster-resolution opts))
 +         (w (assoc-ref opts 'width)) ; width in pixels for raster export
 +         (wstr (if w (string-append " -w "  w) ""))
 +         (h (assoc-ref opts 'height))
@@ -616,9 +616,10 @@ index 3f0f2542f..f8834ce87 100644
 +    (system-2 cmd x name)
      (if (url-exists? dest) dest #f)))
  
- (tm-define (pdf-file->imagemagick-raster x opts)
+-(tm-define (pdf-file->imagemagick-raster x opts)
 -  (let* ((dest (assoc-ref opts 'dest))
-+   ;(display* "scm pdf-file->imagemagick-raster " x opts "\n")
++(tm-define (imagemagick-any->raster x opts)
++   ;(display* "scm imagemagick-any->raster " x opts "\n")
 +  (let* ((last? (assoc-ref opts 'last?))
 +         (fm (format-default-suffix (assoc-ref opts 'to-format)))
 +         (dest (if last? (assoc-ref opts 'dest)
@@ -721,7 +722,7 @@ index 3f0f2542f..f8834ce87 100644
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;; Graphical document and geometric image formats
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@@ -116,17 +260,15 @@
+@@ -116,66 +260,77 @@
    (:name "Pdf")
    (:suffix "pdf"))
  
@@ -745,7 +746,34 @@ index 3f0f2542f..f8834ce87 100644
  
  (define-format xfig
    (:name "Xfig")
-@@ -147,22 +289,21 @@
+   (:suffix "fig"))
+ 
+-(converter xfig-file postscript-file
+-  (:shell "fig2ps" from to))
++;(converter xfig-file postscript-file
++;  (:shell "fig2ps" from to))
++  
++(converter xfig-file pdf-file
++  (:require (url-exists-in-path? "fig2pdf"))
++  (:shell "fig2pdf" from to))
+ 
+-(define-format xmgrace
+-  (:name "Xmgrace")
+-  (:suffix "agr" "xmgr"))
++; as of 2023 grace is still available in linux distors but it seems a dead project
++; there are now several other OSS Wysiwyg graphers
++;(define-format xmgrace
++;  (:name "Xmgrace")
++;  (:suffix "agr" "xmgr"))
+ 
+-(converter xmgrace-file postscript-file
+-  (:require (url-exists-in-path? "xmgrace"))
+-  (:shell "xmgrace" "-noask -hardcopy -hdevice EPS -printfile" to from))
++;(converter xmgrace-file postscript-file
++;  (:require (url-exists-in-path? "xmgrace"))
++;  (:shell "xmgrace" "-noask -hardcopy -hdevice EPS -printfile" to from))
+ 
+ (define-format svg
     (:name "Svg")
     (:suffix "svg"))
  
@@ -762,17 +790,17 @@ index 3f0f2542f..f8834ce87 100644
 -(converter svg-file png-file
 -  (:require (url-exists-in-path? "inkscape"))
 -  (:shell "inkscape" "-z" "-d" "600" from "--export-png" to))
-+(converter svg-file postscript-file
-+  (:require (has-rsvg-convert?))
-+  (:function-with-options rsvg-convert))
++;(converter svg-file postscript-file
++;  (:require (has-rsvg-convert?))
++;  (:function-with-options rsvg-convert))
  
 -(converter svg-file png-file
 -  (:require (and (url-exists-in-path? "rsvg-convert")
 -                 (not (url-exists-in-path? "inkscape"))))
 -    (:function-with-options rsvg-convert))
-+(converter svg-file postscript-file
-+  (:require (has-inkscape?))
-+  (:function-with-options inkscape-convert))
++;(converter svg-file postscript-file
++;  (:require (has-inkscape?))
++;  (:function-with-options inkscape-convert))
 +
 +(converter svg-file pdf-file
 +  (:require (has-inkscape?))
@@ -780,7 +808,16 @@ index 3f0f2542f..f8834ce87 100644
  
  (define-format geogebra
    (:name "Geogebra")
-@@ -176,6 +317,14 @@
+   (:suffix "ggb"))
+ 
+-(converter geogebra-file postscript-file
++(converter geogebra-file pdf-file
+   (:require (url-exists-in-path? "geogebra"))
+-  (:shell "geogebra" "--export=" to "--dpi=600" from))
++  (:shell "geogebra" "--export=" to from))
+ 
+-(converter geogebra-file svg-file
++(converter geogebra-file png-file
    (:require (url-exists-in-path? "geogebra"))
    (:shell "geogebra" "--export=" to "--dpi=600" from))
  
@@ -795,7 +832,7 @@ index 3f0f2542f..f8834ce87 100644
  ;;(converter pdf-file postscript-document
  ;;  (:require (has-pdftocairo?))
  ;;  (:shell "pdftocairo" "-eps" from to))
-@@ -188,17 +337,9 @@
+@@ -188,17 +343,9 @@
    (:require (has-pdftocairo?))
    (:shell "pdftocairo" "-origpagesizes -nocrop -nocenter -svg" from to))
    
@@ -814,10 +851,56 @@ index 3f0f2542f..f8834ce87 100644
  
  (define-format xpm
    (:name "Xpm")
-@@ -267,27 +408,33 @@
- (converter pnm-file postscript-document
-   (:function image->psdoc))
+@@ -223,12 +370,16 @@
+   (:name "Tif")
+   (:suffix "tif" "tiff"))
  
+-(converter tif-file postscript-document
+-  (:function image->psdoc))
++;(converter tif-file postscript-document
++;  (:function image->psdoc))
+   
+ (converter tif-file png-file
+   (:require (has-convert?))
+   (:shell "convert" from to))
++  
++(converter tif-file pdf-file
++  (:require (has-convert?))
++  (:shell "convert" from to))
+ 
+ (define-format ppm
+   (:name "Ppm")
+@@ -253,12 +404,12 @@
+   (:name "Png")
+   (:suffix "png"))
+ 
+-(converter png-file postscript-document
+-  (:function image->psdoc))
++;(converter png-file postscript-document
++;  (:function image->psdoc))
+ 
+-(converter png-file pnm-file
+-  (:require (has-convert?))
+-  (:shell "convert" from to))
++;(converter png-file pnm-file
++;  (:require (has-convert?))
++;  (:shell "convert" from to))
+ 
+ (converter geogebra-file png-file
+   (:require (url-exists-in-path? "geogebra"))
+@@ -268,8 +419,24 @@
+   (:name "Pnm")
+   (:suffix "pnm"))
+ 
+-(converter pnm-file postscript-document
+-  (:function image->psdoc))
++;(converter pnm-file postscript-document
++;  (:function image->psdoc))
++
++(converter pnm-file png-file
++  (:require (has-convert?))
++  (:shell "convert" from to))
++
 +(define-format webp
 +  (:name "Webp")
 +  (:suffix "webp"))
@@ -829,35 +912,37 @@ index 3f0f2542f..f8834ce87 100644
 +(converter png-file webp-file
 +  (:require (url-exists-in-path? "cwebp"))
 +  (:shell "cwebp" from "-o" to))
-+
+ 
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;; From vector graphics to bitmaps
- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+@@ -277,21 +444,15 @@
  
  (converter pdf-file png-file
    (:require (has-convert?))
 -  (:function-with-options pdf-file->imagemagick-raster)
 -  ;;(:option "texmacs->image:raster-resolution" "300")
 -  )
-+  (:function-with-options pdf-file->imagemagick-raster))
++  (:function-with-options imagemagick-any->raster))
    
  (converter pdf-file jpeg-file
    (:require (has-convert?))
 -  (:function-with-options pdf-file->imagemagick-raster)
 -  ;;(:option "texmacs->image:raster-resolution" "300")
 -  )
-+  (:function-with-options pdf-file->imagemagick-raster))
++  (:function-with-options imagemagick-any->raster))
   
- (converter pdf-file tif-file
-   (:require (has-convert?))
+-(converter pdf-file tif-file
+-  (:require (has-convert?))
 -  (:function-with-options pdf-file->imagemagick-raster)
 -  ;;(:option "texmacs->image:raster-resolution" "300")
 -  )
-+  (:function-with-options pdf-file->imagemagick-raster))
++;(converter pdf-file tif-file
++;  (:require (has-convert?))
++;  (:function-with-options imagemagick-any->raster))
  
  (converter pdf-file png-file
    (:require (has-pdftocairo?))
-@@ -298,9 +445,7 @@
+@@ -302,9 +463,7 @@
  
  (converter pdf-file jpeg-file
    (:require (has-pdftocairo?))
@@ -868,10 +953,16 @@ index 3f0f2542f..f8834ce87 100644
  
  (converter pdf-file png-file
    (:require (has-gs?))
-@@ -313,3 +458,11 @@
- (converter pdf-file tif-file
+@@ -314,6 +473,14 @@
    (:require (has-gs?))
    (:function-with-options pdf-file->gs-raster))
+  
+-(converter pdf-file tif-file
+-  (:require (has-gs?))
+-  (:function-with-options pdf-file->gs-raster))
++;(converter pdf-file tif-file
++;  (:require (has-gs?))
++;  (:function-with-options pdf-file->gs-raster))
 +
 +(converter svg-file png-file
 +  (:require (has-rsvg-convert?))
@@ -881,7 +972,7 @@ index 3f0f2542f..f8834ce87 100644
 +  (:require (has-inkscape?))
 +  (:function-with-options inkscape-convert))
 diff --git a/TeXmacs/progs/convert/images/tmimage.scm b/TeXmacs/progs/convert/images/tmimage.scm
-index aace3a4a4..c1b930bba 100644
+index a8ad310f0..7bf6e13f3 100644
 --- a/TeXmacs/progs/convert/images/tmimage.scm
 +++ b/TeXmacs/progs/convert/images/tmimage.scm
 @@ -28,8 +28,8 @@
@@ -895,7 +986,7 @@ index aace3a4a4..c1b930bba 100644
  
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;; private functions
-@@ -258,8 +258,8 @@
+@@ -273,8 +273,8 @@
        (parcm (length-add  "0cm" partmpt))
        ;; get-page-width return dimension in the cpp "SI" unit which seems to be == "10tmpt"
  ;; output scale of image?
@@ -906,7 +997,7 @@ index aace3a4a4..c1b930bba 100644
  
  ;; We compute the baseline position only if it's a single-line content
  ;; (this excludes selections begining with 'document)
-@@ -327,7 +327,7 @@
+@@ -342,7 +342,7 @@
  
  ;; step 2 generate output according to desired output format
  
@@ -959,7 +1050,7 @@ index af0f36e19..b6774b759 100644
  
  (define-public (lazy-plugin-initialize name)
 diff --git a/TeXmacs/progs/prog/glue-symbols.scm b/TeXmacs/progs/prog/glue-symbols.scm
-index 49e34b618..89eaf804b 100644
+index a4e5bf7b6..e97a14c5f 100644
 --- a/TeXmacs/progs/prog/glue-symbols.scm
 +++ b/TeXmacs/progs/prog/glue-symbols.scm
 @@ -184,6 +184,7 @@
@@ -970,7 +1061,7 @@ index 49e34b618..89eaf804b 100644
  "tree->stree"
  "stree->tree"
  "tree->string"
-@@ -1095,7 +1096,7 @@
+@@ -1096,7 +1097,7 @@
  "print-pages-to-file"
  "print"
  "print-pages"
@@ -980,7 +1071,7 @@ index 49e34b618..89eaf804b 100644
  "export-postscript"
  "export-pages-postscript"
 diff --git a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
-index dfe7d2d83..a39f60192 100644
+index e4699568d..588921e5b 100644
 --- a/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
 +++ b/TeXmacs/progs/texmacs/menus/preferences-widgets.scm
 @@ -313,24 +313,27 @@
@@ -1064,7 +1155,7 @@ index dfe7d2d83..a39f60192 100644
    ====== ======
    (bold (text "Html -> TeXmacs"))
    ===
-@@ -598,35 +609,29 @@
+@@ -598,35 +609,28 @@
     (eval `(define-preference-names "texmacs->image:format" ,@valid-image-format-list))
     (cadr (apply map list valid-image-format-list))))
  
@@ -1112,12 +1203,11 @@ index dfe7d2d83..a39f60192 100644
 +              '("1200" "600" "300" "150" "")
 +              (get-preference "texmacs->image:raster-resolution")
 +              "8em")))
-+
 +)
  
  ;; All converters ----------
  
-@@ -878,6 +883,21 @@
+@@ -878,6 +882,21 @@
      ======
      (dynamic (experimental-preferences-widget))))
  
@@ -1139,7 +1229,7 @@ index dfe7d2d83..a39f60192 100644
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  ;; Preferences widget
  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-@@ -891,18 +911,19 @@
+@@ -891,18 +910,19 @@
        (icon-tab "tm_prefs_keyboard.xpm" (text "Keyboard")
          (centered
            (dynamic (keyboard-preferences-widget))))
@@ -1178,28 +1268,8 @@ index 1d90f1f62..649d3d23d 100644
  
  (tm-define (nr-pages) (cpp-nr-pages))
  
-diff --git a/misc/m4/tm_gui.m4 b/misc/m4/tm_gui.m4
-index 2cd25dd78..478e49441 100644
---- a/misc/m4/tm_gui.m4
-+++ b/misc/m4/tm_gui.m4
-@@ -63,8 +63,13 @@ AC_DEFUN([TM_GUI],[
-   case "$enable_qtpipes" in
-       yes)
-          if test x"$CONFIG_GUI" = xQT; then
--            AC_DEFINE(QTPIPES, 1, [Enabling Qt pipes])
--            AC_MSG_RESULT([enabling Qt pipes])
-+            if ! ( ( test x"$CONFIG_OS" = xGNU_LINUX || test x"$CONFIG_OS" = xBSD )  && test x${QT_VERSION%.*} = "x5.15" )
-+            then
-+              AC_DEFINE(QTPIPES, 1, [Enabling Qt pipes])
-+              AC_MSG_RESULT([enabling Qt pipes])
-+            else
-+              AC_MSG_RESULT([disabling pipes in Qt 5.15 -- see issue 60931])
-+            fi
-          else
-             AC_MSG_ERROR([QT not enabled!])
-          fi
 diff --git a/src/Edit/Editor/edit_main.cpp b/src/Edit/Editor/edit_main.cpp
-index 5673e5ce4..6fc2933c5 100644
+index f2ed1c88d..3bd9ac218 100644
 --- a/src/Edit/Editor/edit_main.cpp
 +++ b/src/Edit/Editor/edit_main.cpp
 @@ -371,7 +371,7 @@ edit_main_rep::export_ps (url name, string first, string last) {
@@ -1231,7 +1301,7 @@ index 5673e5ce4..6fc2933c5 100644
        if (!call_scm_converter (temp, name)) {
          call_imagemagick_convert (temp, name);
 diff --git a/src/Edit/Editor/edit_main.hpp b/src/Edit/Editor/edit_main.hpp
-index 2da64122c..9bce4f417 100644
+index 266ff1b53..0490c7091 100644
 --- a/src/Edit/Editor/edit_main.hpp
 +++ b/src/Edit/Editor/edit_main.hpp
 @@ -70,7 +70,7 @@ public:
@@ -1244,7 +1314,7 @@ index 2da64122c..9bce4f417 100644
    void footer_eval (string s);
    tree the_line ();
 diff --git a/src/Edit/editor.hpp b/src/Edit/editor.hpp
-index 5c96373c0..8a9df4127 100644
+index 57d2cbb57..5717790ee 100644
 --- a/src/Edit/editor.hpp
 +++ b/src/Edit/editor.hpp
 @@ -597,7 +597,7 @@ public:
@@ -1327,78 +1397,6 @@ index c07b1f1e9..9770e1b16 100644
    if (suffix (image) == "pdf") {
      image_size (image, bx2, by2);
      bx1=by1=0;
-diff --git a/src/Plugins/Qt/QTMFileDialog.cpp b/src/Plugins/Qt/QTMFileDialog.cpp
-index bddf8fd4e..dc769c5dc 100644
---- a/src/Plugins/Qt/QTMFileDialog.cpp
-+++ b/src/Plugins/Qt/QTMFileDialog.cpp
-@@ -13,6 +13,7 @@
- #include <QPainter>
- #include <QLineEdit>
- #include <QIntValidator>
-+#include <QValidator>
- #include <QMimeData>
- #include <QUrl>
- #include <QDrag>
-@@ -91,6 +92,12 @@ simple_input (string s, QLineEdit* ledit, QWidget* parent= 0) {
- 
- QTMImagePreview::QTMImagePreview (QWidget* parent)
-   : QWidget (parent) {
-+  QRegExp rxpos("^[+]?([0-9]*[.])?[0-9]+([a-z]*|%)$");
-+  //we could explicitly list all accepted lengths...
-+  QValidator *validator1 = new QRegExpValidator(rxpos, this);
-+  QRegExp rx("^[+-]?([0-9]*[.])?[0-9]+([a-z]*|%)$");
-+  QValidator *validator2 = new QRegExpValidator(rx, this);
-+  
-   QVBoxLayout* vbox= new QVBoxLayout (this);
-   vbox->addStretch ();
-   image= new QLabel (this);
-@@ -99,12 +106,18 @@ QTMImagePreview::QTMImagePreview (QWidget* parent)
-   vbox->addWidget (image);
-   vbox->addSpacing (10);
-   wid= new QLineEdit (this);
-+  wid->setValidator(validator1);
-   vbox->addWidget (simple_input ("Width:", wid, this));
-+  connect(wid, SIGNAL(textEdited(const QString)), this, SLOT(clear_dim()));
-   hei= new QLineEdit (this);
-+  hei->setValidator(validator1);
-   vbox->addWidget (simple_input ("Height:", hei, this));
-+  connect(hei, SIGNAL(textEdited(const QString)), this, SLOT(clear_dim()));
-   xps= new QLineEdit (this);
-+  xps->setValidator(validator2);  
-   vbox->addWidget (simple_input ("X-position:", xps, this));
-   yps= new QLineEdit (this);
-+  yps->setValidator(validator2);
-   vbox->addWidget (simple_input ("Y-position:", yps, this));
-   vbox->addStretch ();
-   vbox->addStretch ();
-@@ -114,6 +127,15 @@ QTMImagePreview::QTMImagePreview (QWidget* parent)
-   setImage (0);
- }
- 
-+void
-+QTMImagePreview::clear_dim(){
-+BEGIN_SLOT
-+  if (wid->isModified() && !(hei->isModified())) hei->setText("");
-+  else if (hei->isModified() && !(wid->isModified())) wid->setText("");
-+END_SLOT    
-+};
-+
-+
- void 
- QTMImagePreview::setImage (const QString& file) { 	  //generate thumbnail
- BEGIN_SLOT
-diff --git a/src/Plugins/Qt/QTMFileDialog.hpp b/src/Plugins/Qt/QTMFileDialog.hpp
-index 86da35256..6dd608272 100644
---- a/src/Plugins/Qt/QTMFileDialog.hpp
-+++ b/src/Plugins/Qt/QTMFileDialog.hpp
-@@ -75,6 +75,7 @@ public:
- 
- public slots:
-   void setImage (const QString&);
-+  void clear_dim();
- 
- public:
-   QTMImagePreview (QWidget* parent= 0);
 diff --git a/src/Plugins/Qt/QTMMenuHelper.cpp b/src/Plugins/Qt/QTMMenuHelper.cpp
 index 1fba9b2d2..8c75958f2 100644
 --- a/src/Plugins/Qt/QTMMenuHelper.cpp
@@ -1502,44 +1500,51 @@ index 6d505ac8c..b01c1dbfb 100644
  
  /*! A container widget which redraws the widgets it owns. */
  class QTMRefreshWidget : public QWidget {
-diff --git a/src/Plugins/Qt/QTMPipeLink.cpp b/src/Plugins/Qt/QTMPipeLink.cpp
-index 9b1cc935b..ade5b25d9 100644
---- a/src/Plugins/Qt/QTMPipeLink.cpp
-+++ b/src/Plugins/Qt/QTMPipeLink.cpp
-@@ -49,7 +49,14 @@ bool
- QTMPipeLink::launchCmd () {
-   if (state () != QProcess::NotRunning) killProcess (1000);
-   //FIXME: is UTF8 the right encoding here?
-+#if (QT_VERSION >= QT_VERSION_CHECK(5,15,0))
-+  QStringList tokens = QProcess::splitCommand(utf8_to_qstring(cmd));
-+  QProcess::setProgram(tokens.takeFirst());
-+  QProcess::setArguments(tokens);
-+  QProcess::start();
-+#else
-   QProcess::start(utf8_to_qstring(cmd));
-+#endif
-   bool r= waitForStarted ();
-   if (r) {
-     connect (this, SIGNAL(readyReadStandardOutput ()), SLOT(readErrOut ()));
-diff --git a/src/Plugins/Qt/qt_gui.cpp b/src/Plugins/Qt/qt_gui.cpp
-index 60271a468..caca29629 100644
---- a/src/Plugins/Qt/qt_gui.cpp
-+++ b/src/Plugins/Qt/qt_gui.cpp
-@@ -71,9 +71,11 @@ Q_IMPORT_PLUGIN(qico)
- Q_IMPORT_PLUGIN(qsvg)
- #endif
+diff --git a/src/Plugins/Qt/QTMWidget.cpp b/src/Plugins/Qt/QTMWidget.cpp
+index d82f7659f..52649a823 100644
+--- a/src/Plugins/Qt/QTMWidget.cpp
++++ b/src/Plugins/Qt/QTMWidget.cpp
+@@ -192,6 +192,8 @@ QTMWidget::QTMWidget (QWidget* _parent, qt_widget _tmwid)
+   if (DEBUG_QT)
+     debug_qt << "Creating " << from_qstring(objectName()) << " of widget "
+              << (tm_widget() ? tm_widget()->type_as_string() : "NULL") << LF;
++  //part 1/2 of the fix for 43373
++  QApplication::postEvent(this, new QFocusEvent(QEvent::FocusIn, Qt::OtherFocusReason));
+ }
  
--#ifdef WIN32 
--Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
--#endif
-+
-+//#ifdef OS_MINGW 
-+//Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
-+//#endif
-+
- #ifdef QT_MAC_USE_COCOA
- Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin)
- #endif
+ QTMWidget::~QTMWidget () {
+@@ -529,13 +531,12 @@ QTMWidget::inputMethodEvent (QInputMethodEvent* event) {
+     if (!done) {
+       if (DEBUG_QT)
+         debug_qt << "IM committing: " << commit_string.toUtf8().data() << LF;
+-      if (preediting && get_preference ("speech", "off") == "off")
+-        for (int i = 0; i < commit_string.size(); ++i)
+-          kbdEvent (0, Qt::NoModifier, commit_string[i]);
+-      else {
+-        string s= "speech:" * from_qstring (commit_string);
+-        kbdEvent (0, Qt::NoModifier, to_qstring (s));
+-      }
++#if 1
++      for (int i = 0; i < commit_string.size(); ++i)
++        kbdEvent (0, Qt::NoModifier, commit_string[i]);
++#else
++      kbdEvent (0, Qt::NoModifier, commit_string);
++#endif
+     }
+   }
+   
+@@ -828,6 +829,11 @@ QTMWidget::focusInEvent (QFocusEvent * event) {
+     the_gui->process_keyboard_focus (tm_widget(), true, texmacs_time());
+   }
+   QTMScrollView::focusInEvent (event);
++  // part 2/2 of the fix for bug 43373.
++  if (!isActiveWindow()) activateWindow();
++  if (isActiveWindow() && !hasFocus()) setFocus (Qt::OtherFocusReason);
++    //=> this will send us back here...
++    //This redundancy is weird but definitely needed to properly get focus with Qt >= 5.15. Qt bug?
+ }
+ 
+ void
 diff --git a/src/Plugins/Qt/qt_picture.cpp b/src/Plugins/Qt/qt_picture.cpp
 index 8e7d8443e..ed357a27a 100644
 --- a/src/Plugins/Qt/qt_picture.cpp
@@ -1582,7 +1587,7 @@ index 8e7d8443e..ed357a27a 100644
      pm= new QImage (utf8_to_qstring (concretize (u)));
    } else {
 diff --git a/src/Plugins/Qt/qt_utilities.cpp b/src/Plugins/Qt/qt_utilities.cpp
-index 39f976cac..2c7b1b03e 100644
+index 479d541ab..e006a79c9 100644
 --- a/src/Plugins/Qt/qt_utilities.cpp
 +++ b/src/Plugins/Qt/qt_utilities.cpp
 @@ -28,6 +28,7 @@
@@ -1593,7 +1598,7 @@ index 39f976cac..2c7b1b03e 100644
  
  #include "colors.hpp"
  
-@@ -475,61 +476,79 @@ qt_convert_image (url image, url dest, int w, int h) {// w, h in pixels
+@@ -479,61 +480,79 @@ qt_convert_image (url image, url dest, int w, int h) {// w, h in pixels
  
  void
  qt_image_to_pdf (url image, url outfile, int w_pt, int h_pt, int dpi) {
@@ -1718,24 +1723,8 @@ index 755183961..02a4940d7 100644
  void qt_image_to_pdf (url image, url pdf, int w_pt =0, int h_pt =0, int dpi =0);
  
  string qt_application_directory ();
-diff --git a/src/Plugins/Windows/spawn.cpp b/src/Plugins/Windows/spawn.cpp
-index 36a50b616..223d54875 100644
---- a/src/Plugins/Windows/spawn.cpp
-+++ b/src/Plugins/Windows/spawn.cpp
-@@ -10,9 +10,10 @@
- ******************************************************************************/
- 
- #include <errno.h>
-+#include <windows.h>
-+
- #include "array.hpp"
- #include "spawn.hpp"
--#include <windows.h>
- 
- Channel::Channel (int s):sz(s) {
-  origin= -1; saved= -1; fd= -1;toBeClosed= -1; str= NULL; tid= 0; 
 diff --git a/src/Scheme/Glue/build-glue-basic.scm b/src/Scheme/Glue/build-glue-basic.scm
-index 9c4910ef7..4ad3d938f 100644
+index e93cd954a..5cfbe7294 100644
 --- a/src/Scheme/Glue/build-glue-basic.scm
 +++ b/src/Scheme/Glue/build-glue-basic.scm
 @@ -184,6 +184,7 @@
@@ -1747,7 +1736,7 @@ index 9c4910ef7..4ad3d938f 100644
    ;; routines for trees
    (tree->stree tree_to_scheme_tree (scheme_tree tree))
 diff --git a/src/Scheme/Glue/build-glue-editor.scm b/src/Scheme/Glue/build-glue-editor.scm
-index 3c27e1896..2e9667f3c 100644
+index 5ded7e5e3..a53234988 100644
 --- a/src/Scheme/Glue/build-glue-editor.scm
 +++ b/src/Scheme/Glue/build-glue-editor.scm
 @@ -335,7 +335,7 @@
@@ -1760,7 +1749,7 @@ index 3c27e1896..2e9667f3c 100644
    (export-postscript export_ps (void url))
    (export-pages-postscript export_ps (void url string string))
 diff --git a/src/Scheme/Glue/glue_basic.cpp b/src/Scheme/Glue/glue_basic.cpp
-index 02ae2647f..b43ffe1c6 100644
+index 9728c6c8e..1a2535cf3 100644
 --- a/src/Scheme/Glue/glue_basic.cpp
 +++ b/src/Scheme/Glue/glue_basic.cpp
 @@ -1908,6 +1908,21 @@ tmg_anim_control_times (tmscm arg1) {
@@ -1785,7 +1774,7 @@ index 02ae2647f..b43ffe1c6 100644
  tmscm
  tmg_tree_2stree (tmscm arg1) {
    TMSCM_ASSERT_TREE (arg1, TMSCM_ARG1, "tree->stree");
-@@ -10278,6 +10293,7 @@ initialize_glue_basic () {
+@@ -10291,6 +10306,7 @@ initialize_glue_basic () {
    tmscm_install_procedure ("font-family-main",  tmg_font_family_main, 1, 0, 0);
    tmscm_install_procedure ("image->psdoc",  tmg_image_2psdoc, 1, 0, 0);
    tmscm_install_procedure ("anim-control-times",  tmg_anim_control_times, 1, 0, 0);
@@ -1794,7 +1783,7 @@ index 02ae2647f..b43ffe1c6 100644
    tmscm_install_procedure ("stree->tree",  tmg_stree_2tree, 1, 0, 0);
    tmscm_install_procedure ("tree->string",  tmg_tree_2string, 1, 0, 0);
 diff --git a/src/Scheme/Glue/glue_editor.cpp b/src/Scheme/Glue/glue_editor.cpp
-index dfd60e983..2bcf0dd3f 100644
+index a49fd4d2b..c6a3044bc 100644
 --- a/src/Scheme/Glue/glue_editor.cpp
 +++ b/src/Scheme/Glue/glue_editor.cpp
 @@ -3314,17 +3314,19 @@ tmg_print_pages (tmscm arg1, tmscm arg2) {
@@ -1822,7 +1811,7 @@ index dfd60e983..2bcf0dd3f 100644
    // TMSCM_ALLOW_INTS;
  
    return array_int_to_tmscm (out);
-@@ -3893,7 +3895,7 @@ initialize_glue_editor () {
+@@ -3902,7 +3904,7 @@ initialize_glue_editor () {
    tmscm_install_procedure ("print-pages-to-file",  tmg_print_pages_to_file, 3, 0, 0);
    tmscm_install_procedure ("print",  tmg_print, 0, 0, 0);
    tmscm_install_procedure ("print-pages",  tmg_print_pages, 2, 0, 0);
@@ -1832,7 +1821,7 @@ index dfd60e983..2bcf0dd3f 100644
    tmscm_install_procedure ("export-postscript",  tmg_export_postscript, 1, 0, 0);
    tmscm_install_procedure ("export-pages-postscript",  tmg_export_pages_postscript, 3, 0, 0);
 diff --git a/src/Scheme/Scheme/glue.cpp b/src/Scheme/Scheme/glue.cpp
-index 3e4962842..a75d46c54 100644
+index 2c62bab6d..71d5e3078 100644
 --- a/src/Scheme/Scheme/glue.cpp
 +++ b/src/Scheme/Scheme/glue.cpp
 @@ -29,6 +29,7 @@
@@ -1844,10 +1833,10 @@ index 3e4962842..a75d46c54 100644
  tmscm 
  blackboxP (tmscm t) {
 diff --git a/src/System/Files/image_files.cpp b/src/System/Files/image_files.cpp
-index c712e01ab..433dde8f7 100644
+index 6798e52cf..f977363b4 100644
 --- a/src/System/Files/image_files.cpp
 +++ b/src/System/Files/image_files.cpp
-@@ -371,17 +371,55 @@ pdf_image_size (url image, int& w, int& h) {
+@@ -379,17 +379,55 @@ pdf_image_size (url image, int& w, int& h) {
  void
  svg_image_size (url image, int& w, int& h) {
    string content;
@@ -1907,7 +1896,7 @@ index c712e01ab..433dde8f7 100644
  }
   
  /******************************************************************************
-@@ -389,15 +427,6 @@ svg_image_size (url image, int& w, int& h) {
+@@ -397,15 +435,6 @@ svg_image_size (url image, int& w, int& h) {
  * displaying and printing : png, eps, pdf
  ******************************************************************************/
  
@@ -1923,7 +1912,7 @@ index c712e01ab..433dde8f7 100644
  void
  image_to_eps (url image, url eps, int w_pt, int h_pt, int dpi) {
    if (DEBUG_CONVERT) debug_convert << "image_to_eps ...";
-@@ -408,12 +437,9 @@ image_to_eps (url image, url eps, int w_pt, int h_pt, int dpi) {
+@@ -416,12 +445,9 @@ image_to_eps (url image, url eps, int w_pt, int h_pt, int dpi) {
    string s= suffix (image);
    // First try to preserve "vectorialness"
  
@@ -1939,7 +1928,7 @@ index c712e01ab..433dde8f7 100644
  #ifdef USE_GS
    if (gs_supports (image)) {
      if (DEBUG_CONVERT) debug_convert << " using gs" << LF;
-@@ -422,7 +448,8 @@ image_to_eps (url image, url eps, int w_pt, int h_pt, int dpi) {
+@@ -430,7 +456,8 @@ image_to_eps (url image, url eps, int w_pt, int h_pt, int dpi) {
    }
  #endif
    //converters below will yield only raster images.
@@ -1949,7 +1938,7 @@ index c712e01ab..433dde8f7 100644
    if (qt_supports (image)) {
      if (DEBUG_CONVERT) debug_convert << " using qt" << LF;
      qt_image_to_eps (image, eps, w_pt, h_pt, dpi);
-@@ -454,8 +481,10 @@ image_to_pdf (url image, url pdf, int w_pt, int h_pt, int dpi) {
+@@ -462,8 +489,10 @@ image_to_pdf (url image, url pdf, int w_pt, int h_pt, int dpi) {
    if (DEBUG_CONVERT) debug_convert << "image_to_pdf ... ";
    string s= suffix (image);
    // First try to preserve "vectorialness"
@@ -1962,7 +1951,7 @@ index c712e01ab..433dde8f7 100644
  #ifdef USE_GS
    if (gs_supports (image)) {
      if (DEBUG_CONVERT) debug_convert << " using gs "<<LF;
-@@ -463,7 +492,7 @@ image_to_pdf (url image, url pdf, int w_pt, int h_pt, int dpi) {
+@@ -471,7 +500,7 @@ image_to_pdf (url image, url pdf, int w_pt, int h_pt, int dpi) {
      return;
    }
  #endif
@@ -1971,7 +1960,7 @@ index c712e01ab..433dde8f7 100644
  #ifdef QTTEXMACS
    if (qt_supports (image)) {
      if (DEBUG_CONVERT) debug_convert << " using qt "<<LF;
-@@ -477,12 +506,15 @@ image_to_pdf (url image, url pdf, int w_pt, int h_pt, int dpi) {
+@@ -485,12 +514,15 @@ image_to_pdf (url image, url pdf, int w_pt, int h_pt, int dpi) {
  
  void
  image_to_png (url image, url png, int w, int h) {// IN PIXEL UNITS!
@@ -1988,7 +1977,7 @@ index c712e01ab..433dde8f7 100644
  #ifdef MACOSX_EXTENSIONS
    //cout << "mac convert " << image << ", " << png << "\n";
    if (mac_supports (image)) {
-@@ -504,7 +536,7 @@ image_to_png (url image, url png, int w, int h) {// IN PIXEL UNITS!
+@@ -512,7 +544,7 @@ image_to_png (url image, url png, int w, int h) {// IN PIXEL UNITS!
      if (gs_to_png (image, png, w, h)) return;
    }
  #endif
@@ -1997,7 +1986,7 @@ index c712e01ab..433dde8f7 100644
    call_imagemagick_convert (image, png, w, h);
    if (! exists(png)) {
      convert_error << image << " could not be converted to png" <<LF;
-@@ -513,18 +545,28 @@ image_to_png (url image, url png, int w, int h) {// IN PIXEL UNITS!
+@@ -521,18 +553,28 @@ image_to_png (url image, url png, int w, int h) {// IN PIXEL UNITS!
  }
  
  bool
@@ -2029,7 +2018,7 @@ index c712e01ab..433dde8f7 100644
    return false;
  }
  
-@@ -536,8 +578,7 @@ call_scm_converter(url image, url dest) {
+@@ -544,8 +586,7 @@ call_scm_converter(url image, url dest) {
  bool
  has_image_magick (){
  #ifdef OS_MINGW
@@ -2039,7 +2028,7 @@ index c712e01ab..433dde8f7 100644
  #else
    static bool has_imagemagick= exists_in_path ("convert");
  #endif
-@@ -549,9 +590,12 @@ imagemagick_cmd () {
+@@ -557,9 +598,12 @@ imagemagick_cmd () {
    if (has_image_magick()) {
  #ifdef OS_MINGW
      static string image_magick_cmd=
@@ -2053,7 +2042,7 @@ index c712e01ab..433dde8f7 100644
  #endif
      return copy (image_magick_cmd);
    } 
-@@ -561,6 +605,7 @@ imagemagick_cmd () {
+@@ -569,6 +613,7 @@ imagemagick_cmd () {
  void
  call_imagemagick_convert (url image, url dest, int w_pt, int h_pt, int dpi) {
    if (has_image_magick ()) { 
@@ -2061,7 +2050,7 @@ index c712e01ab..433dde8f7 100644
      string cmd= imagemagick_cmd ();
      string s= suffix (image);
      if (s != "pdf" && s != "ps" && s != "eps" &&
-@@ -581,12 +626,16 @@ call_imagemagick_convert (url image, url dest, int w_pt, int h_pt, int dpi) {
+@@ -589,10 +634,14 @@ call_imagemagick_convert (url image, url dest, int w_pt, int h_pt, int dpi) {
  bool
  imagemagick_image_size(url image, int& w, int& h, bool pt_units) {
    if (!has_image_magick()) return false;
@@ -2077,12 +2066,9 @@ index c712e01ab..433dde8f7 100644
 +    string cmd= "identify"; //ImageMagick utility
 +    // compatible with IM <7 and >= 7
  #endif
--    cmd << " -ping -format \"%w %h %x\\n%y\""; 
-+    cmd << " -ping -format \"%w %h %x\\n%U\"";
+     cmd << " -ping -format \"%w %h %x %U\\n%y\"";
      string sz= eval_system (cmd, image);
-     int w_px, h_px, ok= true, pos= 0;
-     string unit;
-@@ -609,11 +658,11 @@ imagemagick_image_size(url image, int& w, int& h, bool pt_units) {
+@@ -617,11 +666,11 @@ imagemagick_image_size(url image, int& w, int& h, bool pt_units) {
            ok= ok && read_line (sz, pos, unit);    
            // according to the IM doc, units should be in [PixelsPerCentimeter,PixelsPerInch,Undefined]
            // When "Undefined" IM gives the nonsensical default value of 72 "dots per Undefined"
@@ -2098,10 +2084,10 @@ index c712e01ab..433dde8f7 100644
            h= (int) h_px * ptperpix;
            ok= ok && read_double (sz, pos, densityy);
 diff --git a/src/System/Files/image_files.hpp b/src/System/Files/image_files.hpp
-index eea56045f..38d84b46f 100644
+index 67214a0bc..8c7059ca4 100644
 --- a/src/System/Files/image_files.hpp
 +++ b/src/System/Files/image_files.hpp
-@@ -25,11 +25,12 @@ string 	      ps_load (url image, bool conv=true);
+@@ -26,11 +26,12 @@ string 	      ps_load (url image, bool conv=true);
  void          image_size (url image, int& w, int& h);
  void          pdf_image_size (url image, int& w, int& h);
  void          svg_image_size (url image, int& w, int& h);
@@ -2115,42 +2101,3 @@ index eea56045f..38d84b46f 100644
  void          call_imagemagick_convert(url image, url dest, int w_pt=0, int h_pt=0, int dpi=72);
  bool          imagemagick_image_size(url image, int& w, int& h, bool pt_units=true);
  bool          has_image_magick();
-diff --git a/src/System/Link/socket_notifier.cpp b/src/System/Link/socket_notifier.cpp
-index 187682ba0..47dbbcee7 100644
---- a/src/System/Link/socket_notifier.cpp
-+++ b/src/System/Link/socket_notifier.cpp
-@@ -8,7 +8,7 @@
- * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
- * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
- ******************************************************************************/
--#ifndef QTTEXMACS
-+#if !(defined (QTTEXMACS) && defined (QTPIPES))
- 
- #include "config.h"
- 
-diff --git a/src/Plugins/Qt/QTMWidget.cpp b/src/Plugins/Qt/QTMWidget.cpp
-index d82f765..5b4ea35 100644
---- a/src/Plugins/Qt/QTMWidget.cpp
-+++ b/src/Plugins/Qt/QTMWidget.cpp
-@@ -192,6 +192,8 @@
-   if (DEBUG_QT)
-     debug_qt << "Creating " << from_qstring(objectName()) << " of widget "
-              << (tm_widget() ? tm_widget()->type_as_string() : "NULL") << LF;
-+  //part 1/2 of the fix for 43373
-+  QApplication::postEvent(this, new QFocusEvent(QEvent::FocusIn, Qt::OtherFocusReason));
- }
- 
- QTMWidget::~QTMWidget () {
-@@ -828,6 +830,11 @@
-     the_gui->process_keyboard_focus (tm_widget(), true, texmacs_time());
-   }
-   QTMScrollView::focusInEvent (event);
-+  // part 2/2 of the fix for bug 43373.
-+  if (!isActiveWindow()) activateWindow();
-+  if (isActiveWindow() && !hasFocus()) setFocus (Qt::OtherFocusReason);
-+    //=> this will send us back here...
-+    //This redundancy is weird but definitely needed to properly get focus with Qt >= 5.15. Qt bug?
- }
- 
- void
-

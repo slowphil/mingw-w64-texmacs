@@ -28,7 +28,9 @@ depends=(
           "${MINGW_PACKAGE_PREFIX}-lcms2"
           "${MINGW_PACKAGE_PREFIX}-freetype"
           "${MINGW_PACKAGE_PREFIX}-iconv"
-          "${MINGW_PACKAGE_PREFIX}-qt5"
+          "${MINGW_PACKAGE_PREFIX}-qt5-base"
+          "${MINGW_PACKAGE_PREFIX}-qt5-imageformats"
+          "${MINGW_PACKAGE_PREFIX}-qt5-svg"
           "${MINGW_PACKAGE_PREFIX}-guile1.8"
           "${MINGW_PACKAGE_PREFIX}-poppler"
         )
